@@ -1,0 +1,2088 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"apeplay.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\audio\\apeplay.c"
+  20              		.section	.text.ape_i2s_dma_tx_callback,"ax",%progbits
+  21              		.align	1
+  22              		.global	ape_i2s_dma_tx_callback
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	ape_i2s_dma_tx_callback:
+  28              	.LFB123:
+   1:source\audio/apeplay.c **** /********************************************************************************/
+   2:source\audio/apeplay.c **** /* apeplay.c                                                                    */
+   3:source\audio/apeplay.c **** /* STM32F407ZGT6                                                                */
+   4:source\audio/apeplay.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\audio/apeplay.c **** /* stm32f4x_test								*/
+   6:source\audio/apeplay.c **** /********************************************************************************/
+   7:source\audio/apeplay.c **** #include "../../hwdefs.h"
+   8:source\audio/apeplay.c **** #include "../prototype.h"
+   9:source\audio/apeplay.c **** #include <string.h>
+  10:source\audio/apeplay.c **** 
+  11:source\audio/apeplay.c **** 
+  12:source\audio/apeplay.c **** extern volatile unsigned char ms_delay;
+  13:source\audio/apeplay.c **** extern volatile unsigned char volume;
+  14:source\audio/apeplay.c **** __apectrl *apectrl;
+  15:source\audio/apeplay.c **** extern filter_int *filterbuf64;
+  16:source\audio/apeplay.c **** volatile unsigned char apetransferend = 0;
+  17:source\audio/apeplay.c **** volatile unsigned char apewitchbuf = 0;
+  18:source\audio/apeplay.c **** 
+  19:source\audio/apeplay.c **** struct ape_ctx_t *apex;
+  20:source\audio/apeplay.c **** int ape_nblocks;
+  21:source\audio/apeplay.c **** unsigned long int ape_currentframe;
+  22:source\audio/apeplay.c **** int ape_bytesconsumed;
+  23:source\audio/apeplay.c **** int ape_bytesinbuffer;
+  24:source\audio/apeplay.c **** int ape_firstbyte;
+  25:source\audio/apeplay.c **** unsigned char *ape_readptr;
+  26:source\audio/apeplay.c **** unsigned char *ape_buffer;
+  27:source\audio/apeplay.c **** long int *ape_decoded0;
+  28:source\audio/apeplay.c **** long int *ape_decoded1;
+  29:source\audio/apeplay.c **** unsigned char ape_res;
+  30:source\audio/apeplay.c **** 
+  31:source\audio/apeplay.c **** extern volatile unsigned char audio_delay,audio_decode_flag,audio_read_flag,audio_run,audio_pause,m
+  32:source\audio/apeplay.c **** extern unsigned int audio_old_sec,audio_br;
+  33:source\audio/apeplay.c **** 
+  34:source\audio/apeplay.c **** extern int ape_parseheader (FIL *fx, struct ape_ctx_t *ape_ctx);
+  35:source\audio/apeplay.c **** extern void init_frame_decoder (struct ape_ctx_t *ape_ctx,unsigned char *inbuffer,int *firstbyte,in
+  36:source\audio/apeplay.c **** extern int decode_chunk (struct ape_ctx_t *ape_ctx,unsigned char *inbuffer,int *firstbyte,int *byte
+  37:source\audio/apeplay.c **** 
+  38:source\audio/apeplay.c **** 
+  39:source\audio/apeplay.c **** 
+  40:source\audio/apeplay.c **** void ape_i2s_dma_tx_callback (void)
+  41:source\audio/apeplay.c **** {
+  29              		.loc 1 41 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  42:source\audio/apeplay.c ****       unsigned short i;
+  34              		.loc 1 42 7 view .LVU1
+  43:source\audio/apeplay.c ****       if (DMA1_Stream4->CR & (1 << 19)) {
+  35              		.loc 1 43 7 view .LVU2
+  36              		.loc 1 43 23 is_stmt 0 view .LVU3
+  37 0000 124B     		ldr	r3, .L8
+  38 0002 1349     		ldr	r1, .L8+4
+  39 0004 1B6F     		ldr	r3, [r3, #112]
+  40 0006 134A     		ldr	r2, .L8+8
+  41              		.loc 1 43 10 view .LVU4
+  42 0008 13F40023 		ands	r3, r3, #524288
+  43 000c 10D0     		beq	.L2
+  44:source\audio/apeplay.c **** 	 apewitchbuf = 0;
+  44              		.loc 1 44 3 is_stmt 1 view .LVU5
+  45              		.loc 1 44 15 is_stmt 0 view .LVU6
+  46 000e 0023     		movs	r3, #0
+  47 0010 0B70     		strb	r3, [r1]
+  45:source\audio/apeplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  48              		.loc 1 45 3 is_stmt 1 view .LVU7
+  49              		.loc 1 45 16 is_stmt 0 view .LVU8
+  50 0012 137D     		ldrb	r3, [r2, #20]	@ zero_extendqisi2
+  51              		.loc 1 45 6 view .LVU9
+  52 0014 13F00103 		ands	r3, r3, #1
+  53 0018 06D1     		bne	.L3
+  46:source\audio/apeplay.c **** 	    for (i=0;i<APE_BLOCKS_PER_LOOP*4;i++) audiodev.i2sbuf1[i] = 0;
+  54              		.loc 1 46 64 view .LVU10
+  55 001a 1846     		mov	r0, r3
+  56              	.L4:
+  57              	.LVL0:
+  58              		.loc 1 46 44 is_stmt 1 discriminator 3 view .LVU11
+  59              		.loc 1 46 52 is_stmt 0 discriminator 3 view .LVU12
+  60 001c 1168     		ldr	r1, [r2]	@ unaligned
+  61              		.loc 1 46 64 discriminator 3 view .LVU13
+  62 001e C854     		strb	r0, [r1, r3]
+  63              		.loc 1 46 40 is_stmt 1 discriminator 3 view .LVU14
+  64              	.LVL1:
+  65              		.loc 1 46 16 discriminator 3 view .LVU15
+  66 0020 0133     		adds	r3, r3, #1
+  67              	.LVL2:
+  68              		.loc 1 46 16 is_stmt 0 discriminator 3 view .LVU16
+  69 0022 B3F5005F 		cmp	r3, #8192
+  70 0026 F9D1     		bne	.L4
+  71              	.LVL3:
+  72              	.L3:
+  47:source\audio/apeplay.c **** 	 }
+  48:source\audio/apeplay.c ****       } else {
+  49:source\audio/apeplay.c **** 	 apewitchbuf = 1;
+  50:source\audio/apeplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  51:source\audio/apeplay.c **** 	    for (i=0;i<APE_BLOCKS_PER_LOOP*4;i++) audiodev.i2sbuf2[i] = 0;
+  52:source\audio/apeplay.c **** 	 }
+  53:source\audio/apeplay.c ****       }
+  54:source\audio/apeplay.c ****       apetransferend = 1;
+  73              		.loc 1 54 7 is_stmt 1 view .LVU17
+  74              		.loc 1 54 22 is_stmt 0 view .LVU18
+  75 0028 0B4B     		ldr	r3, .L8+12
+  76 002a 0122     		movs	r2, #1
+  77 002c 1A70     		strb	r2, [r3]
+  55:source\audio/apeplay.c **** }
+  78              		.loc 1 55 1 view .LVU19
+  79 002e 7047     		bx	lr
+  80              	.L2:
+  49:source\audio/apeplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  81              		.loc 1 49 3 is_stmt 1 view .LVU20
+  49:source\audio/apeplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  82              		.loc 1 49 15 is_stmt 0 view .LVU21
+  83 0030 0120     		movs	r0, #1
+  84 0032 0870     		strb	r0, [r1]
+  50:source\audio/apeplay.c **** 	    for (i=0;i<APE_BLOCKS_PER_LOOP*4;i++) audiodev.i2sbuf2[i] = 0;
+  85              		.loc 1 50 3 is_stmt 1 view .LVU22
+  50:source\audio/apeplay.c **** 	    for (i=0;i<APE_BLOCKS_PER_LOOP*4;i++) audiodev.i2sbuf2[i] = 0;
+  86              		.loc 1 50 16 is_stmt 0 view .LVU23
+  87 0034 117D     		ldrb	r1, [r2, #20]	@ zero_extendqisi2
+  50:source\audio/apeplay.c **** 	    for (i=0;i<APE_BLOCKS_PER_LOOP*4;i++) audiodev.i2sbuf2[i] = 0;
+  88              		.loc 1 50 6 view .LVU24
+  89 0036 C907     		lsls	r1, r1, #31
+  90 0038 F6D4     		bmi	.L3
+  51:source\audio/apeplay.c **** 	 }
+  91              		.loc 1 51 64 view .LVU25
+  92 003a 1846     		mov	r0, r3
+  93              	.L5:
+  94              	.LVL4:
+  51:source\audio/apeplay.c **** 	 }
+  95              		.loc 1 51 44 is_stmt 1 discriminator 3 view .LVU26
+  51:source\audio/apeplay.c **** 	 }
+  96              		.loc 1 51 52 is_stmt 0 discriminator 3 view .LVU27
+  97 003c 5168     		ldr	r1, [r2, #4]	@ unaligned
+  51:source\audio/apeplay.c **** 	 }
+  98              		.loc 1 51 64 discriminator 3 view .LVU28
+  99 003e C854     		strb	r0, [r1, r3]
+  51:source\audio/apeplay.c **** 	 }
+ 100              		.loc 1 51 40 is_stmt 1 discriminator 3 view .LVU29
+ 101              	.LVL5:
+  51:source\audio/apeplay.c **** 	 }
+ 102              		.loc 1 51 16 discriminator 3 view .LVU30
+ 103 0040 0133     		adds	r3, r3, #1
+ 104              	.LVL6:
+  51:source\audio/apeplay.c **** 	 }
+ 105              		.loc 1 51 16 is_stmt 0 discriminator 3 view .LVU31
+ 106 0042 B3F5005F 		cmp	r3, #8192
+ 107 0046 F9D1     		bne	.L5
+ 108 0048 EEE7     		b	.L3
+ 109              	.L9:
+ 110 004a 00BF     		.align	2
+ 111              	.L8:
+ 112 004c 00600240 		.word	1073897472
+ 113 0050 00000000 		.word	apewitchbuf
+ 114 0054 00000000 		.word	audiodev
+ 115 0058 00000000 		.word	apetransferend
+ 116              		.cfi_endproc
+ 117              	.LFE123:
+ 119              		.section	.text.ape_file_seek,"ax",%progbits
+ 120              		.align	1
+ 121              		.global	ape_file_seek
+ 122              		.syntax unified
+ 123              		.thumb
+ 124              		.thumb_func
+ 126              	ape_file_seek:
+ 127              	.LVL7:
+ 128              	.LFB126:
+  56:source\audio/apeplay.c **** 
+  57:source\audio/apeplay.c **** 
+  58:source\audio/apeplay.c **** void ape_fill_buffer (unsigned short *buf,unsigned short size)
+  59:source\audio/apeplay.c **** {
+  60:source\audio/apeplay.c ****       unsigned short i;
+  61:source\audio/apeplay.c ****       unsigned short *p;
+  62:source\audio/apeplay.c ****       while (apetransferend == 0) {
+  63:source\audio/apeplay.c ****             if (tick) {
+  64:source\audio/apeplay.c ****                tick = 0;
+  65:source\audio/apeplay.c ****                tick_process();
+  66:source\audio/apeplay.c ****             }
+  67:source\audio/apeplay.c ****       }
+  68:source\audio/apeplay.c ****       apetransferend = 0;
+  69:source\audio/apeplay.c ****       if (apewitchbuf == 0) {
+  70:source\audio/apeplay.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+  71:source\audio/apeplay.c **** 	 p = (void *)audiodev.i2sbuf1;
+  72:source\audio/apeplay.c ****       } else {
+  73:source\audio/apeplay.c **** 	 //p = (unsigned short *)audiodev.i2sbuf2;	// POINTER
+  74:source\audio/apeplay.c **** 	 p = (void *)audiodev.i2sbuf2;
+  75:source\audio/apeplay.c ****       }
+  76:source\audio/apeplay.c ****       for (i=0;i<size;i++) p[i] = buf[i];
+  77:source\audio/apeplay.c **** }
+  78:source\audio/apeplay.c **** 
+  79:source\audio/apeplay.c **** 
+  80:source\audio/apeplay.c **** void ape_get_curtime (FIL *fx,__apectrl *apectrlx)
+  81:source\audio/apeplay.c **** {
+  82:source\audio/apeplay.c ****       long long fpos = 0;
+  83:source\audio/apeplay.c ****       if (fx->fptr > apectrlx->datastart) fpos = fx->fptr - apectrlx->datastart;
+  84:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+  85:source\audio/apeplay.c **** }
+  86:source\audio/apeplay.c **** 
+  87:source\audio/apeplay.c **** 
+  88:source\audio/apeplay.c **** unsigned int ape_file_seek (unsigned int pos)
+  89:source\audio/apeplay.c **** {
+ 129              		.loc 1 89 1 is_stmt 1 view -0
+ 130              		.cfi_startproc
+ 131              		@ args = 0, pretend = 0, frame = 0
+ 132              		@ frame_needed = 0, uses_anonymous_args = 0
+ 133              		@ link register save eliminated.
+  90:source\audio/apeplay.c ****       UNUSED(pos);
+ 134              		.loc 1 90 7 view .LVU33
+  91:source\audio/apeplay.c ****       return audiodev.file->fptr;
+ 135              		.loc 1 91 7 view .LVU34
+ 136              		.loc 1 91 22 is_stmt 0 view .LVU35
+ 137 0000 024B     		ldr	r3, .L11
+ 138 0002 DB68     		ldr	r3, [r3, #12]	@ unaligned
+  92:source\audio/apeplay.c **** }
+ 139              		.loc 1 92 1 view .LVU36
+ 140 0004 D3F80802 		ldr	r0, [r3, #520]
+ 141              	.LVL8:
+ 142              		.loc 1 92 1 view .LVU37
+ 143 0008 7047     		bx	lr
+ 144              	.L12:
+ 145 000a 00BF     		.align	2
+ 146              	.L11:
+ 147 000c 00000000 		.word	audiodev
+ 148              		.cfi_endproc
+ 149              	.LFE126:
+ 151              		.section	.text.ape_fill_buffer,"ax",%progbits
+ 152              		.align	1
+ 153              		.global	ape_fill_buffer
+ 154              		.syntax unified
+ 155              		.thumb
+ 156              		.thumb_func
+ 158              	ape_fill_buffer:
+ 159              	.LVL9:
+ 160              	.LFB124:
+  59:source\audio/apeplay.c ****       unsigned short i;
+ 161              		.loc 1 59 1 is_stmt 1 view -0
+ 162              		.cfi_startproc
+ 163              		@ args = 0, pretend = 0, frame = 0
+ 164              		@ frame_needed = 0, uses_anonymous_args = 0
+  60:source\audio/apeplay.c ****       unsigned short *p;
+ 165              		.loc 1 60 7 view .LVU39
+  61:source\audio/apeplay.c ****       while (apetransferend == 0) {
+ 166              		.loc 1 61 7 view .LVU40
+  62:source\audio/apeplay.c ****             if (tick) {
+ 167              		.loc 1 62 7 view .LVU41
+  59:source\audio/apeplay.c ****       unsigned short i;
+ 168              		.loc 1 59 1 is_stmt 0 view .LVU42
+ 169 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 170              		.cfi_def_cfa_offset 24
+ 171              		.cfi_offset 3, -24
+ 172              		.cfi_offset 4, -20
+ 173              		.cfi_offset 5, -16
+ 174              		.cfi_offset 6, -12
+ 175              		.cfi_offset 7, -8
+ 176              		.cfi_offset 14, -4
+  62:source\audio/apeplay.c ****             if (tick) {
+ 177              		.loc 1 62 29 view .LVU43
+ 178 0002 124E     		ldr	r6, .L24
+  63:source\audio/apeplay.c ****                tick = 0;
+ 179              		.loc 1 63 17 view .LVU44
+ 180 0004 124F     		ldr	r7, .L24+4
+  59:source\audio/apeplay.c ****       unsigned short i;
+ 181              		.loc 1 59 1 view .LVU45
+ 182 0006 0546     		mov	r5, r0
+ 183 0008 0C46     		mov	r4, r1
+ 184              	.LVL10:
+ 185              	.L15:
+  62:source\audio/apeplay.c ****             if (tick) {
+ 186              		.loc 1 62 29 is_stmt 1 view .LVU46
+ 187 000a 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 188 000c 03F0FF02 		and	r2, r3, #255
+ 189 0010 6BB1     		cbz	r3, .L16
+  68:source\audio/apeplay.c ****       if (apewitchbuf == 0) {
+ 190              		.loc 1 68 7 view .LVU47
+  69:source\audio/apeplay.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 191              		.loc 1 69 23 is_stmt 0 view .LVU48
+ 192 0012 104A     		ldr	r2, .L24+8
+  71:source\audio/apeplay.c ****       } else {
+ 193              		.loc 1 71 5 view .LVU49
+ 194 0014 1049     		ldr	r1, .L24+12
+  68:source\audio/apeplay.c ****       if (apewitchbuf == 0) {
+ 195              		.loc 1 68 22 view .LVU50
+ 196 0016 0023     		movs	r3, #0
+ 197 0018 3370     		strb	r3, [r6]
+  69:source\audio/apeplay.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 198              		.loc 1 69 7 is_stmt 1 view .LVU51
+  69:source\audio/apeplay.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 199              		.loc 1 69 23 is_stmt 0 view .LVU52
+ 200 001a 1078     		ldrb	r0, [r2]	@ zero_extendqisi2
+  71:source\audio/apeplay.c ****       } else {
+ 201              		.loc 1 71 5 view .LVU53
+ 202 001c 0A68     		ldr	r2, [r1]	@ unaligned
+  74:source\audio/apeplay.c ****       }
+ 203              		.loc 1 74 5 view .LVU54
+ 204 001e 4968     		ldr	r1, [r1, #4]	@ unaligned
+ 205 0020 9842     		cmp	r0, r3
+ 206 0022 18BF     		it	ne
+ 207 0024 0A46     		movne	r2, r1
+ 208              	.LVL11:
+  76:source\audio/apeplay.c **** }
+ 209              		.loc 1 76 7 is_stmt 1 view .LVU55
+ 210              	.L18:
+  76:source\audio/apeplay.c **** }
+ 211              		.loc 1 76 17 discriminator 1 view .LVU56
+ 212 0026 99B2     		uxth	r1, r3
+ 213 0028 8C42     		cmp	r4, r1
+ 214 002a 08D8     		bhi	.L19
+  77:source\audio/apeplay.c **** 
+ 215              		.loc 1 77 1 is_stmt 0 view .LVU57
+ 216 002c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 217              	.LVL12:
+ 218              	.L16:
+  63:source\audio/apeplay.c ****                tick = 0;
+ 219              		.loc 1 63 13 is_stmt 1 view .LVU58
+  63:source\audio/apeplay.c ****                tick = 0;
+ 220              		.loc 1 63 17 is_stmt 0 view .LVU59
+ 221 002e 3B88     		ldrh	r3, [r7]
+ 222 0030 9BB2     		uxth	r3, r3
+  63:source\audio/apeplay.c ****                tick = 0;
+ 223              		.loc 1 63 16 view .LVU60
+ 224 0032 002B     		cmp	r3, #0
+ 225 0034 E9D0     		beq	.L15
+  64:source\audio/apeplay.c ****                tick_process();
+ 226              		.loc 1 64 16 is_stmt 1 view .LVU61
+  64:source\audio/apeplay.c ****                tick_process();
+ 227              		.loc 1 64 21 is_stmt 0 view .LVU62
+ 228 0036 3A80     		strh	r2, [r7]	@ movhi
+  65:source\audio/apeplay.c ****             }
+ 229              		.loc 1 65 16 is_stmt 1 view .LVU63
+ 230 0038 FFF7FEFF 		bl	tick_process
+ 231              	.LVL13:
+ 232 003c E5E7     		b	.L15
+ 233              	.LVL14:
+ 234              	.L19:
+  76:source\audio/apeplay.c **** }
+ 235              		.loc 1 76 28 discriminator 3 view .LVU64
+  76:source\audio/apeplay.c **** }
+ 236              		.loc 1 76 38 is_stmt 0 discriminator 3 view .LVU65
+ 237 003e 35F81310 		ldrh	r1, [r5, r3, lsl #1]
+  76:source\audio/apeplay.c **** }
+ 238              		.loc 1 76 33 discriminator 3 view .LVU66
+ 239 0042 22F81310 		strh	r1, [r2, r3, lsl #1]	@ movhi
+  76:source\audio/apeplay.c **** }
+ 240              		.loc 1 76 24 is_stmt 1 discriminator 3 view .LVU67
+ 241              	.LVL15:
+  76:source\audio/apeplay.c **** }
+ 242              		.loc 1 76 24 is_stmt 0 discriminator 3 view .LVU68
+ 243 0046 0133     		adds	r3, r3, #1
+ 244              	.LVL16:
+  76:source\audio/apeplay.c **** }
+ 245              		.loc 1 76 24 discriminator 3 view .LVU69
+ 246 0048 EDE7     		b	.L18
+ 247              	.L25:
+ 248 004a 00BF     		.align	2
+ 249              	.L24:
+ 250 004c 00000000 		.word	apetransferend
+ 251 0050 00000000 		.word	tick
+ 252 0054 00000000 		.word	apewitchbuf
+ 253 0058 00000000 		.word	audiodev
+ 254              		.cfi_endproc
+ 255              	.LFE124:
+ 257              		.global	__aeabi_uldivmod
+ 258              		.global	__aeabi_ldivmod
+ 259              		.section	.text.ape_get_curtime,"ax",%progbits
+ 260              		.align	1
+ 261              		.global	ape_get_curtime
+ 262              		.syntax unified
+ 263              		.thumb
+ 264              		.thumb_func
+ 266              	ape_get_curtime:
+ 267              	.LVL17:
+ 268              	.LFB125:
+  81:source\audio/apeplay.c ****       long long fpos = 0;
+ 269              		.loc 1 81 1 is_stmt 1 view -0
+ 270              		.cfi_startproc
+ 271              		@ args = 0, pretend = 0, frame = 0
+ 272              		@ frame_needed = 0, uses_anonymous_args = 0
+  82:source\audio/apeplay.c ****       if (fx->fptr > apectrlx->datastart) fpos = fx->fptr - apectrlx->datastart;
+ 273              		.loc 1 82 7 view .LVU71
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 274              		.loc 1 83 7 view .LVU72
+  81:source\audio/apeplay.c ****       long long fpos = 0;
+ 275              		.loc 1 81 1 is_stmt 0 view .LVU73
+ 276 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 277              		.cfi_def_cfa_offset 24
+ 278              		.cfi_offset 3, -24
+ 279              		.cfi_offset 4, -20
+ 280              		.cfi_offset 5, -16
+ 281              		.cfi_offset 6, -12
+ 282              		.cfi_offset 7, -8
+ 283              		.cfi_offset 14, -4
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 284              		.loc 1 83 13 view .LVU74
+ 285 0002 D0F80832 		ldr	r3, [r0, #520]
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 286              		.loc 1 83 30 view .LVU75
+ 287 0006 4A69     		ldr	r2, [r1, #20]	@ unaligned
+  81:source\audio/apeplay.c ****       long long fpos = 0;
+ 288              		.loc 1 81 1 view .LVU76
+ 289 0008 0C46     		mov	r4, r1
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 290              		.loc 1 83 10 view .LVU77
+ 291 000a 9342     		cmp	r3, r2
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 292              		.loc 1 83 43 is_stmt 1 view .LVU78
+  84:source\audio/apeplay.c **** }
+ 293              		.loc 1 84 41 is_stmt 0 view .LVU79
+ 294 000c 2668     		ldr	r6, [r4]	@ unaligned
+  81:source\audio/apeplay.c ****       long long fpos = 0;
+ 295              		.loc 1 81 1 view .LVU80
+ 296 000e 0546     		mov	r5, r0
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 297              		.loc 1 83 59 view .LVU81
+ 298 0010 8EBF     		itee	hi
+ 299 0012 9B1A     		subhi	r3, r3, r2
+  82:source\audio/apeplay.c ****       if (fx->fptr > apectrlx->datastart) fpos = fx->fptr - apectrlx->datastart;
+ 300              		.loc 1 82 17 view .LVU82
+ 301 0014 0023     		movls	r3, #0
+ 302 0016 1946     		movls	r1, r3
+ 303              	.LVL18:
+  84:source\audio/apeplay.c **** }
+ 304              		.loc 1 84 31 view .LVU83
+ 305 0018 A6FB0307 		umull	r0, r7, r6, r3
+ 306              	.LVL19:
+  84:source\audio/apeplay.c **** }
+ 307              		.loc 1 84 63 view .LVU84
+ 308 001c D5F80C32 		ldr	r3, [r5, #524]
+  83:source\audio/apeplay.c ****       apectrlx->cursec = fpos * apectrlx->totsec / (fx->fsize - apectrlx->datastart);
+ 309              		.loc 1 83 48 view .LVU85
+ 310 0020 88BF     		it	hi
+ 311 0022 0021     		movhi	r1, #0
+ 312              	.LVL20:
+  84:source\audio/apeplay.c **** }
+ 313              		.loc 1 84 7 is_stmt 1 view .LVU86
+  84:source\audio/apeplay.c **** }
+ 314              		.loc 1 84 50 is_stmt 0 view .LVU87
+ 315 0024 9A1A     		subs	r2, r3, r2
+ 316 0026 06FB0171 		mla	r1, r6, r1, r7
+ 317 002a 0023     		movs	r3, #0
+ 318 002c FFF7FEFF 		bl	__aeabi_ldivmod
+ 319              	.LVL21:
+  84:source\audio/apeplay.c **** }
+ 320              		.loc 1 84 24 view .LVU88
+ 321 0030 6060     		str	r0, [r4, #4]	@ unaligned
+  85:source\audio/apeplay.c **** 
+ 322              		.loc 1 85 1 view .LVU89
+ 323 0032 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+  85:source\audio/apeplay.c **** 
+ 324              		.loc 1 85 1 view .LVU90
+ 325              		.cfi_endproc
+ 326              	.LFE125:
+ 328              		.section	.text.ape_stop,"ax",%progbits
+ 329              		.align	1
+ 330              		.global	ape_stop
+ 331              		.syntax unified
+ 332              		.thumb
+ 333              		.thumb_func
+ 335              	ape_stop:
+ 336              	.LFB127:
+  93:source\audio/apeplay.c **** 
+  94:source\audio/apeplay.c **** 
+  95:source\audio/apeplay.c **** void ape_stop (void)
+  96:source\audio/apeplay.c **** {
+ 337              		.loc 1 96 1 is_stmt 1 view -0
+ 338              		.cfi_startproc
+ 339              		@ args = 0, pretend = 0, frame = 0
+ 340              		@ frame_needed = 0, uses_anonymous_args = 0
+  97:source\audio/apeplay.c ****       audio_stop();
+ 341              		.loc 1 97 7 view .LVU92
+  96:source\audio/apeplay.c ****       audio_stop();
+ 342              		.loc 1 96 1 is_stmt 0 view .LVU93
+ 343 0000 38B5     		push	{r3, r4, r5, lr}
+ 344              		.cfi_def_cfa_offset 16
+ 345              		.cfi_offset 3, -16
+ 346              		.cfi_offset 4, -12
+ 347              		.cfi_offset 5, -8
+ 348              		.cfi_offset 14, -4
+  98:source\audio/apeplay.c ****       f_close(audiodev.file);
+ 349              		.loc 1 98 7 view .LVU94
+ 350 0002 1E4C     		ldr	r4, .L30
+  99:source\audio/apeplay.c ****       free(filterbuf64);
+ 100:source\audio/apeplay.c ****       free(apectrl);
+ 101:source\audio/apeplay.c ****       free(apex->seektable);
+ 351              		.loc 1 101 16 view .LVU95
+ 352 0004 1E4D     		ldr	r5, .L30+4
+  97:source\audio/apeplay.c ****       f_close(audiodev.file);
+ 353              		.loc 1 97 7 view .LVU96
+ 354 0006 FFF7FEFF 		bl	audio_stop
+ 355              	.LVL22:
+  98:source\audio/apeplay.c ****       f_close(audiodev.file);
+ 356              		.loc 1 98 7 is_stmt 1 view .LVU97
+ 357 000a E068     		ldr	r0, [r4, #12]	@ unaligned
+ 358 000c FFF7FEFF 		bl	f_close
+ 359              	.LVL23:
+  99:source\audio/apeplay.c ****       free(filterbuf64);
+ 360              		.loc 1 99 7 view .LVU98
+ 361 0010 1C4B     		ldr	r3, .L30+8
+ 362 0012 1868     		ldr	r0, [r3]
+ 363 0014 FFF7FEFF 		bl	free
+ 364              	.LVL24:
+ 100:source\audio/apeplay.c ****       free(apex->seektable);
+ 365              		.loc 1 100 7 view .LVU99
+ 366 0018 1B4B     		ldr	r3, .L30+12
+ 367 001a 1868     		ldr	r0, [r3]
+ 368 001c FFF7FEFF 		bl	free
+ 369              	.LVL25:
+ 370              		.loc 1 101 7 view .LVU100
+ 371              		.loc 1 101 16 is_stmt 0 view .LVU101
+ 372 0020 2B68     		ldr	r3, [r5]
+ 373              		.loc 1 101 7 view .LVU102
+ 374 0022 986D     		ldr	r0, [r3, #88]
+ 375 0024 FFF7FEFF 		bl	free
+ 376              	.LVL26:
+ 102:source\audio/apeplay.c ****       free(apex);
+ 377              		.loc 1 102 7 is_stmt 1 view .LVU103
+ 378 0028 2868     		ldr	r0, [r5]
+ 379 002a FFF7FEFF 		bl	free
+ 380              	.LVL27:
+ 103:source\audio/apeplay.c ****       free(ape_decoded0);
+ 381              		.loc 1 103 7 view .LVU104
+ 382 002e 174B     		ldr	r3, .L30+16
+ 383 0030 1868     		ldr	r0, [r3]
+ 384 0032 FFF7FEFF 		bl	free
+ 385              	.LVL28:
+ 104:source\audio/apeplay.c ****       free(ape_decoded1);
+ 386              		.loc 1 104 7 view .LVU105
+ 387 0036 164B     		ldr	r3, .L30+20
+ 388 0038 1868     		ldr	r0, [r3]
+ 389 003a FFF7FEFF 		bl	free
+ 390              	.LVL29:
+ 105:source\audio/apeplay.c ****       free(audiodev.file);
+ 391              		.loc 1 105 7 view .LVU106
+ 392 003e E068     		ldr	r0, [r4, #12]	@ unaligned
+ 393 0040 FFF7FEFF 		bl	free
+ 394              	.LVL30:
+ 106:source\audio/apeplay.c ****       free(audiodev.i2sbuf1);
+ 395              		.loc 1 106 7 view .LVU107
+ 396 0044 2068     		ldr	r0, [r4]	@ unaligned
+ 397 0046 FFF7FEFF 		bl	free
+ 398              	.LVL31:
+ 107:source\audio/apeplay.c ****       free(audiodev.i2sbuf2);
+ 399              		.loc 1 107 7 view .LVU108
+ 400 004a 6068     		ldr	r0, [r4, #4]	@ unaligned
+ 401 004c FFF7FEFF 		bl	free
+ 402              	.LVL32:
+ 108:source\audio/apeplay.c ****       free(ape_buffer);
+ 403              		.loc 1 108 7 view .LVU109
+ 404 0050 104B     		ldr	r3, .L30+24
+ 405 0052 1868     		ldr	r0, [r3]
+ 406 0054 FFF7FEFF 		bl	free
+ 407              	.LVL33:
+ 109:source\audio/apeplay.c ****       audio_run = 0;
+ 408              		.loc 1 109 7 view .LVU110
+ 409              		.loc 1 109 17 is_stmt 0 view .LVU111
+ 410 0058 0F4A     		ldr	r2, .L30+28
+ 411 005a 0023     		movs	r3, #0
+ 412 005c 1370     		strb	r3, [r2]
+ 110:source\audio/apeplay.c ****       audio_decode_flag = 0;
+ 413              		.loc 1 110 7 is_stmt 1 view .LVU112
+ 414              		.loc 1 110 25 is_stmt 0 view .LVU113
+ 415 005e 0F4A     		ldr	r2, .L30+32
+ 416 0060 1370     		strb	r3, [r2]
+ 111:source\audio/apeplay.c ****       audio_read_flag = 0;
+ 417              		.loc 1 111 7 is_stmt 1 view .LVU114
+ 418              		.loc 1 111 23 is_stmt 0 view .LVU115
+ 419 0062 0F4A     		ldr	r2, .L30+36
+ 420 0064 1370     		strb	r3, [r2]
+ 112:source\audio/apeplay.c ****       audio_pause = 0;
+ 421              		.loc 1 112 7 is_stmt 1 view .LVU116
+ 422              		.loc 1 112 19 is_stmt 0 view .LVU117
+ 423 0066 0F4A     		ldr	r2, .L30+40
+ 424 0068 1370     		strb	r3, [r2]
+ 113:source\audio/apeplay.c ****       audio_play_function = NULL;
+ 425              		.loc 1 113 7 is_stmt 1 view .LVU118
+ 426              		.loc 1 113 27 is_stmt 0 view .LVU119
+ 427 006a 0F4A     		ldr	r2, .L30+44
+ 428 006c 1360     		str	r3, [r2]
+ 114:source\audio/apeplay.c ****       audio_stop_function = NULL;
+ 429              		.loc 1 114 7 is_stmt 1 view .LVU120
+ 430              		.loc 1 114 27 is_stmt 0 view .LVU121
+ 431 006e 0F4A     		ldr	r2, .L30+48
+ 432 0070 1360     		str	r3, [r2]
+ 115:source\audio/apeplay.c ****       music_play = 1;
+ 433              		.loc 1 115 7 is_stmt 1 view .LVU122
+ 434              		.loc 1 115 18 is_stmt 0 view .LVU123
+ 435 0072 0F4B     		ldr	r3, .L30+52
+ 436 0074 0122     		movs	r2, #1
+ 437 0076 1A70     		strb	r2, [r3]
+ 116:source\audio/apeplay.c **** }
+ 438              		.loc 1 116 1 view .LVU124
+ 439 0078 38BD     		pop	{r3, r4, r5, pc}
+ 440              	.L31:
+ 441 007a 00BF     		.align	2
+ 442              	.L30:
+ 443 007c 00000000 		.word	audiodev
+ 444 0080 00000000 		.word	apex
+ 445 0084 00000000 		.word	filterbuf64
+ 446 0088 00000000 		.word	apectrl
+ 447 008c 00000000 		.word	ape_decoded0
+ 448 0090 00000000 		.word	ape_decoded1
+ 449 0094 00000000 		.word	ape_buffer
+ 450 0098 00000000 		.word	audio_run
+ 451 009c 00000000 		.word	audio_decode_flag
+ 452 00a0 00000000 		.word	audio_read_flag
+ 453 00a4 00000000 		.word	audio_pause
+ 454 00a8 00000000 		.word	audio_play_function
+ 455 00ac 00000000 		.word	audio_stop_function
+ 456 00b0 00000000 		.word	music_play
+ 457              		.cfi_endproc
+ 458              	.LFE127:
+ 460              		.section	.rodata.ape_play_song.str1.1,"aMS",%progbits,1
+ 461              	.LC0:
+ 462 0000 46696C65 		.ascii	"File: %s \000"
+ 462      3A202573 
+ 462      2000
+ 463              	.LC1:
+ 464 000a 53616D70 		.ascii	"Samplerate: %d \000"
+ 464      6C657261 
+ 464      74653A20 
+ 464      25642000 
+ 465              	.LC2:
+ 466 001a 42697473 		.ascii	"Bits per sample: %d \000"
+ 466      20706572 
+ 466      2073616D 
+ 466      706C653A 
+ 466      20256420 
+ 467              	.LC3:
+ 468 002f 46697273 		.ascii	"First frame pos: %d \000"
+ 468      74206672 
+ 468      616D6520 
+ 468      706F733A 
+ 468      20256420 
+ 469              	.LC4:
+ 470 0044 44757261 		.ascii	"Duration: %d \000"
+ 470      74696F6E 
+ 470      3A202564 
+ 470      2000
+ 471              	.LC5:
+ 472 0052 42697472 		.ascii	"Bitrate: %d kbps \000"
+ 472      6174653A 
+ 472      20256420 
+ 472      6B627073 
+ 472      2000
+ 473              	.LC6:
+ 474 0064 54696D65 		.ascii	"Time: %2d:%.2d \000"
+ 474      3A202532 
+ 474      643A252E 
+ 474      32642000 
+ 475              	.LC7:
+ 476 0074 566F6C75 		.ascii	"Volume: %2d \000"
+ 476      6D653A20 
+ 476      25326420 
+ 476      00
+ 477              		.section	.text.ape_play_song,"ax",%progbits
+ 478              		.align	1
+ 479              		.global	ape_play_song
+ 480              		.syntax unified
+ 481              		.thumb
+ 482              		.thumb_func
+ 484              	ape_play_song:
+ 485              	.LVL34:
+ 486              	.LFB128:
+ 117:source\audio/apeplay.c **** 
+ 118:source\audio/apeplay.c **** 
+ 119:source\audio/apeplay.c **** unsigned char ape_play_song (unsigned char *fname)
+ 120:source\audio/apeplay.c **** {
+ 487              		.loc 1 120 1 is_stmt 1 view -0
+ 488              		.cfi_startproc
+ 489              		@ args = 0, pretend = 0, frame = 24
+ 490              		@ frame_needed = 0, uses_anonymous_args = 0
+ 121:source\audio/apeplay.c ****       unsigned int totalsamples;
+ 491              		.loc 1 121 7 view .LVU126
+ 122:source\audio/apeplay.c ****       ape_res = 0;
+ 492              		.loc 1 122 7 view .LVU127
+ 120:source\audio/apeplay.c ****       unsigned int totalsamples;
+ 493              		.loc 1 120 1 is_stmt 0 view .LVU128
+ 494 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 495              		.cfi_def_cfa_offset 36
+ 496              		.cfi_offset 4, -36
+ 497              		.cfi_offset 5, -32
+ 498              		.cfi_offset 6, -28
+ 499              		.cfi_offset 7, -24
+ 500              		.cfi_offset 8, -20
+ 501              		.cfi_offset 9, -16
+ 502              		.cfi_offset 10, -12
+ 503              		.cfi_offset 11, -8
+ 504              		.cfi_offset 14, -4
+ 505 0004 89B0     		sub	sp, sp, #36
+ 506              		.cfi_def_cfa_offset 72
+ 507              		.loc 1 122 15 view .LVU129
+ 508 0006 DFF8CCB2 		ldr	fp, .L67+100
+ 120:source\audio/apeplay.c ****       unsigned int totalsamples;
+ 509              		.loc 1 120 1 view .LVU130
+ 510 000a 0390     		str	r0, [sp, #12]
+ 511              		.loc 1 122 15 view .LVU131
+ 512 000c 4FF00008 		mov	r8, #0
+ 123:source\audio/apeplay.c ****       filterbuf64 = malloc(2816);
+ 513              		.loc 1 123 21 view .LVU132
+ 514 0010 4FF43060 		mov	r0, #2816
+ 515              	.LVL35:
+ 122:source\audio/apeplay.c ****       ape_res = 0;
+ 516              		.loc 1 122 15 view .LVU133
+ 517 0014 8BF80080 		strb	r8, [fp]
+ 518              		.loc 1 123 7 is_stmt 1 view .LVU134
+ 519              		.loc 1 123 21 is_stmt 0 view .LVU135
+ 520 0018 FFF7FEFF 		bl	malloc
+ 521              	.LVL36:
+ 522              		.loc 1 123 19 view .LVU136
+ 523 001c 944B     		ldr	r3, .L67
+ 524 001e 0790     		str	r0, [sp, #28]
+ 124:source\audio/apeplay.c ****       apectrl = malloc(sizeof(__apectrl));
+ 525              		.loc 1 124 7 is_stmt 1 view .LVU137
+ 123:source\audio/apeplay.c ****       filterbuf64 = malloc(2816);
+ 526              		.loc 1 123 19 is_stmt 0 view .LVU138
+ 527 0020 1860     		str	r0, [r3]
+ 528              		.loc 1 124 17 view .LVU139
+ 529 0022 1820     		movs	r0, #24
+ 530 0024 FFF7FEFF 		bl	malloc
+ 531              	.LVL37:
+ 532              		.loc 1 124 15 view .LVU140
+ 533 0028 924D     		ldr	r5, .L67+4
+ 534              		.loc 1 124 17 view .LVU141
+ 535 002a 0290     		str	r0, [sp, #8]
+ 536              		.loc 1 124 15 view .LVU142
+ 537 002c 2860     		str	r0, [r5]
+ 125:source\audio/apeplay.c ****       apex = malloc(sizeof(struct ape_ctx_t));
+ 538              		.loc 1 125 7 is_stmt 1 view .LVU143
+ 539              		.loc 1 125 14 is_stmt 0 view .LVU144
+ 540 002e 40F6A410 		movw	r0, #2468
+ 541 0032 FFF7FEFF 		bl	malloc
+ 542              	.LVL38:
+ 543              		.loc 1 125 12 view .LVU145
+ 544 0036 904E     		ldr	r6, .L67+8
+ 545 0038 0690     		str	r0, [sp, #24]
+ 126:source\audio/apeplay.c ****       ape_decoded0 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 546              		.loc 1 126 7 is_stmt 1 view .LVU146
+ 125:source\audio/apeplay.c ****       apex = malloc(sizeof(struct ape_ctx_t));
+ 547              		.loc 1 125 12 is_stmt 0 view .LVU147
+ 548 003a 3060     		str	r0, [r6]
+ 549              		.loc 1 126 22 view .LVU148
+ 550 003c 4FF40050 		mov	r0, #8192
+ 551 0040 FFF7FEFF 		bl	malloc
+ 552              	.LVL39:
+ 553 0044 0246     		mov	r2, r0
+ 554              		.loc 1 126 20 view .LVU149
+ 555 0046 8D48     		ldr	r0, .L67+12
+ 556 0048 0592     		str	r2, [sp, #20]
+ 127:source\audio/apeplay.c ****       ape_decoded1 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 557              		.loc 1 127 7 is_stmt 1 view .LVU150
+ 126:source\audio/apeplay.c ****       ape_decoded0 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 558              		.loc 1 126 20 is_stmt 0 view .LVU151
+ 559 004a 0260     		str	r2, [r0]
+ 560              		.loc 1 127 22 view .LVU152
+ 561 004c 4FF40050 		mov	r0, #8192
+ 562 0050 FFF7FEFF 		bl	malloc
+ 563              	.LVL40:
+ 564 0054 0490     		str	r0, [sp, #16]
+ 565              		.loc 1 127 20 view .LVU153
+ 566 0056 8A48     		ldr	r0, .L67+16
+ 567 0058 049B     		ldr	r3, [sp, #16]
+ 568 005a 0360     		str	r3, [r0]
+ 128:source\audio/apeplay.c ****       audiodev.file = (FIL*)malloc(sizeof(FIL));
+ 569              		.loc 1 128 7 is_stmt 1 view .LVU154
+ 570              		.loc 1 128 29 is_stmt 0 view .LVU155
+ 571 005c 4FF40B70 		mov	r0, #556
+ 572 0060 FFF7FEFF 		bl	malloc
+ 573              	.LVL41:
+ 574              		.loc 1 128 21 view .LVU156
+ 575 0064 874C     		ldr	r4, .L67+20
+ 576              		.loc 1 128 29 view .LVU157
+ 577 0066 8246     		mov	r10, r0
+ 578              		.loc 1 128 21 view .LVU158
+ 579 0068 E060     		str	r0, [r4, #12]	@ unaligned
+ 129:source\audio/apeplay.c ****       audiodev.i2sbuf1 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 580              		.loc 1 129 7 is_stmt 1 view .LVU159
+ 581              		.loc 1 129 26 is_stmt 0 view .LVU160
+ 582 006a 4FF40050 		mov	r0, #8192
+ 583 006e FFF7FEFF 		bl	malloc
+ 584              	.LVL42:
+ 585              		.loc 1 129 24 view .LVU161
+ 586 0072 2060     		str	r0, [r4]	@ unaligned
+ 130:source\audio/apeplay.c ****       audiodev.i2sbuf2 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 587              		.loc 1 130 7 is_stmt 1 view .LVU162
+ 129:source\audio/apeplay.c ****       audiodev.i2sbuf1 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 588              		.loc 1 129 26 is_stmt 0 view .LVU163
+ 589 0074 8146     		mov	r9, r0
+ 590              		.loc 1 130 26 view .LVU164
+ 591 0076 4FF40050 		mov	r0, #8192
+ 592 007a FFF7FEFF 		bl	malloc
+ 593              	.LVL43:
+ 594              		.loc 1 130 24 view .LVU165
+ 595 007e 6060     		str	r0, [r4, #4]	@ unaligned
+ 131:source\audio/apeplay.c ****       audiodev.file_seek = ape_file_seek;
+ 596              		.loc 1 131 7 is_stmt 1 view .LVU166
+ 130:source\audio/apeplay.c ****       audiodev.i2sbuf2 = malloc(APE_BLOCKS_PER_LOOP * 4);
+ 597              		.loc 1 130 26 is_stmt 0 view .LVU167
+ 598 0080 0746     		mov	r7, r0
+ 599              		.loc 1 131 26 view .LVU168
+ 600 0082 8148     		ldr	r0, .L67+24
+ 601 0084 2061     		str	r0, [r4, #16]	@ unaligned
+ 132:source\audio/apeplay.c ****       ape_buffer = malloc(APE_FILE_BUF_SZ);
+ 602              		.loc 1 132 7 is_stmt 1 view .LVU169
+ 603              		.loc 1 132 20 is_stmt 0 view .LVU170
+ 604 0086 4FF4A040 		mov	r0, #20480
+ 605 008a FFF7FEFF 		bl	malloc
+ 606              	.LVL44:
+ 607              		.loc 1 132 18 view .LVU171
+ 608 008e DFF814C2 		ldr	ip, .L67+52
+ 133:source\audio/apeplay.c ****       if (filterbuf64 && apectrl && apex && ape_decoded0 && ape_decoded1 && audiodev.file && audiod
+ 609              		.loc 1 133 10 view .LVU172
+ 610 0092 0799     		ldr	r1, [sp, #28]
+ 132:source\audio/apeplay.c ****       ape_buffer = malloc(APE_FILE_BUF_SZ);
+ 611              		.loc 1 132 18 view .LVU173
+ 612 0094 CCF80000 		str	r0, [ip]
+ 613              		.loc 1 133 7 is_stmt 1 view .LVU174
+ 614              		.loc 1 133 10 is_stmt 0 view .LVU175
+ 615 0098 0029     		cmp	r1, #0
+ 616 009a 70D0     		beq	.L33
+ 617              		.loc 1 133 23 discriminator 1 view .LVU176
+ 618 009c 029B     		ldr	r3, [sp, #8]
+ 619 009e 002B     		cmp	r3, #0
+ 620 00a0 6DD0     		beq	.L33
+ 621              		.loc 1 133 34 discriminator 2 view .LVU177
+ 622 00a2 069B     		ldr	r3, [sp, #24]
+ 623 00a4 002B     		cmp	r3, #0
+ 624 00a6 6AD0     		beq	.L33
+ 625              		.loc 1 133 42 discriminator 3 view .LVU178
+ 626 00a8 059A     		ldr	r2, [sp, #20]
+ 627 00aa 002A     		cmp	r2, #0
+ 628 00ac 67D0     		beq	.L33
+ 629              		.loc 1 133 58 discriminator 4 view .LVU179
+ 630 00ae 049A     		ldr	r2, [sp, #16]
+ 631 00b0 002A     		cmp	r2, #0
+ 632 00b2 64D0     		beq	.L33
+ 633              		.loc 1 133 74 discriminator 5 view .LVU180
+ 634 00b4 BAF1000F 		cmp	r10, #0
+ 635 00b8 61D0     		beq	.L33
+ 636              		.loc 1 133 91 discriminator 6 view .LVU181
+ 637 00ba B9F1000F 		cmp	r9, #0
+ 638 00be 5ED0     		beq	.L33
+ 639              		.loc 1 133 111 discriminator 7 view .LVU182
+ 640 00c0 002F     		cmp	r7, #0
+ 641 00c2 5CD0     		beq	.L33
+ 642              		.loc 1 133 131 discriminator 8 view .LVU183
+ 643 00c4 0028     		cmp	r0, #0
+ 644 00c6 5AD0     		beq	.L33
+ 134:source\audio/apeplay.c **** 	 memset(apex,0,sizeof(struct ape_ctx_t));
+ 645              		.loc 1 134 3 is_stmt 1 view .LVU184
+ 646 00c8 1846     		mov	r0, r3
+ 647 00ca 40F6A412 		movw	r2, #2468
+ 648 00ce 4146     		mov	r1, r8
+ 649 00d0 FFF7FEFF 		bl	memset
+ 650              	.LVL45:
+ 135:source\audio/apeplay.c **** 	 memset(apectrl,0,sizeof(__apectrl));
+ 651              		.loc 1 135 3 view .LVU185
+ 652 00d4 1822     		movs	r2, #24
+ 653 00d6 4146     		mov	r1, r8
+ 654 00d8 0298     		ldr	r0, [sp, #8]
+ 655 00da FFF7FEFF 		bl	memset
+ 656              	.LVL46:
+ 136:source\audio/apeplay.c **** 	 memset(audiodev.i2sbuf1,0,APE_BLOCKS_PER_LOOP * 4);
+ 657              		.loc 1 136 3 view .LVU186
+ 658 00de 4FF40052 		mov	r2, #8192
+ 659 00e2 4146     		mov	r1, r8
+ 660 00e4 4846     		mov	r0, r9
+ 661 00e6 FFF7FEFF 		bl	memset
+ 662              	.LVL47:
+ 137:source\audio/apeplay.c **** 	 memset(audiodev.i2sbuf2,0,APE_BLOCKS_PER_LOOP * 4);
+ 663              		.loc 1 137 3 view .LVU187
+ 664 00ea 4FF40052 		mov	r2, #8192
+ 665 00ee 4146     		mov	r1, r8
+ 666 00f0 3846     		mov	r0, r7
+ 667 00f2 FFF7FEFF 		bl	memset
+ 668              	.LVL48:
+ 138:source\audio/apeplay.c **** 	 f_open(audiodev.file,(char *)fname,FA_READ);
+ 669              		.loc 1 138 3 view .LVU188
+ 670 00f6 0399     		ldr	r1, [sp, #12]
+ 671 00f8 0122     		movs	r2, #1
+ 672 00fa 5046     		mov	r0, r10
+ 673 00fc FFF7FEFF 		bl	f_open
+ 674              	.LVL49:
+ 139:source\audio/apeplay.c **** 	 ape_res = ape_parseheader(audiodev.file,apex);
+ 675              		.loc 1 139 3 view .LVU189
+ 676              		.loc 1 139 13 is_stmt 0 view .LVU190
+ 677 0100 3168     		ldr	r1, [r6]
+ 678 0102 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 679 0104 FFF7FEFF 		bl	ape_parseheader
+ 680              	.LVL50:
+ 681              		.loc 1 139 11 view .LVU191
+ 682 0108 C0B2     		uxtb	r0, r0
+ 683 010a 8BF80000 		strb	r0, [fp]
+ 140:source\audio/apeplay.c **** 	 if (ape_res == 0) {
+ 684              		.loc 1 140 3 is_stmt 1 view .LVU192
+ 685              		.loc 1 140 6 is_stmt 0 view .LVU193
+ 686 010e 78B9     		cbnz	r0, .L34
+ 141:source\audio/apeplay.c **** 	    if ((apex->compressiontype > 3000) || (apex->fileversion < APE_MIN_VERSION) || (apex->filevers
+ 687              		.loc 1 141 6 is_stmt 1 view .LVU194
+ 688              		.loc 1 141 15 is_stmt 0 view .LVU195
+ 689 0110 3368     		ldr	r3, [r6]
+ 690              		.loc 1 141 9 view .LVU196
+ 691 0112 B3F84010 		ldrh	r1, [r3, #64]
+ 692 0116 40F6B832 		movw	r2, #3000
+ 693 011a 9142     		cmp	r1, r2
+ 694 011c 05D8     		bhi	.L35
+ 695              		.loc 1 141 41 discriminator 1 view .LVU197
+ 696 011e 1A8A     		ldrh	r2, [r3, #16]
+ 697 0120 A2F68272 		subw	r2, r2, #3970
+ 698 0124 92B2     		uxth	r2, r2
+ 699 0126 142A     		cmp	r2, #20
+ 700 0128 05D9     		bls	.L36
+ 701              	.L35:
+ 142:source\audio/apeplay.c **** 	       ape_res = 1;
+ 702              		.loc 1 142 9 is_stmt 1 view .LVU198
+ 703              		.loc 1 142 17 is_stmt 0 view .LVU199
+ 704 012a 0123     		movs	r3, #1
+ 705 012c 8BF80030 		strb	r3, [fp]
+ 706              	.L34:
+ 143:source\audio/apeplay.c **** 	    } else {
+ 144:source\audio/apeplay.c **** 	       apectrl->bps = apex->bps;
+ 145:source\audio/apeplay.c **** 	       apectrl->samplerate = apex->samplerate;
+ 146:source\audio/apeplay.c **** 	       if (apex->totalframes > 1) totalsamples = apex->finalframeblocks + apex->blocksperframe * (
+ 147:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 148:source\audio/apeplay.c **** 	       apectrl->bitrate = (audiodev.file->fsize - apex->firstframe) * 8 / apectrl->totsec;
+ 149:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 150:source\audio/apeplay.c **** 	       apectrl->datastart = apex->firstframe;
+ 151:source\audio/apeplay.c **** 	    }
+ 152:source\audio/apeplay.c **** 	 }
+ 153:source\audio/apeplay.c ****       }
+ 154:source\audio/apeplay.c ****       if (ape_res == 0) {
+ 707              		.loc 1 154 7 is_stmt 1 view .LVU200
+ 155:source\audio/apeplay.c **** 	 lcd_printf(0,20,"File: %s ",fname);
+ 156:source\audio/apeplay.c **** 	 lcd_printf(0,22,"Samplerate: %d ", apectrl->samplerate);
+ 157:source\audio/apeplay.c **** 	 lcd_printf(0,23,"Bits per sample: %d ",apectrl->bps);
+ 158:source\audio/apeplay.c **** 	 lcd_printf(0,24,"First frame pos: %d ",apectrl->datastart);
+ 159:source\audio/apeplay.c **** 	 lcd_printf(0,25,"Duration: %d ",apectrl->totsec);
+ 160:source\audio/apeplay.c **** 	 lcd_printf(0,26,"Bitrate: %d kbps ",apectrl->bitrate);
+ 161:source\audio/apeplay.c ****          lcd_printf(0,28,"Time: %2d:%.2d ",apectrl->totsec / 60,apectrl->totsec % 60);
+ 162:source\audio/apeplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 163:source\audio/apeplay.c ****  	 WM8978_I2S_Cfg(2,0);
+ 164:source\audio/apeplay.c **** 	 I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 165:source\audio/apeplay.c **** 	 I2S2_SampleRate_Set(apex->samplerate);
+ 166:source\audio/apeplay.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,APE_BLOCKS_PER_LOOP * 2);
+ 167:source\audio/apeplay.c **** 	 i2s_tx_callback = ape_i2s_dma_tx_callback;
+ 168:source\audio/apeplay.c ****          ape_currentframe = 0;
+ 169:source\audio/apeplay.c **** 	 f_lseek(audiodev.file,apex->firstframe);
+ 170:source\audio/apeplay.c **** 	 ape_res = f_read(audiodev.file,ape_buffer,APE_FILE_BUF_SZ,(unsigned int *)&ape_bytesinbuffer);
+ 171:source\audio/apeplay.c **** 	 ape_firstbyte = 3;
+ 172:source\audio/apeplay.c **** 	 ape_readptr = ape_buffer;
+ 173:source\audio/apeplay.c **** 	 audio_start();
+ 174:source\audio/apeplay.c ****          audio_read_flag = 1;
+ 175:source\audio/apeplay.c ****          audio_run = 1;
+ 176:source\audio/apeplay.c ****       } else {
+ 177:source\audio/apeplay.c ****       	 ape_stop();
+ 708              		.loc 1 177 9 view .LVU201
+ 709 0130 FFF7FEFF 		bl	ape_stop
+ 710              	.LVL51:
+ 178:source\audio/apeplay.c ****       }
+ 179:source\audio/apeplay.c ****       return 0;
+ 711              		.loc 1 179 7 view .LVU202
+ 712              		.loc 1 179 14 is_stmt 0 view .LVU203
+ 713 0134 97E0     		b	.L66
+ 714              	.L36:
+ 144:source\audio/apeplay.c **** 	       apectrl->samplerate = apex->samplerate;
+ 715              		.loc 1 144 9 is_stmt 1 view .LVU204
+ 144:source\audio/apeplay.c **** 	       apectrl->samplerate = apex->samplerate;
+ 716              		.loc 1 144 16 is_stmt 0 view .LVU205
+ 717 0136 2A68     		ldr	r2, [r5]
+ 144:source\audio/apeplay.c **** 	       apectrl->samplerate = apex->samplerate;
+ 718              		.loc 1 144 22 view .LVU206
+ 719 0138 B3F85010 		ldrh	r1, [r3, #80]
+ 720 013c 5182     		strh	r1, [r2, #18]	@ unaligned
+ 145:source\audio/apeplay.c **** 	       if (apex->totalframes > 1) totalsamples = apex->finalframeblocks + apex->blocksperframe * (
+ 721              		.loc 1 145 9 is_stmt 1 view .LVU207
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 722              		.loc 1 146 55 is_stmt 0 view .LVU208
+ 723 013e D3E91210 		ldrd	r1, r0, [r3, #72]
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 724              		.loc 1 146 12 view .LVU209
+ 725 0142 0128     		cmp	r0, #1
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 726              		.loc 1 146 49 view .LVU210
+ 727 0144 88BF     		it	hi
+ 728 0146 5F6C     		ldrhi	r7, [r3, #68]
+ 145:source\audio/apeplay.c **** 	       if (apex->totalframes > 1) totalsamples = apex->finalframeblocks + apex->blocksperframe * (
+ 729              		.loc 1 145 35 view .LVU211
+ 730 0148 D3F854C0 		ldr	ip, [r3, #84]
+ 145:source\audio/apeplay.c **** 	       if (apex->totalframes > 1) totalsamples = apex->finalframeblocks + apex->blocksperframe * (
+ 731              		.loc 1 145 29 view .LVU212
+ 732 014c C2F80CC0 		str	ip, [r2, #12]	@ unaligned
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 733              		.loc 1 146 9 is_stmt 1 view .LVU213
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 734              		.loc 1 146 36 view .LVU214
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 735              		.loc 1 146 118 is_stmt 0 view .LVU215
+ 736 0150 84BF     		itt	hi
+ 737 0152 00F1FF30 		addhi	r0, r0, #-1
+ 146:source\audio/apeplay.c **** 	       apectrl->totsec = totalsamples / apectrl->samplerate;
+ 738              		.loc 1 146 49 view .LVU216
+ 739 0156 07FB0011 		mlahi	r1, r7, r0, r1
+ 740              	.LVL52:
+ 147:source\audio/apeplay.c **** 	       apectrl->bitrate = (audiodev.file->fsize - apex->firstframe) * 8 / apectrl->totsec;
+ 741              		.loc 1 147 9 is_stmt 1 view .LVU217
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 742              		.loc 1 148 56 is_stmt 0 view .LVU218
+ 743 015a 5868     		ldr	r0, [r3, #4]
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 744              		.loc 1 148 37 view .LVU219
+ 745 015c 494B     		ldr	r3, .L67+20
+ 147:source\audio/apeplay.c **** 	       apectrl->bitrate = (audiodev.file->fsize - apex->firstframe) * 8 / apectrl->totsec;
+ 746              		.loc 1 147 40 view .LVU220
+ 747 015e B1FBFCF1 		udiv	r1, r1, ip
+ 748              	.LVL53:
+ 147:source\audio/apeplay.c **** 	       apectrl->bitrate = (audiodev.file->fsize - apex->firstframe) * 8 / apectrl->totsec;
+ 749              		.loc 1 147 25 view .LVU221
+ 750 0162 1160     		str	r1, [r2]	@ unaligned
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 751              		.loc 1 148 9 is_stmt 1 view .LVU222
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 752              		.loc 1 148 37 is_stmt 0 view .LVU223
+ 753 0164 DB68     		ldr	r3, [r3, #12]	@ unaligned
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 754              		.loc 1 148 50 view .LVU224
+ 755 0166 D3F80C32 		ldr	r3, [r3, #524]
+ 150:source\audio/apeplay.c **** 	    }
+ 756              		.loc 1 150 28 view .LVU225
+ 757 016a 5061     		str	r0, [r2, #20]	@ unaligned
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 758              		.loc 1 148 50 view .LVU226
+ 759 016c 1B1A     		subs	r3, r3, r0
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 760              		.loc 1 148 70 view .LVU227
+ 761 016e DB00     		lsls	r3, r3, #3
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 762              		.loc 1 148 74 view .LVU228
+ 763 0170 B3FBF1F3 		udiv	r3, r3, r1
+ 148:source\audio/apeplay.c **** 	       apectrl->outsamples = APE_BLOCKS_PER_LOOP * 2;
+ 764              		.loc 1 148 26 view .LVU229
+ 765 0174 9360     		str	r3, [r2, #8]	@ unaligned
+ 149:source\audio/apeplay.c **** 	       apectrl->datastart = apex->firstframe;
+ 766              		.loc 1 149 9 is_stmt 1 view .LVU230
+ 149:source\audio/apeplay.c **** 	       apectrl->datastart = apex->firstframe;
+ 767              		.loc 1 149 29 is_stmt 0 view .LVU231
+ 768 0176 0023     		movs	r3, #0
+ 769 0178 1374     		strb	r3, [r2, #16]
+ 770 017a 1023     		movs	r3, #16
+ 771 017c 5374     		strb	r3, [r2, #17]
+ 150:source\audio/apeplay.c **** 	    }
+ 772              		.loc 1 150 9 is_stmt 1 view .LVU232
+ 773              	.LVL54:
+ 774              	.L33:
+ 154:source\audio/apeplay.c **** 	 lcd_printf(0,20,"File: %s ",fname);
+ 775              		.loc 1 154 7 view .LVU233
+ 155:source\audio/apeplay.c **** 	 lcd_printf(0,22,"Samplerate: %d ", apectrl->samplerate);
+ 776              		.loc 1 155 3 view .LVU234
+ 777 017e 039B     		ldr	r3, [sp, #12]
+ 778 0180 424A     		ldr	r2, .L67+28
+ 779 0182 1421     		movs	r1, #20
+ 780 0184 0020     		movs	r0, #0
+ 781 0186 FFF7FEFF 		bl	lcd_printf
+ 782              	.LVL55:
+ 156:source\audio/apeplay.c **** 	 lcd_printf(0,23,"Bits per sample: %d ",apectrl->bps);
+ 783              		.loc 1 156 3 view .LVU235
+ 784 018a 2B68     		ldr	r3, [r5]
+ 785 018c 404A     		ldr	r2, .L67+32
+ 786 018e DB68     		ldr	r3, [r3, #12]	@ unaligned
+ 787 0190 1621     		movs	r1, #22
+ 788 0192 0020     		movs	r0, #0
+ 789 0194 FFF7FEFF 		bl	lcd_printf
+ 790              	.LVL56:
+ 157:source\audio/apeplay.c **** 	 lcd_printf(0,24,"First frame pos: %d ",apectrl->datastart);
+ 791              		.loc 1 157 3 view .LVU236
+ 157:source\audio/apeplay.c **** 	 lcd_printf(0,24,"First frame pos: %d ",apectrl->datastart);
+ 792              		.loc 1 157 49 is_stmt 0 view .LVU237
+ 793 0198 2B68     		ldr	r3, [r5]
+ 157:source\audio/apeplay.c **** 	 lcd_printf(0,24,"First frame pos: %d ",apectrl->datastart);
+ 794              		.loc 1 157 3 view .LVU238
+ 795 019a 3E4A     		ldr	r2, .L67+36
+ 796 019c 5B8A     		ldrh	r3, [r3, #18]	@ unaligned
+ 797 019e 1721     		movs	r1, #23
+ 798 01a0 0020     		movs	r0, #0
+ 799 01a2 FFF7FEFF 		bl	lcd_printf
+ 800              	.LVL57:
+ 158:source\audio/apeplay.c **** 	 lcd_printf(0,25,"Duration: %d ",apectrl->totsec);
+ 801              		.loc 1 158 3 is_stmt 1 view .LVU239
+ 802 01a6 2B68     		ldr	r3, [r5]
+ 803 01a8 3B4A     		ldr	r2, .L67+40
+ 804 01aa 5B69     		ldr	r3, [r3, #20]	@ unaligned
+ 805 01ac 1821     		movs	r1, #24
+ 806 01ae 0020     		movs	r0, #0
+ 807 01b0 FFF7FEFF 		bl	lcd_printf
+ 808              	.LVL58:
+ 159:source\audio/apeplay.c **** 	 lcd_printf(0,26,"Bitrate: %d kbps ",apectrl->bitrate);
+ 809              		.loc 1 159 3 view .LVU240
+ 810 01b4 2B68     		ldr	r3, [r5]
+ 811 01b6 394A     		ldr	r2, .L67+44
+ 812 01b8 1B68     		ldr	r3, [r3]	@ unaligned
+ 813 01ba 1921     		movs	r1, #25
+ 814 01bc 0020     		movs	r0, #0
+ 815 01be FFF7FEFF 		bl	lcd_printf
+ 816              	.LVL59:
+ 160:source\audio/apeplay.c ****          lcd_printf(0,28,"Time: %2d:%.2d ",apectrl->totsec / 60,apectrl->totsec % 60);
+ 817              		.loc 1 160 3 view .LVU241
+ 818 01c2 2B68     		ldr	r3, [r5]
+ 819 01c4 364A     		ldr	r2, .L67+48
+ 820 01c6 9B68     		ldr	r3, [r3, #8]	@ unaligned
+ 821 01c8 1A21     		movs	r1, #26
+ 822 01ca 0020     		movs	r0, #0
+ 823 01cc FFF7FEFF 		bl	lcd_printf
+ 824              	.LVL60:
+ 161:source\audio/apeplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 825              		.loc 1 161 10 view .LVU242
+ 161:source\audio/apeplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 826              		.loc 1 161 51 is_stmt 0 view .LVU243
+ 827 01d0 2B68     		ldr	r3, [r5]
+ 170:source\audio/apeplay.c **** 	 ape_firstbyte = 3;
+ 828              		.loc 1 170 13 view .LVU244
+ 829 01d2 344D     		ldr	r5, .L67+52
+ 161:source\audio/apeplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 830              		.loc 1 161 51 view .LVU245
+ 831 01d4 1A68     		ldr	r2, [r3]	@ unaligned
+ 161:source\audio/apeplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 832              		.loc 1 161 10 view .LVU246
+ 833 01d6 3C21     		movs	r1, #60
+ 834 01d8 B2FBF1F3 		udiv	r3, r2, r1
+ 835 01dc 01FB1322 		mls	r2, r1, r3, r2
+ 836 01e0 0092     		str	r2, [sp]
+ 837 01e2 1C21     		movs	r1, #28
+ 838 01e4 304A     		ldr	r2, .L67+56
+ 839 01e6 0020     		movs	r0, #0
+ 840 01e8 FFF7FEFF 		bl	lcd_printf
+ 841              	.LVL61:
+ 162:source\audio/apeplay.c ****  	 WM8978_I2S_Cfg(2,0);
+ 842              		.loc 1 162 10 is_stmt 1 view .LVU247
+ 843 01ec 2F4B     		ldr	r3, .L67+60
+ 844 01ee 304A     		ldr	r2, .L67+64
+ 845 01f0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 846 01f2 1C21     		movs	r1, #28
+ 847 01f4 1420     		movs	r0, #20
+ 848 01f6 FFF7FEFF 		bl	lcd_printf
+ 849              	.LVL62:
+ 163:source\audio/apeplay.c **** 	 I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 850              		.loc 1 163 4 view .LVU248
+ 851 01fa 0021     		movs	r1, #0
+ 852 01fc 0220     		movs	r0, #2
+ 853 01fe FFF7FEFF 		bl	WM8978_I2S_Cfg
+ 854              	.LVL63:
+ 164:source\audio/apeplay.c **** 	 I2S2_SampleRate_Set(apex->samplerate);
+ 855              		.loc 1 164 3 view .LVU249
+ 856 0202 0022     		movs	r2, #0
+ 857 0204 1046     		mov	r0, r2
+ 858 0206 4FF40071 		mov	r1, #512
+ 859 020a 0123     		movs	r3, #1
+ 860 020c FFF7FEFF 		bl	I2S2_Init
+ 861              	.LVL64:
+ 165:source\audio/apeplay.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,APE_BLOCKS_PER_LOOP * 2);
+ 862              		.loc 1 165 3 view .LVU250
+ 165:source\audio/apeplay.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,APE_BLOCKS_PER_LOOP * 2);
+ 863              		.loc 1 165 27 is_stmt 0 view .LVU251
+ 864 0210 3368     		ldr	r3, [r6]
+ 165:source\audio/apeplay.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,APE_BLOCKS_PER_LOOP * 2);
+ 865              		.loc 1 165 3 view .LVU252
+ 866 0212 586D     		ldr	r0, [r3, #84]
+ 867 0214 FFF7FEFF 		bl	I2S2_SampleRate_Set
+ 868              	.LVL65:
+ 166:source\audio/apeplay.c **** 	 i2s_tx_callback = ape_i2s_dma_tx_callback;
+ 869              		.loc 1 166 3 is_stmt 1 view .LVU253
+ 870 0218 6168     		ldr	r1, [r4, #4]	@ unaligned
+ 871 021a 2068     		ldr	r0, [r4]	@ unaligned
+ 872 021c 4FF48052 		mov	r2, #4096
+ 873 0220 FFF7FEFF 		bl	I2S2_TX_DMA_Init
+ 874              	.LVL66:
+ 167:source\audio/apeplay.c ****          ape_currentframe = 0;
+ 875              		.loc 1 167 3 view .LVU254
+ 167:source\audio/apeplay.c ****          ape_currentframe = 0;
+ 876              		.loc 1 167 19 is_stmt 0 view .LVU255
+ 877 0224 234B     		ldr	r3, .L67+68
+ 878 0226 244A     		ldr	r2, .L67+72
+ 879 0228 1A60     		str	r2, [r3]
+ 168:source\audio/apeplay.c **** 	 f_lseek(audiodev.file,apex->firstframe);
+ 880              		.loc 1 168 10 is_stmt 1 view .LVU256
+ 168:source\audio/apeplay.c **** 	 f_lseek(audiodev.file,apex->firstframe);
+ 881              		.loc 1 168 27 is_stmt 0 view .LVU257
+ 882 022a 244B     		ldr	r3, .L67+76
+ 883 022c 0022     		movs	r2, #0
+ 884 022e 1A60     		str	r2, [r3]
+ 169:source\audio/apeplay.c **** 	 ape_res = f_read(audiodev.file,ape_buffer,APE_FILE_BUF_SZ,(unsigned int *)&ape_bytesinbuffer);
+ 885              		.loc 1 169 3 is_stmt 1 view .LVU258
+ 886 0230 3368     		ldr	r3, [r6]
+ 887 0232 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 888 0234 5968     		ldr	r1, [r3, #4]
+ 889 0236 FFF7FEFF 		bl	f_lseek
+ 890              	.LVL67:
+ 170:source\audio/apeplay.c **** 	 ape_firstbyte = 3;
+ 891              		.loc 1 170 3 view .LVU259
+ 170:source\audio/apeplay.c **** 	 ape_firstbyte = 3;
+ 892              		.loc 1 170 13 is_stmt 0 view .LVU260
+ 893 023a 214B     		ldr	r3, .L67+80
+ 894 023c 2968     		ldr	r1, [r5]
+ 895 023e E068     		ldr	r0, [r4, #12]	@ unaligned
+ 896 0240 4FF4A042 		mov	r2, #20480
+ 897 0244 FFF7FEFF 		bl	f_read
+ 898              	.LVL68:
+ 171:source\audio/apeplay.c **** 	 ape_readptr = ape_buffer;
+ 899              		.loc 1 171 17 view .LVU261
+ 900 0248 1E4B     		ldr	r3, .L67+84
+ 170:source\audio/apeplay.c **** 	 ape_firstbyte = 3;
+ 901              		.loc 1 170 11 view .LVU262
+ 902 024a 8BF80000 		strb	r0, [fp]
+ 171:source\audio/apeplay.c **** 	 ape_readptr = ape_buffer;
+ 903              		.loc 1 171 3 is_stmt 1 view .LVU263
+ 171:source\audio/apeplay.c **** 	 ape_readptr = ape_buffer;
+ 904              		.loc 1 171 17 is_stmt 0 view .LVU264
+ 905 024e 0322     		movs	r2, #3
+ 906 0250 1A60     		str	r2, [r3]
+ 172:source\audio/apeplay.c **** 	 audio_start();
+ 907              		.loc 1 172 3 is_stmt 1 view .LVU265
+ 172:source\audio/apeplay.c **** 	 audio_start();
+ 908              		.loc 1 172 15 is_stmt 0 view .LVU266
+ 909 0252 1D4B     		ldr	r3, .L67+88
+ 910 0254 2A68     		ldr	r2, [r5]
+ 911 0256 1A60     		str	r2, [r3]
+ 173:source\audio/apeplay.c ****          audio_read_flag = 1;
+ 912              		.loc 1 173 3 is_stmt 1 view .LVU267
+ 913 0258 FFF7FEFF 		bl	audio_start
+ 914              	.LVL69:
+ 174:source\audio/apeplay.c ****          audio_run = 1;
+ 915              		.loc 1 174 10 view .LVU268
+ 174:source\audio/apeplay.c ****          audio_run = 1;
+ 916              		.loc 1 174 26 is_stmt 0 view .LVU269
+ 917 025c 1B4A     		ldr	r2, .L67+92
+ 918 025e 0123     		movs	r3, #1
+ 919 0260 1370     		strb	r3, [r2]
+ 175:source\audio/apeplay.c ****       } else {
+ 920              		.loc 1 175 10 is_stmt 1 view .LVU270
+ 175:source\audio/apeplay.c ****       } else {
+ 921              		.loc 1 175 20 is_stmt 0 view .LVU271
+ 922 0262 1B4A     		ldr	r2, .L67+96
+ 923 0264 1370     		strb	r3, [r2]
+ 924              	.L66:
+ 180:source\audio/apeplay.c **** }
+ 925              		.loc 1 180 1 view .LVU272
+ 926 0266 0020     		movs	r0, #0
+ 927 0268 09B0     		add	sp, sp, #36
+ 928              		.cfi_def_cfa_offset 36
+ 929              		@ sp needed
+ 930 026a BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 931              	.LVL70:
+ 932              	.L68:
+ 933              		.loc 1 180 1 view .LVU273
+ 934 026e 00BF     		.align	2
+ 935              	.L67:
+ 936 0270 00000000 		.word	filterbuf64
+ 937 0274 00000000 		.word	apectrl
+ 938 0278 00000000 		.word	apex
+ 939 027c 00000000 		.word	ape_decoded0
+ 940 0280 00000000 		.word	ape_decoded1
+ 941 0284 00000000 		.word	audiodev
+ 942 0288 00000000 		.word	ape_file_seek
+ 943 028c 00000000 		.word	.LC0
+ 944 0290 0A000000 		.word	.LC1
+ 945 0294 1A000000 		.word	.LC2
+ 946 0298 2F000000 		.word	.LC3
+ 947 029c 44000000 		.word	.LC4
+ 948 02a0 52000000 		.word	.LC5
+ 949 02a4 00000000 		.word	ape_buffer
+ 950 02a8 64000000 		.word	.LC6
+ 951 02ac 00000000 		.word	volume
+ 952 02b0 74000000 		.word	.LC7
+ 953 02b4 00000000 		.word	i2s_tx_callback
+ 954 02b8 00000000 		.word	ape_i2s_dma_tx_callback
+ 955 02bc 00000000 		.word	ape_currentframe
+ 956 02c0 00000000 		.word	ape_bytesinbuffer
+ 957 02c4 00000000 		.word	ape_firstbyte
+ 958 02c8 00000000 		.word	ape_readptr
+ 959 02cc 00000000 		.word	audio_read_flag
+ 960 02d0 00000000 		.word	audio_run
+ 961 02d4 00000000 		.word	ape_res
+ 962              		.cfi_endproc
+ 963              	.LFE128:
+ 965              		.section	.rodata.ape_play.str1.1,"aMS",%progbits,1
+ 966              	.LC8:
+ 967 0000 6672616D 		.ascii	"frame decode err \000"
+ 967      65206465 
+ 967      636F6465 
+ 967      20657272 
+ 967      2000
+ 968              	.LC9:
+ 969 0012 6170655F 		.ascii	"ape_bytesconsumed: %d \000"
+ 969      62797465 
+ 969      73636F6E 
+ 969      73756D65 
+ 969      643A2025 
+ 970              	.LC10:
+ 971 0029 54696D65 		.ascii	"Time: %2d:%.2d %2d:%.2d \000"
+ 971      3A202532 
+ 971      643A252E 
+ 971      32642025 
+ 971      32643A25 
+ 972              		.section	.text.ape_play,"ax",%progbits
+ 973              		.align	1
+ 974              		.global	ape_play
+ 975              		.syntax unified
+ 976              		.thumb
+ 977              		.thumb_func
+ 979              	ape_play:
+ 980              	.LFB129:
+ 181:source\audio/apeplay.c **** 
+ 182:source\audio/apeplay.c **** 
+ 183:source\audio/apeplay.c **** void ape_play (void)
+ 184:source\audio/apeplay.c **** {
+ 981              		.loc 1 184 1 is_stmt 1 view -0
+ 982              		.cfi_startproc
+ 983              		@ args = 0, pretend = 0, frame = 16
+ 984              		@ frame_needed = 0, uses_anonymous_args = 0
+ 185:source\audio/apeplay.c ****       int blockstodecode;
+ 985              		.loc 1 185 7 view .LVU275
+ 186:source\audio/apeplay.c ****       int ape_n;
+ 986              		.loc 1 186 7 view .LVU276
+ 187:source\audio/apeplay.c ****       if (apetransferend == 0) return;
+ 987              		.loc 1 187 7 view .LVU277
+ 184:source\audio/apeplay.c ****       int blockstodecode;
+ 988              		.loc 1 184 1 is_stmt 0 view .LVU278
+ 989 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 990              		.cfi_def_cfa_offset 36
+ 991              		.cfi_offset 4, -36
+ 992              		.cfi_offset 5, -32
+ 993              		.cfi_offset 6, -28
+ 994              		.cfi_offset 7, -24
+ 995              		.cfi_offset 8, -20
+ 996              		.cfi_offset 9, -16
+ 997              		.cfi_offset 10, -12
+ 998              		.cfi_offset 11, -8
+ 999              		.cfi_offset 14, -4
+ 1000              		.loc 1 187 26 view .LVU279
+ 1001 0004 944B     		ldr	r3, .L98
+ 1002 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 184:source\audio/apeplay.c ****       int blockstodecode;
+ 1003              		.loc 1 184 1 view .LVU280
+ 1004 0008 89B0     		sub	sp, sp, #36
+ 1005              		.cfi_def_cfa_offset 72
+ 1006              		.loc 1 187 10 view .LVU281
+ 1007 000a 002B     		cmp	r3, #0
+ 1008 000c 00F01281 		beq	.L69
+ 188:source\audio/apeplay.c ****       if ((audio_read_flag == 1) && (audio_pause == 0)) {
+ 1009              		.loc 1 188 7 is_stmt 1 view .LVU282
+ 1010              		.loc 1 188 28 is_stmt 0 view .LVU283
+ 1011 0010 924E     		ldr	r6, .L98+4
+ 1012 0012 934C     		ldr	r4, .L98+8
+ 1013 0014 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 1014              		.loc 1 188 10 view .LVU284
+ 1015 0016 012B     		cmp	r3, #1
+ 1016 0018 30D1     		bne	.L71
+ 1017              		.loc 1 188 50 discriminator 1 view .LVU285
+ 1018 001a 924B     		ldr	r3, .L98+12
+ 1019 001c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1020              		.loc 1 188 34 discriminator 1 view .LVU286
+ 1021 001e 002B     		cmp	r3, #0
+ 1022 0020 2CD1     		bne	.L71
+ 189:source\audio/apeplay.c ****          if ((ape_currentframe < apex->totalframes) && (ape_res == 0)) {
+ 1023              		.loc 1 189 10 is_stmt 1 view .LVU287
+ 1024              		.loc 1 189 38 is_stmt 0 view .LVU288
+ 1025 0022 914B     		ldr	r3, .L98+16
+ 1026              		.loc 1 189 32 view .LVU289
+ 1027 0024 914D     		ldr	r5, .L98+20
+ 1028              		.loc 1 189 38 view .LVU290
+ 1029 0026 1868     		ldr	r0, [r3]
+ 1030              		.loc 1 189 32 view .LVU291
+ 1031 0028 2A68     		ldr	r2, [r5]
+ 1032              		.loc 1 189 38 view .LVU292
+ 1033 002a C36C     		ldr	r3, [r0, #76]
+ 1034              		.loc 1 189 13 view .LVU293
+ 1035 002c 9342     		cmp	r3, r2
+ 1036 002e 40F20481 		bls	.L72
+ 1037              		.loc 1 189 65 discriminator 1 view .LVU294
+ 1038 0032 8F49     		ldr	r1, .L98+24
+ 1039              		.loc 1 189 53 discriminator 1 view .LVU295
+ 1040 0034 0978     		ldrb	r1, [r1]	@ zero_extendqisi2
+ 1041 0036 0029     		cmp	r1, #0
+ 1042 0038 40F0FF80 		bne	.L72
+ 190:source\audio/apeplay.c ****             if (ape_currentframe == (apex->totalframes - 1)) ape_nblocks = apex->finalframeblocks;e
+ 1043              		.loc 1 190 13 is_stmt 1 view .LVU296
+ 1044              		.loc 1 190 56 is_stmt 0 view .LVU297
+ 1045 003c 013B     		subs	r3, r3, #1
+ 1046              		.loc 1 190 16 view .LVU298
+ 1047 003e 9A42     		cmp	r2, r3
+ 1048              		.loc 1 190 62 is_stmt 1 view .LVU299
+ 191:source\audio/apeplay.c ****             apex->currentframeblocks = ape_nblocks;
+ 192:source\audio/apeplay.c ****             init_frame_decoder(apex,ape_readptr,&ape_firstbyte,&ape_bytesconsumed);
+ 1049              		.loc 1 192 13 is_stmt 0 view .LVU300
+ 1050 0040 8C4F     		ldr	r7, .L98+28
+ 1051 0042 8D4A     		ldr	r2, .L98+32
+ 1052 0044 DFF84482 		ldr	r8, .L98+52
+ 190:source\audio/apeplay.c ****             if (ape_currentframe == (apex->totalframes - 1)) ape_nblocks = apex->finalframeblocks;e
+ 1053              		.loc 1 190 80 view .LVU301
+ 1054 0048 0CBF     		ite	eq
+ 1055 004a 836C     		ldreq	r3, [r0, #72]
+ 190:source\audio/apeplay.c ****             if (ape_currentframe == (apex->totalframes - 1)) ape_nblocks = apex->finalframeblocks;e
+ 1056              		.loc 1 190 104 is_stmt 1 view .LVU302
+ 190:source\audio/apeplay.c ****             if (ape_currentframe == (apex->totalframes - 1)) ape_nblocks = apex->finalframeblocks;e
+ 1057              		.loc 1 190 122 is_stmt 0 view .LVU303
+ 1058 004c 436C     		ldrne	r3, [r0, #68]
+ 1059 004e 1360     		str	r3, [r2]
+ 191:source\audio/apeplay.c ****             apex->currentframeblocks = ape_nblocks;
+ 1060              		.loc 1 191 13 is_stmt 1 view .LVU304
+ 1061              		.loc 1 192 13 is_stmt 0 view .LVU305
+ 1062 0050 3968     		ldr	r1, [r7]
+ 1063 0052 8A4A     		ldr	r2, .L98+36
+ 191:source\audio/apeplay.c ****             apex->currentframeblocks = ape_nblocks;
+ 1064              		.loc 1 191 38 view .LVU306
+ 1065 0054 0367     		str	r3, [r0, #112]
+ 1066              		.loc 1 192 13 is_stmt 1 view .LVU307
+ 1067 0056 4346     		mov	r3, r8
+ 1068 0058 FFF7FEFF 		bl	init_frame_decoder
+ 1069              	.LVL71:
+ 193:source\audio/apeplay.c ****             ape_readptr += ape_bytesconsumed;
+ 1070              		.loc 1 193 13 view .LVU308
+ 1071              		.loc 1 193 25 is_stmt 0 view .LVU309
+ 1072 005c D8F80010 		ldr	r1, [r8]
+ 1073 0060 3B68     		ldr	r3, [r7]
+ 194:source\audio/apeplay.c ****             ape_bytesinbuffer -= ape_bytesconsumed;
+ 1074              		.loc 1 194 31 view .LVU310
+ 1075 0062 874A     		ldr	r2, .L98+40
+ 193:source\audio/apeplay.c ****             ape_readptr += ape_bytesconsumed;
+ 1076              		.loc 1 193 25 view .LVU311
+ 1077 0064 0B44     		add	r3, r3, r1
+ 1078 0066 3B60     		str	r3, [r7]
+ 1079              		.loc 1 194 13 is_stmt 1 view .LVU312
+ 1080              		.loc 1 194 31 is_stmt 0 view .LVU313
+ 1081 0068 1368     		ldr	r3, [r2]
+ 1082 006a 5B1A     		subs	r3, r3, r1
+ 1083 006c 1360     		str	r3, [r2]
+ 195:source\audio/apeplay.c ****             ape_currentframe++;
+ 1084              		.loc 1 195 13 is_stmt 1 view .LVU314
+ 1085              		.loc 1 195 29 is_stmt 0 view .LVU315
+ 1086 006e 2B68     		ldr	r3, [r5]
+ 1087 0070 0133     		adds	r3, r3, #1
+ 1088 0072 2B60     		str	r3, [r5]
+ 196:source\audio/apeplay.c ****             audio_read_flag = 0;
+ 1089              		.loc 1 196 13 is_stmt 1 view .LVU316
+ 1090              		.loc 1 196 29 is_stmt 0 view .LVU317
+ 1091 0074 0023     		movs	r3, #0
+ 1092 0076 3370     		strb	r3, [r6]
+ 197:source\audio/apeplay.c ****             audio_decode_flag = 1;
+ 1093              		.loc 1 197 13 is_stmt 1 view .LVU318
+ 1094              		.loc 1 197 31 is_stmt 0 view .LVU319
+ 1095 0078 0123     		movs	r3, #1
+ 1096 007a 2370     		strb	r3, [r4]
+ 1097              	.L71:
+ 198:source\audio/apeplay.c ****          } else {
+ 199:source\audio/apeplay.c ****             ape_stop();
+ 200:source\audio/apeplay.c ****          }
+ 201:source\audio/apeplay.c ****       }
+ 202:source\audio/apeplay.c ****       if ((audio_decode_flag) && (audio_pause == 0)) {
+ 1098              		.loc 1 202 7 is_stmt 1 view .LVU320
+ 1099              		.loc 1 202 11 is_stmt 0 view .LVU321
+ 1100 007c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1101              		.loc 1 202 10 view .LVU322
+ 1102 007e 002B     		cmp	r3, #0
+ 1103 0080 00F0D880 		beq	.L69
+ 1104              		.loc 1 202 47 discriminator 1 view .LVU323
+ 1105 0084 774B     		ldr	r3, .L98+12
+ 1106 0086 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1107              		.loc 1 202 31 discriminator 1 view .LVU324
+ 1108 0088 03F0FF0A 		and	r10, r3, #255
+ 1109 008c 002B     		cmp	r3, #0
+ 1110 008e 40F0D180 		bne	.L69
+ 203:source\audio/apeplay.c ****          if (ape_nblocks > 0) {
+ 1111              		.loc 1 203 10 is_stmt 1 view .LVU325
+ 1112              		.loc 1 203 26 is_stmt 0 view .LVU326
+ 1113 0092 794F     		ldr	r7, .L98+32
+ 1114 0094 3B68     		ldr	r3, [r7]
+ 1115              		.loc 1 203 13 view .LVU327
+ 1116 0096 002B     		cmp	r3, #0
+ 1117 0098 40F3D980 		ble	.L78
+ 204:source\audio/apeplay.c ****             if (audio_decode_flag == 1) {
+ 1118              		.loc 1 204 13 is_stmt 1 view .LVU328
+ 1119              		.loc 1 204 35 is_stmt 0 view .LVU329
+ 1120 009c 2278     		ldrb	r2, [r4]	@ zero_extendqisi2
+ 1121 009e 794D     		ldr	r5, .L98+44
+ 1122 00a0 D1B2     		uxtb	r1, r2
+ 1123              		.loc 1 204 16 view .LVU330
+ 1124 00a2 012A     		cmp	r2, #1
+ 1125              		.loc 1 204 35 view .LVU331
+ 1126 00a4 0491     		str	r1, [sp, #16]
+ 1127              		.loc 1 204 16 view .LVU332
+ 1128 00a6 76D1     		bne	.L79
+ 205:source\audio/apeplay.c ****                blockstodecode = AUDIO_MIN(APE_BLOCKS_PER_LOOP,ape_nblocks);
+ 1129              		.loc 1 205 16 is_stmt 1 view .LVU333
+ 1130              		.loc 1 205 31 is_stmt 0 view .LVU334
+ 1131 00a8 B3F5006F 		cmp	r3, #2048
+ 1132 00ac A8BF     		it	ge
+ 1133 00ae 4FF40063 		movge	r3, #2048
+ 206:source\audio/apeplay.c ****                ape_res = decode_chunk(apex,ape_readptr,&ape_firstbyte,&ape_bytesconsumed,ape_decode
+ 1134              		.loc 1 206 26 view .LVU335
+ 1135 00b2 DFF8F0B1 		ldr	fp, .L98+76
+ 1136 00b6 0293     		str	r3, [sp, #8]
+ 205:source\audio/apeplay.c ****                blockstodecode = AUDIO_MIN(APE_BLOCKS_PER_LOOP,ape_nblocks);
+ 1137              		.loc 1 205 31 view .LVU336
+ 1138 00b8 0593     		str	r3, [sp, #20]
+ 1139              	.LVL72:
+ 1140              		.loc 1 206 16 is_stmt 1 view .LVU337
+ 1141              		.loc 1 206 26 is_stmt 0 view .LVU338
+ 1142 00ba DBF80030 		ldr	r3, [fp]
+ 1143              	.LVL73:
+ 1144              		.loc 1 206 26 view .LVU339
+ 1145 00be 0193     		str	r3, [sp, #4]
+ 1146 00c0 714B     		ldr	r3, .L98+48
+ 1147 00c2 DFF8B081 		ldr	r8, .L98+28
+ 1148 00c6 1B68     		ldr	r3, [r3]
+ 1149 00c8 6748     		ldr	r0, .L98+16
+ 1150 00ca 0093     		str	r3, [sp]
+ 1151 00cc 6B4A     		ldr	r2, .L98+36
+ 1152 00ce 6F4B     		ldr	r3, .L98+52
+ 1153 00d0 D8F80010 		ldr	r1, [r8]
+ 1154 00d4 0068     		ldr	r0, [r0]
+ 1155              		.loc 1 206 24 view .LVU340
+ 1156 00d6 DFF89891 		ldr	r9, .L98+24
+ 1157              		.loc 1 206 26 view .LVU341
+ 1158 00da FFF7FEFF 		bl	decode_chunk
+ 1159              	.LVL74:
+ 1160              		.loc 1 206 24 view .LVU342
+ 1161 00de C0B2     		uxtb	r0, r0
+ 1162 00e0 89F80000 		strb	r0, [r9]
+ 207:source\audio/apeplay.c ****                if (ape_res != 0) {
+ 1163              		.loc 1 207 16 is_stmt 1 view .LVU343
+ 1164              		.loc 1 207 19 is_stmt 0 view .LVU344
+ 1165 00e4 50B1     		cbz	r0, .L80
+ 208:source\audio/apeplay.c ****       	          lcd_printf(0,29,"frame decode err ");
+ 1166              		.loc 1 208 18 is_stmt 1 view .LVU345
+ 1167 00e6 6A4A     		ldr	r2, .L98+56
+ 1168 00e8 1D21     		movs	r1, #29
+ 1169 00ea 5046     		mov	r0, r10
+ 1170 00ec FFF7FEFF 		bl	lcd_printf
+ 1171              	.LVL75:
+ 209:source\audio/apeplay.c ****       	          ape_res = 1;
+ 1172              		.loc 1 209 18 view .LVU346
+ 1173              		.loc 1 209 26 is_stmt 0 view .LVU347
+ 1174 00f0 049B     		ldr	r3, [sp, #16]
+ 210:source\audio/apeplay.c ****                   audio_read_flag = 1;
+ 1175              		.loc 1 210 35 view .LVU348
+ 1176 00f2 3370     		strb	r3, [r6]
+ 209:source\audio/apeplay.c ****       	          ape_res = 1;
+ 1177              		.loc 1 209 26 view .LVU349
+ 1178 00f4 89F80030 		strb	r3, [r9]
+ 1179              		.loc 1 210 19 is_stmt 1 view .LVU350
+ 211:source\audio/apeplay.c ****                   audio_decode_flag = 0;
+ 1180              		.loc 1 211 19 view .LVU351
+ 1181              		.loc 1 211 37 is_stmt 0 view .LVU352
+ 1182 00f8 84F800A0 		strb	r10, [r4]
+ 1183              	.L80:
+ 212:source\audio/apeplay.c ****                }
+ 213:source\audio/apeplay.c ****                ape_fill_buffer((unsigned short *)ape_decoded1,APE_BLOCKS_PER_LOOP * 2);
+ 1184              		.loc 1 213 16 is_stmt 1 view .LVU353
+ 1185 00fc DBF80000 		ldr	r0, [fp]
+ 214:source\audio/apeplay.c ****                ape_readptr += ape_bytesconsumed;
+ 215:source\audio/apeplay.c ****                ape_bytesinbuffer -= ape_bytesconsumed;
+ 1186              		.loc 1 215 34 is_stmt 0 view .LVU354
+ 1187 0100 DFF87CA1 		ldr	r10, .L98+40
+ 213:source\audio/apeplay.c ****                ape_readptr += ape_bytesconsumed;
+ 1188              		.loc 1 213 16 view .LVU355
+ 1189 0104 4FF48051 		mov	r1, #4096
+ 1190 0108 FFF7FEFF 		bl	ape_fill_buffer
+ 1191              	.LVL76:
+ 214:source\audio/apeplay.c ****                ape_readptr += ape_bytesconsumed;
+ 1192              		.loc 1 214 16 is_stmt 1 view .LVU356
+ 214:source\audio/apeplay.c ****                ape_readptr += ape_bytesconsumed;
+ 1193              		.loc 1 214 28 is_stmt 0 view .LVU357
+ 1194 010c 5F4B     		ldr	r3, .L98+52
+ 1195 010e D8F80020 		ldr	r2, [r8]
+ 1196 0112 1B68     		ldr	r3, [r3]
+ 1197 0114 1A44     		add	r2, r2, r3
+ 1198 0116 C8F80020 		str	r2, [r8]
+ 1199              		.loc 1 215 16 is_stmt 1 view .LVU358
+ 1200              		.loc 1 215 34 is_stmt 0 view .LVU359
+ 1201 011a DAF80020 		ldr	r2, [r10]
+ 216:source\audio/apeplay.c ****                if (ape_bytesconsumed > 4 * APE_BLOCKS_PER_LOOP) {
+ 1202              		.loc 1 216 19 view .LVU360
+ 1203 011e B3F5005F 		cmp	r3, #8192
+ 215:source\audio/apeplay.c ****                if (ape_bytesconsumed > 4 * APE_BLOCKS_PER_LOOP) {
+ 1204              		.loc 1 215 34 view .LVU361
+ 1205 0122 A2EB0302 		sub	r2, r2, r3
+ 1206 0126 CAF80020 		str	r2, [r10]
+ 1207              		.loc 1 216 16 is_stmt 1 view .LVU362
+ 1208              		.loc 1 216 19 is_stmt 0 view .LVU363
+ 1209 012a 08DD     		ble	.L81
+ 217:source\audio/apeplay.c ****       	          ape_nblocks = 0;
+ 1210              		.loc 1 217 18 is_stmt 1 view .LVU364
+ 218:source\audio/apeplay.c ****       	          ape_res = 1;
+ 1211              		.loc 1 218 26 is_stmt 0 view .LVU365
+ 1212 012c 0122     		movs	r2, #1
+ 217:source\audio/apeplay.c ****       	          ape_nblocks = 0;
+ 1213              		.loc 1 217 30 view .LVU366
+ 1214 012e 0020     		movs	r0, #0
+ 1215              		.loc 1 218 26 view .LVU367
+ 1216 0130 89F80020 		strb	r2, [r9]
+ 219:source\audio/apeplay.c ****       	          lcd_printf(0,29,"ape_bytesconsumed: %d ",ape_bytesconsumed);
+ 1217              		.loc 1 219 18 view .LVU368
+ 1218 0134 1D21     		movs	r1, #29
+ 1219 0136 574A     		ldr	r2, .L98+60
+ 217:source\audio/apeplay.c ****       	          ape_nblocks = 0;
+ 1220              		.loc 1 217 30 view .LVU369
+ 1221 0138 3860     		str	r0, [r7]
+ 218:source\audio/apeplay.c ****       	          ape_res = 1;
+ 1222              		.loc 1 218 18 is_stmt 1 view .LVU370
+ 1223              		.loc 1 219 18 view .LVU371
+ 1224 013a FFF7FEFF 		bl	lcd_printf
+ 1225              	.LVL77:
+ 1226              	.L81:
+ 220:source\audio/apeplay.c ****                }
+ 221:source\audio/apeplay.c ****                if (ape_bytesinbuffer < 4 * APE_BLOCKS_PER_LOOP) {
+ 1227              		.loc 1 221 16 view .LVU372
+ 1228              		.loc 1 221 38 is_stmt 0 view .LVU373
+ 1229 013e DAF80020 		ldr	r2, [r10]
+ 1230              		.loc 1 221 19 view .LVU374
+ 1231 0142 B2F5005F 		cmp	r2, #8192
+ 1232 0146 20DA     		bge	.L82
+ 222:source\audio/apeplay.c ****       	          memmove(ape_buffer,ape_readptr,ape_bytesinbuffer);
+ 1233              		.loc 1 222 18 is_stmt 1 view .LVU375
+ 1234 0148 DFF85CB1 		ldr	fp, .L98+80
+ 1235 014c D8F80010 		ldr	r1, [r8]
+ 1236 0150 DBF80000 		ldr	r0, [fp]
+ 1237 0154 FFF7FEFF 		bl	memmove
+ 1238              	.LVL78:
+ 223:source\audio/apeplay.c ****       	          ape_res = f_read(audiodev.file,ape_buffer + ape_bytesinbuffer,APE_FILE_BUF_SZ - ap
+ 1239              		.loc 1 223 18 view .LVU376
+ 1240              		.loc 1 223 28 is_stmt 0 view .LVU377
+ 1241 0158 DAF80010 		ldr	r1, [r10]
+ 1242 015c DBF80000 		ldr	r0, [fp]
+ 1243 0160 C1F5A042 		rsb	r2, r1, #20480
+ 1244 0164 07AB     		add	r3, sp, #28
+ 1245 0166 0144     		add	r1, r1, r0
+ 1246 0168 E868     		ldr	r0, [r5, #12]	@ unaligned
+ 1247 016a FFF7FEFF 		bl	f_read
+ 1248              	.LVL79:
+ 224:source\audio/apeplay.c ****       	          if (ape_res) {
+ 1249              		.loc 1 224 18 is_stmt 1 view .LVU378
+ 1250              		.loc 1 224 21 is_stmt 0 view .LVU379
+ 1251 016e 0028     		cmp	r0, #0
+ 1252 0170 66D1     		bne	.L83
+ 223:source\audio/apeplay.c ****       	          ape_res = f_read(audiodev.file,ape_buffer + ape_bytesinbuffer,APE_FILE_BUF_SZ - ap
+ 1253              		.loc 1 223 26 view .LVU380
+ 1254 0172 89F80000 		strb	r0, [r9]
+ 1255              	.L84:
+ 225:source\audio/apeplay.c ****       	             ape_res = 1;
+ 226:source\audio/apeplay.c ****                      audio_read_flag = 1;
+ 227:source\audio/apeplay.c ****                      audio_decode_flag = 0;
+ 228:source\audio/apeplay.c ****       	          }
+ 229:source\audio/apeplay.c ****       	          ape_bytesinbuffer += ape_n;
+ 1256              		.loc 1 229 18 is_stmt 1 view .LVU381
+ 1257              		.loc 1 229 36 is_stmt 0 view .LVU382
+ 1258 0176 DAF80030 		ldr	r3, [r10]
+ 1259 017a 079A     		ldr	r2, [sp, #28]
+ 1260 017c 1344     		add	r3, r3, r2
+ 1261 017e CAF80030 		str	r3, [r10]
+ 230:source\audio/apeplay.c ****       	          ape_readptr = ape_buffer;
+ 1262              		.loc 1 230 18 is_stmt 1 view .LVU383
+ 1263              		.loc 1 230 30 is_stmt 0 view .LVU384
+ 1264 0182 DBF80030 		ldr	r3, [fp]
+ 1265 0186 C8F80030 		str	r3, [r8]
+ 1266              	.L82:
+ 231:source\audio/apeplay.c ****                }
+ 232:source\audio/apeplay.c ****                ape_nblocks -= blockstodecode;
+ 1267              		.loc 1 232 16 is_stmt 1 view .LVU385
+ 1268              		.loc 1 232 28 is_stmt 0 view .LVU386
+ 1269 018a 3B68     		ldr	r3, [r7]
+ 1270 018c 059A     		ldr	r2, [sp, #20]
+ 1271 018e 9B1A     		subs	r3, r3, r2
+ 1272 0190 3B60     		str	r3, [r7]
+ 233:source\audio/apeplay.c ****                audio_decode_flag = 2;
+ 1273              		.loc 1 233 16 is_stmt 1 view .LVU387
+ 1274              		.loc 1 233 34 is_stmt 0 view .LVU388
+ 1275 0192 0223     		movs	r3, #2
+ 1276 0194 2370     		strb	r3, [r4]
+ 1277              	.LVL80:
+ 1278              	.L79:
+ 234:source\audio/apeplay.c ****             }
+ 235:source\audio/apeplay.c ****             if (audio_decode_flag == 2) {
+ 1279              		.loc 1 235 13 is_stmt 1 view .LVU389
+ 1280              		.loc 1 235 35 is_stmt 0 view .LVU390
+ 1281 0196 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1282              		.loc 1 235 16 view .LVU391
+ 1283 0198 022B     		cmp	r3, #2
+ 1284 019a 3DD1     		bne	.L86
+ 236:source\audio/apeplay.c ****                if ((audiodev.status & (1 << 1)) && (audio_pause == 0)) {
+ 1285              		.loc 1 236 16 is_stmt 1 view .LVU392
+ 1286              		.loc 1 236 29 is_stmt 0 view .LVU393
+ 1287 019c 2B7D     		ldrb	r3, [r5, #20]	@ zero_extendqisi2
+ 1288              		.loc 1 236 19 view .LVU394
+ 1289 019e 9907     		lsls	r1, r3, #30
+ 1290 01a0 3AD5     		bpl	.L86
+ 1291              		.loc 1 236 65 discriminator 1 view .LVU395
+ 1292 01a2 304B     		ldr	r3, .L98+12
+ 1293 01a4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1294              		.loc 1 236 49 discriminator 1 view .LVU396
+ 1295 01a6 03F0FF09 		and	r9, r3, #255
+ 1296 01aa ABBB     		cbnz	r3, .L86
+ 237:source\audio/apeplay.c ****                   if (audio_delay >= 100) {
+ 1297              		.loc 1 237 19 is_stmt 1 view .LVU397
+ 1298              		.loc 1 237 35 is_stmt 0 view .LVU398
+ 1299 01ac 3A4B     		ldr	r3, .L98+64
+ 1300 01ae 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1301              		.loc 1 237 22 view .LVU399
+ 1302 01b0 632A     		cmp	r2, #99
+ 1303 01b2 2CD9     		bls	.L88
+ 238:source\audio/apeplay.c ****                      audio_delay = 0;
+ 1304              		.loc 1 238 22 is_stmt 1 view .LVU400
+ 1305              		.loc 1 238 34 is_stmt 0 view .LVU401
+ 1306 01b4 83F80090 		strb	r9, [r3]
+ 239:source\audio/apeplay.c ****       	             ape_get_curtime(audiodev.file,apectrl);
+ 1307              		.loc 1 239 21 is_stmt 1 view .LVU402
+ 1308 01b8 384B     		ldr	r3, .L98+68
+ 1309 01ba E868     		ldr	r0, [r5, #12]	@ unaligned
+ 1310 01bc D3F80080 		ldr	r8, [r3]
+ 1311 01c0 4146     		mov	r1, r8
+ 1312 01c2 FFF7FEFF 		bl	ape_get_curtime
+ 1313              	.LVL81:
+ 240:source\audio/apeplay.c ****       	             audiodev.totsec = apectrl->totsec;
+ 1314              		.loc 1 240 21 view .LVU403
+ 1315              		.loc 1 240 46 is_stmt 0 view .LVU404
+ 1316 01c6 D8F80020 		ldr	r2, [r8]	@ unaligned
+ 1317              		.loc 1 240 37 view .LVU405
+ 1318 01ca C5F82220 		str	r2, [r5, #34]	@ unaligned
+ 241:source\audio/apeplay.c ****       	             audiodev.cursec = apectrl->cursec;
+ 1319              		.loc 1 241 21 is_stmt 1 view .LVU406
+ 1320              		.loc 1 241 46 is_stmt 0 view .LVU407
+ 1321 01ce D8F80410 		ldr	r1, [r8, #4]	@ unaligned
+ 1322              		.loc 1 241 37 view .LVU408
+ 1323 01d2 C5F82610 		str	r1, [r5, #38]	@ unaligned
+ 242:source\audio/apeplay.c ****       	             audiodev.bitrate = apectrl->bitrate;
+ 1324              		.loc 1 242 21 is_stmt 1 view .LVU409
+ 1325              		.loc 1 242 47 is_stmt 0 view .LVU410
+ 1326 01d6 D8F80830 		ldr	r3, [r8, #8]	@ unaligned
+ 1327              		.loc 1 242 38 view .LVU411
+ 1328 01da C5F82A30 		str	r3, [r5, #42]	@ unaligned
+ 243:source\audio/apeplay.c ****       	             audiodev.samplerate = apectrl->samplerate;
+ 1329              		.loc 1 243 21 is_stmt 1 view .LVU412
+ 1330              		.loc 1 243 50 is_stmt 0 view .LVU413
+ 1331 01de D8F80C30 		ldr	r3, [r8, #12]	@ unaligned
+ 1332              		.loc 1 243 41 view .LVU414
+ 1333 01e2 C5F82E30 		str	r3, [r5, #46]	@ unaligned
+ 244:source\audio/apeplay.c ****       	             audiodev.bps = apectrl->bps;
+ 1334              		.loc 1 244 21 is_stmt 1 view .LVU415
+ 245:source\audio/apeplay.c ****       	             lcd_printf(0,28,"Time: %2d:%.2d %2d:%.2d ",apectrl->totsec / 60,apectrl->totsec
+ 1335              		.loc 1 245 21 is_stmt 0 view .LVU416
+ 1336 01e6 3C20     		movs	r0, #60
+ 244:source\audio/apeplay.c ****       	             audiodev.bps = apectrl->bps;
+ 1337              		.loc 1 244 43 view .LVU417
+ 1338 01e8 B8F81230 		ldrh	r3, [r8, #18]	@ unaligned
+ 244:source\audio/apeplay.c ****       	             audiodev.bps = apectrl->bps;
+ 1339              		.loc 1 244 34 view .LVU418
+ 1340 01ec 6B86     		strh	r3, [r5, #50]	@ unaligned
+ 1341              		.loc 1 245 21 is_stmt 1 view .LVU419
+ 1342 01ee B1FBF0FC 		udiv	ip, r1, r0
+ 1343 01f2 B2FBF0F3 		udiv	r3, r2, r0
+ 1344 01f6 00FB1C11 		mls	r1, r0, ip, r1
+ 1345 01fa 00FB1322 		mls	r2, r0, r3, r2
+ 1346 01fe CDE901C1 		strd	ip, r1, [sp, #4]
+ 1347 0202 0092     		str	r2, [sp]
+ 1348 0204 1C21     		movs	r1, #28
+ 1349 0206 264A     		ldr	r2, .L98+72
+ 1350 0208 4846     		mov	r0, r9
+ 1351 020a FFF7FEFF 		bl	lcd_printf
+ 1352              	.LVL82:
+ 1353              	.L88:
+ 246:source\audio/apeplay.c ****       	          }
+ 247:source\audio/apeplay.c ****       	          if (audiodev.status & 0x01) {
+ 1354              		.loc 1 247 18 view .LVU420
+ 1355              		.loc 1 247 30 is_stmt 0 view .LVU421
+ 1356 020e 2B7D     		ldrb	r3, [r5, #20]	@ zero_extendqisi2
+ 1357              		.loc 1 247 21 view .LVU422
+ 1358 0210 DA07     		lsls	r2, r3, #31
+ 248:source\audio/apeplay.c ****       	             audio_decode_flag = 1;
+ 1359              		.loc 1 248 21 is_stmt 1 view .LVU423
+ 1360              		.loc 1 248 39 is_stmt 0 view .LVU424
+ 1361 0212 44BF     		itt	mi
+ 1362 0214 0123     		movmi	r3, #1
+ 1363 0216 2370     		strbmi	r3, [r4]
+ 1364              	.L86:
+ 249:source\audio/apeplay.c ****       	          }
+ 250:source\audio/apeplay.c ****                }
+ 251:source\audio/apeplay.c ****             }
+ 252:source\audio/apeplay.c ****             if (((audiodev.status & (1 << 1)) == 0) && (audio_pause == 0)) {
+ 1365              		.loc 1 252 13 is_stmt 1 view .LVU425
+ 1366              		.loc 1 252 27 is_stmt 0 view .LVU426
+ 1367 0218 2B7D     		ldrb	r3, [r5, #20]	@ zero_extendqisi2
+ 1368              		.loc 1 252 16 view .LVU427
+ 1369 021a 9B07     		lsls	r3, r3, #30
+ 1370 021c 0AD4     		bmi	.L69
+ 1371              		.loc 1 252 69 discriminator 1 view .LVU428
+ 1372 021e 114B     		ldr	r3, .L98+12
+ 1373 0220 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1374              		.loc 1 252 53 discriminator 1 view .LVU429
+ 1375 0222 02F0FF03 		and	r3, r2, #255
+ 1376 0226 2AB9     		cbnz	r2, .L69
+ 253:source\audio/apeplay.c ****       	       ape_nblocks = 0;
+ 1377              		.loc 1 253 15 is_stmt 1 view .LVU430
+ 254:source\audio/apeplay.c ****       	       ape_res = 0;
+ 1378              		.loc 1 254 23 is_stmt 0 view .LVU431
+ 1379 0228 114A     		ldr	r2, .L98+24
+ 253:source\audio/apeplay.c ****       	       ape_nblocks = 0;
+ 1380              		.loc 1 253 27 view .LVU432
+ 1381 022a 3B60     		str	r3, [r7]
+ 1382              		.loc 1 254 15 is_stmt 1 view .LVU433
+ 1383              		.loc 1 254 23 is_stmt 0 view .LVU434
+ 1384 022c 1370     		strb	r3, [r2]
+ 255:source\audio/apeplay.c ****                audio_read_flag = 1;
+ 1385              		.loc 1 255 16 is_stmt 1 view .LVU435
+ 1386              		.loc 1 255 32 is_stmt 0 view .LVU436
+ 1387 022e 0122     		movs	r2, #1
+ 1388 0230 3270     		strb	r2, [r6]
+ 256:source\audio/apeplay.c ****                audio_decode_flag = 0;
+ 1389              		.loc 1 256 16 is_stmt 1 view .LVU437
+ 1390              		.loc 1 256 34 is_stmt 0 view .LVU438
+ 1391 0232 2370     		strb	r3, [r4]
+ 1392              	.L69:
+ 257:source\audio/apeplay.c ****             }
+ 258:source\audio/apeplay.c ****          } else {
+ 259:source\audio/apeplay.c ****             audio_read_flag = 1;
+ 260:source\audio/apeplay.c ****             audio_decode_flag = 0;
+ 261:source\audio/apeplay.c ****          }
+ 262:source\audio/apeplay.c ****       }
+ 263:source\audio/apeplay.c **** }
+ 1393              		.loc 1 263 1 view .LVU439
+ 1394 0234 09B0     		add	sp, sp, #36
+ 1395              		.cfi_remember_state
+ 1396              		.cfi_def_cfa_offset 36
+ 1397              		@ sp needed
+ 1398 0236 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 1399              	.L72:
+ 1400              		.cfi_restore_state
+ 199:source\audio/apeplay.c ****          }
+ 1401              		.loc 1 199 13 is_stmt 1 view .LVU440
+ 1402 023a FFF7FEFF 		bl	ape_stop
+ 1403              	.LVL83:
+ 1404 023e 1DE7     		b	.L71
+ 1405              	.LVL84:
+ 1406              	.L83:
+ 225:source\audio/apeplay.c ****                      audio_read_flag = 1;
+ 1407              		.loc 1 225 21 view .LVU441
+ 225:source\audio/apeplay.c ****                      audio_read_flag = 1;
+ 1408              		.loc 1 225 29 is_stmt 0 view .LVU442
+ 1409 0240 0123     		movs	r3, #1
+ 226:source\audio/apeplay.c ****                      audio_decode_flag = 0;
+ 1410              		.loc 1 226 38 view .LVU443
+ 1411 0242 3370     		strb	r3, [r6]
+ 225:source\audio/apeplay.c ****                      audio_read_flag = 1;
+ 1412              		.loc 1 225 29 view .LVU444
+ 1413 0244 89F80030 		strb	r3, [r9]
+ 226:source\audio/apeplay.c ****                      audio_decode_flag = 0;
+ 1414              		.loc 1 226 22 is_stmt 1 view .LVU445
+ 227:source\audio/apeplay.c ****       	          }
+ 1415              		.loc 1 227 22 view .LVU446
+ 227:source\audio/apeplay.c ****       	          }
+ 1416              		.loc 1 227 40 is_stmt 0 view .LVU447
+ 1417 0248 0023     		movs	r3, #0
+ 1418 024a 2370     		strb	r3, [r4]
+ 1419 024c 93E7     		b	.L84
+ 1420              	.LVL85:
+ 1421              	.L78:
+ 259:source\audio/apeplay.c ****             audio_decode_flag = 0;
+ 1422              		.loc 1 259 13 is_stmt 1 view .LVU448
+ 259:source\audio/apeplay.c ****             audio_decode_flag = 0;
+ 1423              		.loc 1 259 29 is_stmt 0 view .LVU449
+ 1424 024e 0123     		movs	r3, #1
+ 1425 0250 3370     		strb	r3, [r6]
+ 260:source\audio/apeplay.c ****          }
+ 1426              		.loc 1 260 13 is_stmt 1 view .LVU450
+ 260:source\audio/apeplay.c ****          }
+ 1427              		.loc 1 260 31 is_stmt 0 view .LVU451
+ 1428 0252 84F800A0 		strb	r10, [r4]
+ 1429 0256 EDE7     		b	.L69
+ 1430              	.L99:
+ 1431              		.align	2
+ 1432              	.L98:
+ 1433 0258 00000000 		.word	apetransferend
+ 1434 025c 00000000 		.word	audio_read_flag
+ 1435 0260 00000000 		.word	audio_decode_flag
+ 1436 0264 00000000 		.word	audio_pause
+ 1437 0268 00000000 		.word	apex
+ 1438 026c 00000000 		.word	ape_currentframe
+ 1439 0270 00000000 		.word	ape_res
+ 1440 0274 00000000 		.word	ape_readptr
+ 1441 0278 00000000 		.word	ape_nblocks
+ 1442 027c 00000000 		.word	ape_firstbyte
+ 1443 0280 00000000 		.word	ape_bytesinbuffer
+ 1444 0284 00000000 		.word	audiodev
+ 1445 0288 00000000 		.word	ape_decoded0
+ 1446 028c 00000000 		.word	ape_bytesconsumed
+ 1447 0290 00000000 		.word	.LC8
+ 1448 0294 12000000 		.word	.LC9
+ 1449 0298 00000000 		.word	audio_delay
+ 1450 029c 00000000 		.word	apectrl
+ 1451 02a0 29000000 		.word	.LC10
+ 1452 02a4 00000000 		.word	ape_decoded1
+ 1453 02a8 00000000 		.word	ape_buffer
+ 1454              		.cfi_endproc
+ 1455              	.LFE129:
+ 1457              		.global	ape_res
+ 1458              		.section	.bss.ape_res,"aw",%nobits
+ 1461              	ape_res:
+ 1462 0000 00       		.space	1
+ 1463              		.global	ape_decoded1
+ 1464              		.section	.bss.ape_decoded1,"aw",%nobits
+ 1465              		.align	2
+ 1468              	ape_decoded1:
+ 1469 0000 00000000 		.space	4
+ 1470              		.global	ape_decoded0
+ 1471              		.section	.bss.ape_decoded0,"aw",%nobits
+ 1472              		.align	2
+ 1475              	ape_decoded0:
+ 1476 0000 00000000 		.space	4
+ 1477              		.global	ape_buffer
+ 1478              		.section	.bss.ape_buffer,"aw",%nobits
+ 1479              		.align	2
+ 1482              	ape_buffer:
+ 1483 0000 00000000 		.space	4
+ 1484              		.global	ape_readptr
+ 1485              		.section	.bss.ape_readptr,"aw",%nobits
+ 1486              		.align	2
+ 1489              	ape_readptr:
+ 1490 0000 00000000 		.space	4
+ 1491              		.global	ape_firstbyte
+ 1492              		.section	.bss.ape_firstbyte,"aw",%nobits
+ 1493              		.align	2
+ 1496              	ape_firstbyte:
+ 1497 0000 00000000 		.space	4
+ 1498              		.global	ape_bytesinbuffer
+ 1499              		.section	.bss.ape_bytesinbuffer,"aw",%nobits
+ 1500              		.align	2
+ 1503              	ape_bytesinbuffer:
+ 1504 0000 00000000 		.space	4
+ 1505              		.global	ape_bytesconsumed
+ 1506              		.section	.bss.ape_bytesconsumed,"aw",%nobits
+ 1507              		.align	2
+ 1510              	ape_bytesconsumed:
+ 1511 0000 00000000 		.space	4
+ 1512              		.global	ape_currentframe
+ 1513              		.section	.bss.ape_currentframe,"aw",%nobits
+ 1514              		.align	2
+ 1517              	ape_currentframe:
+ 1518 0000 00000000 		.space	4
+ 1519              		.global	ape_nblocks
+ 1520              		.section	.bss.ape_nblocks,"aw",%nobits
+ 1521              		.align	2
+ 1524              	ape_nblocks:
+ 1525 0000 00000000 		.space	4
+ 1526              		.global	apex
+ 1527              		.section	.bss.apex,"aw",%nobits
+ 1528              		.align	2
+ 1531              	apex:
+ 1532 0000 00000000 		.space	4
+ 1533              		.global	apewitchbuf
+ 1534              		.section	.bss.apewitchbuf,"aw",%nobits
+ 1537              	apewitchbuf:
+ 1538 0000 00       		.space	1
+ 1539              		.global	apetransferend
+ 1540              		.section	.bss.apetransferend,"aw",%nobits
+ 1543              	apetransferend:
+ 1544 0000 00       		.space	1
+ 1545              		.global	apectrl
+ 1546              		.section	.bss.apectrl,"aw",%nobits
+ 1547              		.align	2
+ 1550              	apectrl:
+ 1551 0000 00000000 		.space	4
+ 1552              		.text
+ 1553              	.Letext0:
+ 1554              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1555              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1556              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 1557              		.file 5 "source\\audio\\../fatfs/integer.h"
+ 1558              		.file 6 "source\\audio\\../fatfs/ff.h"
+ 1559              		.file 7 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\lib\\gcc\\ar
+ 1560              		.file 8 "source\\audio\\../prototype.h"
+ 1561              		.file 9 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1562              		.file 10 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 1563              		.file 11 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 apeplay.c
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:21     .text.ape_i2s_dma_tx_callback:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:27     .text.ape_i2s_dma_tx_callback:00000000 ape_i2s_dma_tx_callback
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:112    .text.ape_i2s_dma_tx_callback:0000004c $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1537   .bss.apewitchbuf:00000000 apewitchbuf
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1543   .bss.apetransferend:00000000 apetransferend
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:120    .text.ape_file_seek:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:126    .text.ape_file_seek:00000000 ape_file_seek
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:147    .text.ape_file_seek:0000000c $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:152    .text.ape_fill_buffer:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:158    .text.ape_fill_buffer:00000000 ape_fill_buffer
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:250    .text.ape_fill_buffer:0000004c $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:260    .text.ape_get_curtime:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:266    .text.ape_get_curtime:00000000 ape_get_curtime
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:329    .text.ape_stop:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:335    .text.ape_stop:00000000 ape_stop
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:443    .text.ape_stop:0000007c $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1531   .bss.apex:00000000 apex
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1550   .bss.apectrl:00000000 apectrl
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1475   .bss.ape_decoded0:00000000 ape_decoded0
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1468   .bss.ape_decoded1:00000000 ape_decoded1
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1482   .bss.ape_buffer:00000000 ape_buffer
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:478    .text.ape_play_song:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:484    .text.ape_play_song:00000000 ape_play_song
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:936    .text.ape_play_song:00000270 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1517   .bss.ape_currentframe:00000000 ape_currentframe
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1503   .bss.ape_bytesinbuffer:00000000 ape_bytesinbuffer
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1496   .bss.ape_firstbyte:00000000 ape_firstbyte
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1489   .bss.ape_readptr:00000000 ape_readptr
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1461   .bss.ape_res:00000000 ape_res
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:973    .text.ape_play:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:979    .text.ape_play:00000000 ape_play
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1433   .text.ape_play:00000258 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1524   .bss.ape_nblocks:00000000 ape_nblocks
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1510   .bss.ape_bytesconsumed:00000000 ape_bytesconsumed
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1462   .bss.ape_res:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1465   .bss.ape_decoded1:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1472   .bss.ape_decoded0:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1479   .bss.ape_buffer:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1486   .bss.ape_readptr:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1493   .bss.ape_firstbyte:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1500   .bss.ape_bytesinbuffer:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1507   .bss.ape_bytesconsumed:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1514   .bss.ape_currentframe:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1521   .bss.ape_nblocks:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1528   .bss.apex:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1538   .bss.apewitchbuf:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1544   .bss.apetransferend:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccf8GGak.s:1547   .bss.apectrl:00000000 $d
+
+UNDEFINED SYMBOLS
+audiodev
+tick_process
+tick
+__aeabi_uldivmod
+__aeabi_ldivmod
+audio_stop
+f_close
+free
+filterbuf64
+audio_run
+audio_decode_flag
+audio_read_flag
+audio_pause
+audio_play_function
+audio_stop_function
+music_play
+malloc
+memset
+f_open
+ape_parseheader
+lcd_printf
+WM8978_I2S_Cfg
+I2S2_Init
+I2S2_SampleRate_Set
+I2S2_TX_DMA_Init
+f_lseek
+f_read
+audio_start
+volume
+i2s_tx_callback
+init_frame_decoder
+decode_chunk
+memmove
+audio_delay

@@ -1,0 +1,2937 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"mp3play.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\audio\\mp3play.c"
+  20              		.section	.text.mp3_i2s_dma_tx_callback,"ax",%progbits
+  21              		.align	1
+  22              		.global	mp3_i2s_dma_tx_callback
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	mp3_i2s_dma_tx_callback:
+  28              	.LFB124:
+   1:source\audio/mp3play.c **** /********************************************************************************/
+   2:source\audio/mp3play.c **** /* mp3play.c                                                                    */
+   3:source\audio/mp3play.c **** /* STM32F407ZGT6                                                                */
+   4:source\audio/mp3play.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\audio/mp3play.c **** /* stm32f4x_test								*/
+   6:source\audio/mp3play.c **** /********************************************************************************/
+   7:source\audio/mp3play.c **** #include "../../hwdefs.h"
+   8:source\audio/mp3play.c **** #include "../prototype.h"
+   9:source\audio/mp3play.c **** #include <string.h>
+  10:source\audio/mp3play.c **** #include "mp3dec.h"
+  11:source\audio/mp3play.c **** 
+  12:source\audio/mp3play.c **** 
+  13:source\audio/mp3play.c **** __mp3ctrl *mp3ctrl;
+  14:source\audio/mp3play.c **** volatile unsigned char mp3transferend = 0;
+  15:source\audio/mp3play.c **** volatile unsigned char mp3witchbuf = 0;
+  16:source\audio/mp3play.c **** 
+  17:source\audio/mp3play.c **** 
+  18:source\audio/mp3play.c **** HMP3Decoder mp3decoder;
+  19:source\audio/mp3play.c **** MP3FrameInfo mp3frameinfo;
+  20:source\audio/mp3play.c **** unsigned char *mp3_buffer;
+  21:source\audio/mp3play.c **** unsigned char *mp3_readptr;
+  22:source\audio/mp3play.c **** int mp3_offset = 0;
+  23:source\audio/mp3play.c **** int mp3_outofdata = 0;
+  24:source\audio/mp3play.c **** int mp3_bytesleft = 0;
+  25:source\audio/mp3play.c **** 
+  26:source\audio/mp3play.c **** extern volatile unsigned char volume,volume_flag;
+  27:source\audio/mp3play.c **** extern volatile unsigned char audio_delay,audio_decode_flag,audio_read_flag,audio_run,audio_pause,m
+  28:source\audio/mp3play.c **** extern unsigned int audio_old_sec,audio_br;
+  29:source\audio/mp3play.c **** 
+  30:source\audio/mp3play.c **** 
+  31:source\audio/mp3play.c **** 
+  32:source\audio/mp3play.c **** void mp3_fill_buffer (unsigned short *buf,unsigned short size,unsigned char nch)
+  33:source\audio/mp3play.c **** {
+  34:source\audio/mp3play.c ****       unsigned short i;
+  35:source\audio/mp3play.c ****       unsigned short *p;
+  36:source\audio/mp3play.c ****       while ((mp3transferend == 0) && (audio_pause == 0)){
+  37:source\audio/mp3play.c ****             if (tick) {
+  38:source\audio/mp3play.c ****                tick = 0;
+  39:source\audio/mp3play.c ****                tick_process();
+  40:source\audio/mp3play.c ****             }
+  41:source\audio/mp3play.c ****       }
+  42:source\audio/mp3play.c ****       mp3transferend = 0;
+  43:source\audio/mp3play.c ****       if (mp3witchbuf == 0) {
+  44:source\audio/mp3play.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+  45:source\audio/mp3play.c **** 	 p = (void *)audiodev.i2sbuf1;	 
+  46:source\audio/mp3play.c ****       } else {
+  47:source\audio/mp3play.c **** 	 //p = (unsigned short *)audiodev.i2sbuf2;	// POINTER
+  48:source\audio/mp3play.c **** 	 p = (void *)audiodev.i2sbuf2;	 
+  49:source\audio/mp3play.c ****       }
+  50:source\audio/mp3play.c ****       if (nch == 2) {
+  51:source\audio/mp3play.c ****          for (i=0;i<size;i++) p[i] = buf[i];
+  52:source\audio/mp3play.c ****       } else {
+  53:source\audio/mp3play.c ****          for (i=0;i<size;i++) {
+  54:source\audio/mp3play.c ****              p[2 * i] = buf[i];
+  55:source\audio/mp3play.c ****              p[2 * i + 1] = buf[i];
+  56:source\audio/mp3play.c ****          }
+  57:source\audio/mp3play.c ****       }
+  58:source\audio/mp3play.c **** }
+  59:source\audio/mp3play.c **** 
+  60:source\audio/mp3play.c **** 
+  61:source\audio/mp3play.c **** void mp3_i2s_dma_tx_callback (void)
+  62:source\audio/mp3play.c **** {
+  29              		.loc 1 62 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  63:source\audio/mp3play.c ****       unsigned short i;
+  34              		.loc 1 63 7 view .LVU1
+  64:source\audio/mp3play.c ****       if (DMA1_Stream4->CR &(1 << 19)) {
+  35              		.loc 1 64 7 view .LVU2
+  36              		.loc 1 64 23 is_stmt 0 view .LVU3
+  37 0000 124B     		ldr	r3, .L8
+  38 0002 1349     		ldr	r1, .L8+4
+  39 0004 1B6F     		ldr	r3, [r3, #112]
+  40 0006 134A     		ldr	r2, .L8+8
+  41              		.loc 1 64 10 view .LVU4
+  42 0008 13F40023 		ands	r3, r3, #524288
+  43 000c 10D0     		beq	.L2
+  65:source\audio/mp3play.c **** 	 mp3witchbuf = 0;
+  44              		.loc 1 65 3 is_stmt 1 view .LVU5
+  45              		.loc 1 65 15 is_stmt 0 view .LVU6
+  46 000e 0023     		movs	r3, #0
+  47 0010 0B70     		strb	r3, [r1]
+  66:source\audio/mp3play.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  48              		.loc 1 66 3 is_stmt 1 view .LVU7
+  49              		.loc 1 66 16 is_stmt 0 view .LVU8
+  50 0012 137D     		ldrb	r3, [r2, #20]	@ zero_extendqisi2
+  51              		.loc 1 66 6 view .LVU9
+  52 0014 13F00103 		ands	r3, r3, #1
+  53 0018 06D1     		bne	.L3
+  67:source\audio/mp3play.c **** 	    for (i=0;i<2304*2;i++) audiodev.i2sbuf1[i] = 0;
+  54              		.loc 1 67 49 view .LVU10
+  55 001a 1846     		mov	r0, r3
+  56              	.L4:
+  57              	.LVL0:
+  58              		.loc 1 67 29 is_stmt 1 discriminator 3 view .LVU11
+  59              		.loc 1 67 37 is_stmt 0 discriminator 3 view .LVU12
+  60 001c 1168     		ldr	r1, [r2]	@ unaligned
+  61              		.loc 1 67 49 discriminator 3 view .LVU13
+  62 001e C854     		strb	r0, [r1, r3]
+  63              		.loc 1 67 25 is_stmt 1 discriminator 3 view .LVU14
+  64              	.LVL1:
+  65              		.loc 1 67 16 discriminator 3 view .LVU15
+  66 0020 0133     		adds	r3, r3, #1
+  67              	.LVL2:
+  68              		.loc 1 67 16 is_stmt 0 discriminator 3 view .LVU16
+  69 0022 B3F5905F 		cmp	r3, #4608
+  70 0026 F9D1     		bne	.L4
+  71              	.LVL3:
+  72              	.L3:
+  68:source\audio/mp3play.c **** 	 }
+  69:source\audio/mp3play.c ****       } else {
+  70:source\audio/mp3play.c **** 	 mp3witchbuf = 1;
+  71:source\audio/mp3play.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  72:source\audio/mp3play.c **** 	    for (i=0;i<2304*2;i++)audiodev.i2sbuf2[i] = 0;
+  73:source\audio/mp3play.c **** 	 }
+  74:source\audio/mp3play.c ****       }
+  75:source\audio/mp3play.c ****       mp3transferend = 1;
+  73              		.loc 1 75 7 is_stmt 1 view .LVU17
+  74              		.loc 1 75 22 is_stmt 0 view .LVU18
+  75 0028 0B4B     		ldr	r3, .L8+12
+  76 002a 0122     		movs	r2, #1
+  77 002c 1A70     		strb	r2, [r3]
+  76:source\audio/mp3play.c **** }
+  78              		.loc 1 76 1 view .LVU19
+  79 002e 7047     		bx	lr
+  80              	.L2:
+  70:source\audio/mp3play.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  81              		.loc 1 70 3 is_stmt 1 view .LVU20
+  70:source\audio/mp3play.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  82              		.loc 1 70 15 is_stmt 0 view .LVU21
+  83 0030 0120     		movs	r0, #1
+  84 0032 0870     		strb	r0, [r1]
+  71:source\audio/mp3play.c **** 	    for (i=0;i<2304*2;i++)audiodev.i2sbuf2[i] = 0;
+  85              		.loc 1 71 3 is_stmt 1 view .LVU22
+  71:source\audio/mp3play.c **** 	    for (i=0;i<2304*2;i++)audiodev.i2sbuf2[i] = 0;
+  86              		.loc 1 71 16 is_stmt 0 view .LVU23
+  87 0034 117D     		ldrb	r1, [r2, #20]	@ zero_extendqisi2
+  71:source\audio/mp3play.c **** 	    for (i=0;i<2304*2;i++)audiodev.i2sbuf2[i] = 0;
+  88              		.loc 1 71 6 view .LVU24
+  89 0036 C907     		lsls	r1, r1, #31
+  90 0038 F6D4     		bmi	.L3
+  72:source\audio/mp3play.c **** 	 }
+  91              		.loc 1 72 48 view .LVU25
+  92 003a 1846     		mov	r0, r3
+  93              	.L5:
+  94              	.LVL4:
+  72:source\audio/mp3play.c **** 	 }
+  95              		.loc 1 72 28 is_stmt 1 discriminator 3 view .LVU26
+  72:source\audio/mp3play.c **** 	 }
+  96              		.loc 1 72 36 is_stmt 0 discriminator 3 view .LVU27
+  97 003c 5168     		ldr	r1, [r2, #4]	@ unaligned
+  72:source\audio/mp3play.c **** 	 }
+  98              		.loc 1 72 48 discriminator 3 view .LVU28
+  99 003e C854     		strb	r0, [r1, r3]
+  72:source\audio/mp3play.c **** 	 }
+ 100              		.loc 1 72 25 is_stmt 1 discriminator 3 view .LVU29
+ 101              	.LVL5:
+  72:source\audio/mp3play.c **** 	 }
+ 102              		.loc 1 72 16 discriminator 3 view .LVU30
+ 103 0040 0133     		adds	r3, r3, #1
+ 104              	.LVL6:
+  72:source\audio/mp3play.c **** 	 }
+ 105              		.loc 1 72 16 is_stmt 0 discriminator 3 view .LVU31
+ 106 0042 B3F5905F 		cmp	r3, #4608
+ 107 0046 F9D1     		bne	.L5
+ 108 0048 EEE7     		b	.L3
+ 109              	.L9:
+ 110 004a 00BF     		.align	2
+ 111              	.L8:
+ 112 004c 00600240 		.word	1073897472
+ 113 0050 00000000 		.word	mp3witchbuf
+ 114 0054 00000000 		.word	audiodev
+ 115 0058 00000000 		.word	mp3transferend
+ 116              		.cfi_endproc
+ 117              	.LFE124:
+ 119              		.section	.text.mp3_file_seek,"ax",%progbits
+ 120              		.align	1
+ 121              		.global	mp3_file_seek
+ 122              		.syntax unified
+ 123              		.thumb
+ 124              		.thumb_func
+ 126              	mp3_file_seek:
+ 127              	.LVL7:
+ 128              	.LFB129:
+  77:source\audio/mp3play.c **** 
+  78:source\audio/mp3play.c **** 
+  79:source\audio/mp3play.c **** unsigned char mp3_id3v1_decode (unsigned char *buf,__mp3ctrl *pctrl)
+  80:source\audio/mp3play.c **** {
+  81:source\audio/mp3play.c ****       ID3V1_Tag *id3v1tag;
+  82:source\audio/mp3play.c ****       id3v1tag = (ID3V1_Tag *)buf;
+  83:source\audio/mp3play.c ****       if (strncmp("TAG",(char *)id3v1tag->id,3) == 0) {
+  84:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+  85:source\audio/mp3play.c ****          if (id3v1tag->artist[0]) strncpy((char *)pctrl->artist,(char *)id3v1tag->artist,30);
+  86:source\audio/mp3play.c ****       } else return 1;
+  87:source\audio/mp3play.c ****       return 0;
+  88:source\audio/mp3play.c **** }
+  89:source\audio/mp3play.c **** 
+  90:source\audio/mp3play.c **** 
+  91:source\audio/mp3play.c **** unsigned char mp3_id3v2_decode (unsigned char *buf,unsigned int size,__mp3ctrl *pctrl)
+  92:source\audio/mp3play.c **** {
+  93:source\audio/mp3play.c ****       ID3V2_TagHead *taghead;
+  94:source\audio/mp3play.c ****       ID3V23_FrameHead *framehead;
+  95:source\audio/mp3play.c ****       unsigned int t;
+  96:source\audio/mp3play.c ****       unsigned int tagsize;
+  97:source\audio/mp3play.c ****       unsigned int frame_size;
+  98:source\audio/mp3play.c ****       taghead = (ID3V2_TagHead *)buf;
+  99:source\audio/mp3play.c ****       if (strncmp("ID3",(const char *)taghead->id,3) == 0) {
+ 100:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 101:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 102:source\audio/mp3play.c **** 	 if (tagsize > size) tagsize = size;
+ 103:source\audio/mp3play.c **** 	 if (taghead->mversion < 3) {
+ 104:source\audio/mp3play.c **** 	    lcd_printf(0,29,"not supported mversion! ");
+ 105:source\audio/mp3play.c **** 	    return 1;
+ 106:source\audio/mp3play.c **** 	 }
+ 107:source\audio/mp3play.c **** 	 t = 10;
+ 108:source\audio/mp3play.c **** 	 while (t < tagsize) {
+ 109:source\audio/mp3play.c **** 	       framehead = (ID3V23_FrameHead *)(buf + t);
+ 110:source\audio/mp3play.c **** 	       frame_size = ((unsigned int)framehead->size[0] << 24) | ((unsigned int)framehead->size[1] <
+ 111:source\audio/mp3play.c **** 	       if (strncmp("TT2",(char *)framehead->id,3) == 0 || strncmp("TIT2",(char *)framehead->id,4) 
+ 112:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 113:source\audio/mp3play.c **** 	       }
+ 114:source\audio/mp3play.c **** 	       if (strncmp("TP1",(char*)framehead->id,3) == 0 || strncmp("TPE1",(char *)framehead->id,4) =
+ 115:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 116:source\audio/mp3play.c **** 	       }
+ 117:source\audio/mp3play.c **** 	       t += frame_size + sizeof(ID3V23_FrameHead);
+ 118:source\audio/mp3play.c **** 	 }
+ 119:source\audio/mp3play.c ****       } else pctrl->datastart = 0;
+ 120:source\audio/mp3play.c ****       return 0;
+ 121:source\audio/mp3play.c **** }
+ 122:source\audio/mp3play.c **** 
+ 123:source\audio/mp3play.c **** 
+ 124:source\audio/mp3play.c **** unsigned char mp3_get_info (unsigned char *pname,__mp3ctrl *pctrl)
+ 125:source\audio/mp3play.c **** {
+ 126:source\audio/mp3play.c ****       HMP3Decoder decoder;
+ 127:source\audio/mp3play.c ****       MP3FrameInfo frame_info;
+ 128:source\audio/mp3play.c ****       MP3_FrameXing *fxing;
+ 129:source\audio/mp3play.c ****       MP3_FrameVBRI *fvbri;
+ 130:source\audio/mp3play.c ****       FIL *fmp3;
+ 131:source\audio/mp3play.c ****       unsigned char *buf;
+ 132:source\audio/mp3play.c ****       unsigned int br;
+ 133:source\audio/mp3play.c ****       unsigned char res;
+ 134:source\audio/mp3play.c ****       int offset = 0;
+ 135:source\audio/mp3play.c ****       unsigned int p;
+ 136:source\audio/mp3play.c ****       short samples_per_frame;
+ 137:source\audio/mp3play.c ****       unsigned int totframes;
+ 138:source\audio/mp3play.c ****       fmp3 = malloc(sizeof(FIL));
+ 139:source\audio/mp3play.c ****       buf = malloc(5 * 1024);
+ 140:source\audio/mp3play.c ****       if (fmp3 && buf) {
+ 141:source\audio/mp3play.c **** 	 f_open(fmp3,(const TCHAR *)pname,FA_READ);
+ 142:source\audio/mp3play.c **** 	 res = f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 143:source\audio/mp3play.c **** 	 if (res == 0) {
+ 144:source\audio/mp3play.c **** 	    mp3_id3v2_decode(buf,br,pctrl);
+ 145:source\audio/mp3play.c **** 	    f_lseek(fmp3,fmp3->fsize - 128);
+ 146:source\audio/mp3play.c **** 	    f_read(fmp3,(unsigned char *)buf,128,&br);
+ 147:source\audio/mp3play.c **** 	    mp3_id3v1_decode(buf,pctrl);
+ 148:source\audio/mp3play.c **** 	    decoder = MP3InitDecoder();
+ 149:source\audio/mp3play.c **** 	    f_lseek(fmp3,pctrl->datastart);
+ 150:source\audio/mp3play.c **** 	    f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 151:source\audio/mp3play.c ****  	    offset = MP3FindSyncWord(buf,br);
+ 152:source\audio/mp3play.c **** 	    if (offset >= 0 && MP3GetNextFrameInfo(decoder,&frame_info,&buf[offset]) == 0) {
+ 153:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 154:source\audio/mp3play.c **** 	       fvbri = (MP3_FrameVBRI *)(buf + p);
+ 155:source\audio/mp3play.c **** 	       if (strncmp("VBRI",(char *)fvbri->id,4) == 0) {
+ 156:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) samples_per_frame = 1152;else samples_per_frame = 576;
+ 157:source\audio/mp3play.c ****  		  totframes = ((unsigned int)fvbri->frames[0] << 24) | ((unsigned int)fvbri->frames[1] << 16) | 
+ 158:source\audio/mp3play.c **** 		  pctrl->totsec = totframes * samples_per_frame / frame_info.samprate;
+ 159:source\audio/mp3play.c **** 	       } else {
+ 160:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) {
+ 161:source\audio/mp3play.c **** 		     p = frame_info.nChans == 2 ? 32 : 17;
+ 162:source\audio/mp3play.c **** 		     samples_per_frame = 1152;
+ 163:source\audio/mp3play.c **** 		  } else {
+ 164:source\audio/mp3play.c **** 		     p = frame_info.nChans == 2 ? 17 : 9;
+ 165:source\audio/mp3play.c **** 		     samples_per_frame = 576;
+ 166:source\audio/mp3play.c **** 		  }
+ 167:source\audio/mp3play.c **** 		  p += offset + 4;
+ 168:source\audio/mp3play.c **** 		  fxing = (MP3_FrameXing *)(buf + p);
+ 169:source\audio/mp3play.c **** 		  if (strncmp("Xing",(char *)fxing->id,4) == 0 || strncmp("Info",(char *)fxing->id,4) == 0) {
+ 170:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 171:source\audio/mp3play.c **** 		        totframes = ((unsigned int)fxing->frames[0] << 24) | ((unsigned int)fxing->frames[1] << 1
+ 172:source\audio/mp3play.c **** 			pctrl->totsec = totframes * samples_per_frame / frame_info.samprate;
+ 173:source\audio/mp3play.c **** 		     } else {
+ 174:source\audio/mp3play.c **** 			pctrl->totsec = fmp3->fsize / (frame_info.bitrate / 8);
+ 175:source\audio/mp3play.c **** 		     }
+ 176:source\audio/mp3play.c **** 		  } else {
+ 177:source\audio/mp3play.c **** 		     pctrl->totsec = fmp3->fsize / (frame_info.bitrate / 8);
+ 178:source\audio/mp3play.c **** 		  }
+ 179:source\audio/mp3play.c **** 	       }
+ 180:source\audio/mp3play.c **** 	       pctrl->bitrate = frame_info.bitrate;
+ 181:source\audio/mp3play.c **** 	       mp3ctrl->samplerate = frame_info.samprate;
+ 182:source\audio/mp3play.c **** 	       if (frame_info.nChans == 2) mp3ctrl->outsamples = frame_info.outputSamps;else mp3ctrl->outs
+ 183:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 184:source\audio/mp3play.c **** 	    MP3FreeDecoder(decoder);
+ 185:source\audio/mp3play.c ****          }
+ 186:source\audio/mp3play.c **** 	 f_close(fmp3);
+ 187:source\audio/mp3play.c ****       } else res= 0xFF;
+ 188:source\audio/mp3play.c ****       free(fmp3);
+ 189:source\audio/mp3play.c ****       free(buf);
+ 190:source\audio/mp3play.c ****       return res;
+ 191:source\audio/mp3play.c **** }
+ 192:source\audio/mp3play.c **** 
+ 193:source\audio/mp3play.c **** 
+ 194:source\audio/mp3play.c **** void mp3_get_curtime (FIL *fx,__mp3ctrl *mp3x)
+ 195:source\audio/mp3play.c **** {
+ 196:source\audio/mp3play.c ****       unsigned int fpos = 0;
+ 197:source\audio/mp3play.c ****       if (fx->fptr>mp3x->datastart) fpos = fx->fptr-mp3x->datastart;
+ 198:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 199:source\audio/mp3play.c **** }
+ 200:source\audio/mp3play.c **** 
+ 201:source\audio/mp3play.c **** 
+ 202:source\audio/mp3play.c **** unsigned int mp3_file_seek (unsigned int pos)
+ 203:source\audio/mp3play.c **** {
+ 129              		.loc 1 203 1 is_stmt 1 view -0
+ 130              		.cfi_startproc
+ 131              		@ args = 0, pretend = 0, frame = 0
+ 132              		@ frame_needed = 0, uses_anonymous_args = 0
+ 204:source\audio/mp3play.c ****       if (pos > audiodev.file->fsize) {
+ 133              		.loc 1 204 7 view .LVU33
+ 203:source\audio/mp3play.c ****       if (pos > audiodev.file->fsize) {
+ 134              		.loc 1 203 1 is_stmt 0 view .LVU34
+ 135 0000 10B5     		push	{r4, lr}
+ 136              		.cfi_def_cfa_offset 8
+ 137              		.cfi_offset 4, -8
+ 138              		.cfi_offset 14, -4
+ 139              		.loc 1 204 25 view .LVU35
+ 140 0002 074C     		ldr	r4, .L11
+ 141 0004 E368     		ldr	r3, [r4, #12]	@ unaligned
+ 142              	.LVL8:
+ 205:source\audio/mp3play.c **** 	 pos = audiodev.file->fsize;
+ 206:source\audio/mp3play.c ****       }
+ 207:source\audio/mp3play.c ****       f_lseek(audiodev.file,pos);
+ 143              		.loc 1 207 7 is_stmt 1 view .LVU36
+ 144 0006 D3F80C22 		ldr	r2, [r3, #524]
+ 145 000a 9042     		cmp	r0, r2
+ 146 000c 0146     		mov	r1, r0
+ 147 000e 28BF     		it	cs
+ 148 0010 1146     		movcs	r1, r2
+ 149 0012 1846     		mov	r0, r3
+ 150              	.LVL9:
+ 151              		.loc 1 207 7 is_stmt 0 view .LVU37
+ 152 0014 FFF7FEFF 		bl	f_lseek
+ 153              	.LVL10:
+ 208:source\audio/mp3play.c ****       return audiodev.file->fptr;
+ 154              		.loc 1 208 7 is_stmt 1 view .LVU38
+ 155              		.loc 1 208 22 is_stmt 0 view .LVU39
+ 156 0018 E368     		ldr	r3, [r4, #12]	@ unaligned
+ 209:source\audio/mp3play.c **** }
+ 157              		.loc 1 209 1 view .LVU40
+ 158 001a D3F80802 		ldr	r0, [r3, #520]
+ 159 001e 10BD     		pop	{r4, pc}
+ 160              	.L12:
+ 161              		.align	2
+ 162              	.L11:
+ 163 0020 00000000 		.word	audiodev
+ 164              		.cfi_endproc
+ 165              	.LFE129:
+ 167              		.section	.text.mp3_fill_buffer,"ax",%progbits
+ 168              		.align	1
+ 169              		.global	mp3_fill_buffer
+ 170              		.syntax unified
+ 171              		.thumb
+ 172              		.thumb_func
+ 174              	mp3_fill_buffer:
+ 175              	.LVL11:
+ 176              	.LFB123:
+  33:source\audio/mp3play.c ****       unsigned short i;
+ 177              		.loc 1 33 1 is_stmt 1 view -0
+ 178              		.cfi_startproc
+ 179              		@ args = 0, pretend = 0, frame = 0
+ 180              		@ frame_needed = 0, uses_anonymous_args = 0
+  34:source\audio/mp3play.c ****       unsigned short *p;
+ 181              		.loc 1 34 7 view .LVU42
+  35:source\audio/mp3play.c ****       while ((mp3transferend == 0) && (audio_pause == 0)){
+ 182              		.loc 1 35 7 view .LVU43
+  36:source\audio/mp3play.c ****             if (tick) {
+ 183              		.loc 1 36 7 view .LVU44
+  33:source\audio/mp3play.c ****       unsigned short i;
+ 184              		.loc 1 33 1 is_stmt 0 view .LVU45
+ 185 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 186              		.cfi_def_cfa_offset 24
+ 187              		.cfi_offset 4, -24
+ 188              		.cfi_offset 5, -20
+ 189              		.cfi_offset 6, -16
+ 190              		.cfi_offset 7, -12
+ 191              		.cfi_offset 8, -8
+ 192              		.cfi_offset 14, -4
+  36:source\audio/mp3play.c ****             if (tick) {
+ 193              		.loc 1 36 30 view .LVU46
+ 194 0004 1B4C     		ldr	r4, .L27
+  36:source\audio/mp3play.c ****             if (tick) {
+ 195              		.loc 1 36 52 view .LVU47
+ 196 0006 DFF87C80 		ldr	r8, .L27+16
+  33:source\audio/mp3play.c ****       unsigned short i;
+ 197              		.loc 1 33 1 view .LVU48
+ 198 000a 0646     		mov	r6, r0
+ 199 000c 0D46     		mov	r5, r1
+ 200 000e 1746     		mov	r7, r2
+ 201              	.LVL12:
+ 202              	.L14:
+  37:source\audio/mp3play.c ****                tick = 0;
+ 203              		.loc 1 37 17 view .LVU49
+ 204 0010 194A     		ldr	r2, .L27+4
+ 205              	.L15:
+  36:source\audio/mp3play.c ****             if (tick) {
+ 206              		.loc 1 36 36 is_stmt 1 view .LVU50
+  36:source\audio/mp3play.c ****             if (tick) {
+ 207              		.loc 1 36 30 is_stmt 0 view .LVU51
+ 208 0012 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+  36:source\audio/mp3play.c ****             if (tick) {
+ 209              		.loc 1 36 36 view .LVU52
+ 210 0014 23B9     		cbnz	r3, .L16
+  36:source\audio/mp3play.c ****             if (tick) {
+ 211              		.loc 1 36 52 discriminator 1 view .LVU53
+ 212 0016 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+  36:source\audio/mp3play.c ****             if (tick) {
+ 213              		.loc 1 36 36 discriminator 1 view .LVU54
+ 214 001a 03F0FF01 		and	r1, r3, #255
+ 215 001e BBB1     		cbz	r3, .L17
+ 216              	.L16:
+  42:source\audio/mp3play.c ****       if (mp3witchbuf == 0) {
+ 217              		.loc 1 42 7 is_stmt 1 view .LVU55
+  43:source\audio/mp3play.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 218              		.loc 1 43 23 is_stmt 0 view .LVU56
+ 219 0020 164A     		ldr	r2, .L27+8
+  42:source\audio/mp3play.c ****       if (mp3witchbuf == 0) {
+ 220              		.loc 1 42 22 view .LVU57
+ 221 0022 0023     		movs	r3, #0
+ 222 0024 2370     		strb	r3, [r4]
+  43:source\audio/mp3play.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 223              		.loc 1 43 7 is_stmt 1 view .LVU58
+  43:source\audio/mp3play.c **** 	 //p = (unsigned short *)audiodev.i2sbuf1;	// POINTER
+ 224              		.loc 1 43 23 is_stmt 0 view .LVU59
+ 225 0026 1078     		ldrb	r0, [r2]	@ zero_extendqisi2
+  45:source\audio/mp3play.c ****       } else {
+ 226              		.loc 1 45 5 view .LVU60
+ 227 0028 154A     		ldr	r2, .L27+12
+ 228 002a 1168     		ldr	r1, [r2]	@ unaligned
+  48:source\audio/mp3play.c ****       }
+ 229              		.loc 1 48 5 view .LVU61
+ 230 002c 5468     		ldr	r4, [r2, #4]	@ unaligned
+  45:source\audio/mp3play.c ****       } else {
+ 231              		.loc 1 45 5 view .LVU62
+ 232 002e 9842     		cmp	r0, r3
+ 233 0030 08BF     		it	eq
+ 234 0032 0C46     		moveq	r4, r1
+ 235              	.LVL13:
+  50:source\audio/mp3play.c ****          for (i=0;i<size;i++) p[i] = buf[i];
+ 236              		.loc 1 50 7 is_stmt 1 view .LVU63
+  50:source\audio/mp3play.c ****          for (i=0;i<size;i++) p[i] = buf[i];
+ 237              		.loc 1 50 10 is_stmt 0 view .LVU64
+ 238 0034 022F     		cmp	r7, #2
+ 239 0036 18D0     		beq	.L19
+  55:source\audio/mp3play.c ****          }
+ 240              		.loc 1 55 27 view .LVU65
+ 241 0038 A11C     		adds	r1, r4, #2
+ 242              	.L20:
+ 243              	.LVL14:
+  53:source\audio/mp3play.c ****              p[2 * i] = buf[i];
+ 244              		.loc 1 53 20 is_stmt 1 discriminator 1 view .LVU66
+ 245 003a 9AB2     		uxth	r2, r3
+ 246 003c 9542     		cmp	r5, r2
+ 247 003e 17D9     		bls	.L13
+  54:source\audio/mp3play.c ****              p[2 * i + 1] = buf[i];
+ 248              		.loc 1 54 14 discriminator 3 view .LVU67
+  54:source\audio/mp3play.c ****              p[2 * i + 1] = buf[i];
+ 249              		.loc 1 54 28 is_stmt 0 discriminator 3 view .LVU68
+ 250 0040 36F81320 		ldrh	r2, [r6, r3, lsl #1]
+  54:source\audio/mp3play.c ****              p[2 * i + 1] = buf[i];
+ 251              		.loc 1 54 23 discriminator 3 view .LVU69
+ 252 0044 24F82320 		strh	r2, [r4, r3, lsl #2]	@ movhi
+  55:source\audio/mp3play.c ****          }
+ 253              		.loc 1 55 14 is_stmt 1 discriminator 3 view .LVU70
+  55:source\audio/mp3play.c ****          }
+ 254              		.loc 1 55 27 is_stmt 0 discriminator 3 view .LVU71
+ 255 0048 21F82320 		strh	r2, [r1, r3, lsl #2]	@ movhi
+  53:source\audio/mp3play.c ****              p[2 * i] = buf[i];
+ 256              		.loc 1 53 27 is_stmt 1 discriminator 3 view .LVU72
+ 257              	.LVL15:
+  53:source\audio/mp3play.c ****              p[2 * i] = buf[i];
+ 258              		.loc 1 53 27 is_stmt 0 discriminator 3 view .LVU73
+ 259 004c 0133     		adds	r3, r3, #1
+ 260              	.LVL16:
+  53:source\audio/mp3play.c ****              p[2 * i] = buf[i];
+ 261              		.loc 1 53 27 discriminator 3 view .LVU74
+ 262 004e F4E7     		b	.L20
+ 263              	.LVL17:
+ 264              	.L17:
+  37:source\audio/mp3play.c ****                tick = 0;
+ 265              		.loc 1 37 13 is_stmt 1 view .LVU75
+  37:source\audio/mp3play.c ****                tick = 0;
+ 266              		.loc 1 37 17 is_stmt 0 view .LVU76
+ 267 0050 1388     		ldrh	r3, [r2]
+ 268 0052 9BB2     		uxth	r3, r3
+  37:source\audio/mp3play.c ****                tick = 0;
+ 269              		.loc 1 37 16 view .LVU77
+ 270 0054 002B     		cmp	r3, #0
+ 271 0056 DCD0     		beq	.L15
+  38:source\audio/mp3play.c ****                tick_process();
+ 272              		.loc 1 38 16 is_stmt 1 view .LVU78
+  38:source\audio/mp3play.c ****                tick_process();
+ 273              		.loc 1 38 21 is_stmt 0 view .LVU79
+ 274 0058 1180     		strh	r1, [r2]	@ movhi
+  39:source\audio/mp3play.c ****             }
+ 275              		.loc 1 39 16 is_stmt 1 view .LVU80
+ 276 005a FFF7FEFF 		bl	tick_process
+ 277              	.LVL18:
+ 278 005e D7E7     		b	.L14
+ 279              	.LVL19:
+ 280              	.L21:
+  51:source\audio/mp3play.c ****       } else {
+ 281              		.loc 1 51 31 discriminator 3 view .LVU81
+  51:source\audio/mp3play.c ****       } else {
+ 282              		.loc 1 51 41 is_stmt 0 discriminator 3 view .LVU82
+ 283 0060 36F81320 		ldrh	r2, [r6, r3, lsl #1]
+  51:source\audio/mp3play.c ****       } else {
+ 284              		.loc 1 51 36 discriminator 3 view .LVU83
+ 285 0064 24F81320 		strh	r2, [r4, r3, lsl #1]	@ movhi
+  51:source\audio/mp3play.c ****       } else {
+ 286              		.loc 1 51 27 is_stmt 1 discriminator 3 view .LVU84
+ 287              	.LVL20:
+  51:source\audio/mp3play.c ****       } else {
+ 288              		.loc 1 51 27 is_stmt 0 discriminator 3 view .LVU85
+ 289 0068 0133     		adds	r3, r3, #1
+ 290              	.LVL21:
+ 291              	.L19:
+  51:source\audio/mp3play.c ****       } else {
+ 292              		.loc 1 51 20 is_stmt 1 discriminator 1 view .LVU86
+ 293 006a 9AB2     		uxth	r2, r3
+ 294 006c 9542     		cmp	r5, r2
+ 295 006e F7D8     		bhi	.L21
+ 296              	.L13:
+  58:source\audio/mp3play.c **** 
+ 297              		.loc 1 58 1 is_stmt 0 view .LVU87
+ 298 0070 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 299              	.LVL22:
+ 300              	.L28:
+  58:source\audio/mp3play.c **** 
+ 301              		.loc 1 58 1 view .LVU88
+ 302              		.align	2
+ 303              	.L27:
+ 304 0074 00000000 		.word	mp3transferend
+ 305 0078 00000000 		.word	tick
+ 306 007c 00000000 		.word	mp3witchbuf
+ 307 0080 00000000 		.word	audiodev
+ 308 0084 00000000 		.word	audio_pause
+ 309              		.cfi_endproc
+ 310              	.LFE123:
+ 312              		.section	.rodata.mp3_id3v1_decode.str1.1,"aMS",%progbits,1
+ 313              	.LC0:
+ 314 0000 54414700 		.ascii	"TAG\000"
+ 315              		.section	.text.mp3_id3v1_decode,"ax",%progbits
+ 316              		.align	1
+ 317              		.global	mp3_id3v1_decode
+ 318              		.syntax unified
+ 319              		.thumb
+ 320              		.thumb_func
+ 322              	mp3_id3v1_decode:
+ 323              	.LVL23:
+ 324              	.LFB125:
+  80:source\audio/mp3play.c ****       ID3V1_Tag *id3v1tag;
+ 325              		.loc 1 80 1 is_stmt 1 view -0
+ 326              		.cfi_startproc
+ 327              		@ args = 0, pretend = 0, frame = 0
+ 328              		@ frame_needed = 0, uses_anonymous_args = 0
+  81:source\audio/mp3play.c ****       id3v1tag = (ID3V1_Tag *)buf;
+ 329              		.loc 1 81 7 view .LVU90
+  82:source\audio/mp3play.c ****       if (strncmp("TAG",(char *)id3v1tag->id,3) == 0) {
+ 330              		.loc 1 82 7 view .LVU91
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 331              		.loc 1 83 7 view .LVU92
+  80:source\audio/mp3play.c ****       ID3V1_Tag *id3v1tag;
+ 332              		.loc 1 80 1 is_stmt 0 view .LVU93
+ 333 0000 38B5     		push	{r3, r4, r5, lr}
+ 334              		.cfi_def_cfa_offset 16
+ 335              		.cfi_offset 3, -16
+ 336              		.cfi_offset 4, -12
+ 337              		.cfi_offset 5, -8
+ 338              		.cfi_offset 14, -4
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 339              		.loc 1 83 11 view .LVU94
+ 340 0002 0322     		movs	r2, #3
+  80:source\audio/mp3play.c ****       ID3V1_Tag *id3v1tag;
+ 341              		.loc 1 80 1 view .LVU95
+ 342 0004 0446     		mov	r4, r0
+ 343 0006 0D46     		mov	r5, r1
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 344              		.loc 1 83 11 view .LVU96
+ 345 0008 0146     		mov	r1, r0
+ 346              	.LVL24:
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 347              		.loc 1 83 11 view .LVU97
+ 348 000a 0C48     		ldr	r0, .L40
+ 349              	.LVL25:
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 350              		.loc 1 83 11 view .LVU98
+ 351 000c FFF7FEFF 		bl	strncmp
+ 352              	.LVL26:
+  83:source\audio/mp3play.c ****          if (id3v1tag->title[0]) strncpy((char *)pctrl->title,(char *)id3v1tag->title,30);
+ 353              		.loc 1 83 10 view .LVU99
+ 354 0010 90B9     		cbnz	r0, .L33
+ 355              	.LVL27:
+ 356              	.LBB4:
+ 357              	.LBI4:
+  79:source\audio/mp3play.c **** {
+ 358              		.loc 1 79 15 is_stmt 1 view .LVU100
+ 359              	.LBB5:
+  84:source\audio/mp3play.c ****          if (id3v1tag->artist[0]) strncpy((char *)pctrl->artist,(char *)id3v1tag->artist,30);
+ 360              		.loc 1 84 10 view .LVU101
+  84:source\audio/mp3play.c ****          if (id3v1tag->artist[0]) strncpy((char *)pctrl->artist,(char *)id3v1tag->artist,30);
+ 361              		.loc 1 84 13 is_stmt 0 view .LVU102
+ 362 0012 E378     		ldrb	r3, [r4, #3]	@ zero_extendqisi2
+ 363 0014 23B1     		cbz	r3, .L31
+  84:source\audio/mp3play.c ****          if (id3v1tag->artist[0]) strncpy((char *)pctrl->artist,(char *)id3v1tag->artist,30);
+ 364              		.loc 1 84 34 is_stmt 1 view .LVU103
+ 365 0016 1E22     		movs	r2, #30
+ 366 0018 E11C     		adds	r1, r4, #3
+ 367 001a 2846     		mov	r0, r5
+ 368 001c FFF7FEFF 		bl	strncpy
+ 369              	.LVL28:
+ 370              	.L31:
+  85:source\audio/mp3play.c ****       } else return 1;
+ 371              		.loc 1 85 10 view .LVU104
+  85:source\audio/mp3play.c ****       } else return 1;
+ 372              		.loc 1 85 13 is_stmt 0 view .LVU105
+ 373 0020 94F82130 		ldrb	r3, [r4, #33]	@ zero_extendqisi2
+ 374 0024 33B1     		cbz	r3, .L32
+  85:source\audio/mp3play.c ****       } else return 1;
+ 375              		.loc 1 85 35 is_stmt 1 view .LVU106
+ 376 0026 1E22     		movs	r2, #30
+ 377 0028 04F12101 		add	r1, r4, #33
+ 378 002c 05F12800 		add	r0, r5, #40
+ 379 0030 FFF7FEFF 		bl	strncpy
+ 380              	.LVL29:
+ 381              	.L32:
+  85:source\audio/mp3play.c ****       } else return 1;
+ 382              		.loc 1 85 35 is_stmt 0 view .LVU107
+ 383              	.LBE5:
+ 384              	.LBE4:
+  86:source\audio/mp3play.c ****       return 0;
+ 385              		.loc 1 86 21 view .LVU108
+ 386 0034 0020     		movs	r0, #0
+ 387              	.LVL30:
+ 388              	.L30:
+  88:source\audio/mp3play.c **** 
+ 389              		.loc 1 88 1 view .LVU109
+ 390 0036 38BD     		pop	{r3, r4, r5, pc}
+ 391              	.LVL31:
+ 392              	.L33:
+  86:source\audio/mp3play.c ****       return 0;
+ 393              		.loc 1 86 21 view .LVU110
+ 394 0038 0120     		movs	r0, #1
+ 395 003a FCE7     		b	.L30
+ 396              	.L41:
+ 397              		.align	2
+ 398              	.L40:
+ 399 003c 00000000 		.word	.LC0
+ 400              		.cfi_endproc
+ 401              	.LFE125:
+ 403              		.section	.rodata.mp3_id3v2_decode.str1.1,"aMS",%progbits,1
+ 404              	.LC1:
+ 405 0000 49443300 		.ascii	"ID3\000"
+ 406              	.LC2:
+ 407 0004 6E6F7420 		.ascii	"not supported mversion! \000"
+ 407      73757070 
+ 407      6F727465 
+ 407      64206D76 
+ 407      65727369 
+ 408              	.LC3:
+ 409 001d 54543200 		.ascii	"TT2\000"
+ 410              	.LC4:
+ 411 0021 54495432 		.ascii	"TIT2\000"
+ 411      00
+ 412              	.LC5:
+ 413 0026 54503100 		.ascii	"TP1\000"
+ 414              	.LC6:
+ 415 002a 54504531 		.ascii	"TPE1\000"
+ 415      00
+ 416              		.section	.text.mp3_id3v2_decode,"ax",%progbits
+ 417              		.align	1
+ 418              		.global	mp3_id3v2_decode
+ 419              		.syntax unified
+ 420              		.thumb
+ 421              		.thumb_func
+ 423              	mp3_id3v2_decode:
+ 424              	.LVL32:
+ 425              	.LFB126:
+  92:source\audio/mp3play.c ****       ID3V2_TagHead *taghead;
+ 426              		.loc 1 92 1 is_stmt 1 view -0
+ 427              		.cfi_startproc
+ 428              		@ args = 0, pretend = 0, frame = 0
+ 429              		@ frame_needed = 0, uses_anonymous_args = 0
+  93:source\audio/mp3play.c ****       ID3V23_FrameHead *framehead;
+ 430              		.loc 1 93 7 view .LVU112
+  94:source\audio/mp3play.c ****       unsigned int t;
+ 431              		.loc 1 94 7 view .LVU113
+  95:source\audio/mp3play.c ****       unsigned int tagsize;
+ 432              		.loc 1 95 7 view .LVU114
+  96:source\audio/mp3play.c ****       unsigned int frame_size;
+ 433              		.loc 1 96 7 view .LVU115
+  97:source\audio/mp3play.c ****       taghead = (ID3V2_TagHead *)buf;
+ 434              		.loc 1 97 7 view .LVU116
+  98:source\audio/mp3play.c ****       if (strncmp("ID3",(const char *)taghead->id,3) == 0) {
+ 435              		.loc 1 98 7 view .LVU117
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 436              		.loc 1 99 7 view .LVU118
+  92:source\audio/mp3play.c ****       ID3V2_TagHead *taghead;
+ 437              		.loc 1 92 1 is_stmt 0 view .LVU119
+ 438 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 439              		.cfi_def_cfa_offset 40
+ 440              		.cfi_offset 3, -40
+ 441              		.cfi_offset 4, -36
+ 442              		.cfi_offset 5, -32
+ 443              		.cfi_offset 6, -28
+ 444              		.cfi_offset 7, -24
+ 445              		.cfi_offset 8, -20
+ 446              		.cfi_offset 9, -16
+ 447              		.cfi_offset 10, -12
+ 448              		.cfi_offset 11, -8
+ 449              		.cfi_offset 14, -4
+  92:source\audio/mp3play.c ****       ID3V2_TagHead *taghead;
+ 450              		.loc 1 92 1 view .LVU120
+ 451 0004 0546     		mov	r5, r0
+ 452 0006 0F46     		mov	r7, r1
+ 453 0008 1646     		mov	r6, r2
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 454              		.loc 1 99 11 view .LVU121
+ 455 000a 0146     		mov	r1, r0
+ 456              	.LVL33:
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 457              		.loc 1 99 11 view .LVU122
+ 458 000c 0322     		movs	r2, #3
+ 459              	.LVL34:
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 460              		.loc 1 99 11 view .LVU123
+ 461 000e 3348     		ldr	r0, .L59
+ 462              	.LVL35:
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 463              		.loc 1 99 11 view .LVU124
+ 464 0010 FFF7FEFF 		bl	strncmp
+ 465              	.LVL36:
+  99:source\audio/mp3play.c **** 	 tagsize = ((unsigned int)taghead->size[0] << 21) | ((unsigned int)taghead->size[1] << 14) | ((uns
+ 466              		.loc 1 99 10 view .LVU125
+ 467 0014 0028     		cmp	r0, #0
+ 468 0016 57D1     		bne	.L43
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 469              		.loc 1 100 3 is_stmt 1 view .LVU126
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 470              		.loc 1 100 55 is_stmt 0 view .LVU127
+ 471 0018 EC79     		ldrb	r4, [r5, #7]	@ zero_extendqisi2
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 472              		.loc 1 100 14 view .LVU128
+ 473 001a AB79     		ldrb	r3, [r5, #6]	@ zero_extendqisi2
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 474              		.loc 1 100 86 view .LVU129
+ 475 001c A403     		lsls	r4, r4, #14
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 476              		.loc 1 100 52 view .LVU130
+ 477 001e 44EA4354 		orr	r4, r4, r3, lsl #21
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 478              		.loc 1 100 150 view .LVU131
+ 479 0022 6B7A     		ldrb	r3, [r5, #9]	@ zero_extendqisi2
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 480              		.loc 1 100 11 view .LVU132
+ 481 0024 1C43     		orrs	r4, r4, r3
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 482              		.loc 1 100 129 view .LVU133
+ 483 0026 2B7A     		ldrb	r3, [r5, #8]	@ zero_extendqisi2
+ 100:source\audio/mp3play.c **** 	 pctrl->datastart = tagsize;
+ 484              		.loc 1 100 11 view .LVU134
+ 485 0028 44EAC314 		orr	r4, r4, r3, lsl #7
+ 486              	.LVL37:
+ 101:source\audio/mp3play.c **** 	 if (tagsize > size) tagsize = size;
+ 487              		.loc 1 101 3 is_stmt 1 view .LVU135
+ 101:source\audio/mp3play.c **** 	 if (tagsize > size) tagsize = size;
+ 488              		.loc 1 101 20 is_stmt 0 view .LVU136
+ 489 002c C6F86240 		str	r4, [r6, #98]	@ unaligned
+ 102:source\audio/mp3play.c **** 	 if (taghead->mversion < 3) {
+ 490              		.loc 1 102 3 is_stmt 1 view .LVU137
+ 103:source\audio/mp3play.c **** 	    lcd_printf(0,29,"not supported mversion! ");
+ 491              		.loc 1 103 6 is_stmt 0 view .LVU138
+ 492 0030 EB78     		ldrb	r3, [r5, #3]	@ zero_extendqisi2
+ 493 0032 BC42     		cmp	r4, r7
+ 494 0034 28BF     		it	cs
+ 495 0036 3C46     		movcs	r4, r7
+ 496              	.LVL38:
+ 103:source\audio/mp3play.c **** 	    lcd_printf(0,29,"not supported mversion! ");
+ 497              		.loc 1 103 3 is_stmt 1 view .LVU139
+ 103:source\audio/mp3play.c **** 	    lcd_printf(0,29,"not supported mversion! ");
+ 498              		.loc 1 103 6 is_stmt 0 view .LVU140
+ 499 0038 022B     		cmp	r3, #2
+ 500 003a 3ED8     		bhi	.L52
+ 104:source\audio/mp3play.c **** 	    return 1;
+ 501              		.loc 1 104 6 is_stmt 1 view .LVU141
+ 502 003c 284A     		ldr	r2, .L59+4
+ 503 003e 1D21     		movs	r1, #29
+ 504 0040 FFF7FEFF 		bl	lcd_printf
+ 505              	.LVL39:
+ 105:source\audio/mp3play.c **** 	 }
+ 506              		.loc 1 105 6 view .LVU142
+ 105:source\audio/mp3play.c **** 	 }
+ 507              		.loc 1 105 13 is_stmt 0 view .LVU143
+ 508 0044 0120     		movs	r0, #1
+ 509              	.LVL40:
+ 510              	.L45:
+ 121:source\audio/mp3play.c **** 
+ 511              		.loc 1 121 1 view .LVU144
+ 512 0046 BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 513              	.LVL41:
+ 514              	.L50:
+ 109:source\audio/mp3play.c **** 	       frame_size = ((unsigned int)framehead->size[0] << 24) | ((unsigned int)framehead->size[1] <
+ 515              		.loc 1 109 9 is_stmt 1 view .LVU145
+ 109:source\audio/mp3play.c **** 	       frame_size = ((unsigned int)framehead->size[0] << 24) | ((unsigned int)framehead->size[1] <
+ 516              		.loc 1 109 19 is_stmt 0 view .LVU146
+ 517 004a 05EB0809 		add	r9, r5, r8
+ 518              	.LVL42:
+ 110:source\audio/mp3play.c **** 	       if (strncmp("TT2",(char *)framehead->id,3) == 0 || strncmp("TIT2",(char *)framehead->id,4) 
+ 519              		.loc 1 110 9 is_stmt 1 view .LVU147
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 520              		.loc 1 111 13 is_stmt 0 view .LVU148
+ 521 004e 2548     		ldr	r0, .L59+8
+ 522 0050 D9F80470 		ldr	r7, [r9, #4]	@ unaligned
+ 523 0054 0322     		movs	r2, #3
+ 524 0056 4946     		mov	r1, r9
+ 525 0058 3FBA     		rev	r7, r7
+ 526              	.LVL43:
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 527              		.loc 1 111 9 is_stmt 1 view .LVU149
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 528              		.loc 1 111 13 is_stmt 0 view .LVU150
+ 529 005a FFF7FEFF 		bl	strncmp
+ 530              	.LVL44:
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 531              		.loc 1 111 12 view .LVU151
+ 532 005e 28B1     		cbz	r0, .L46
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 533              		.loc 1 111 60 discriminator 1 view .LVU152
+ 534 0060 0422     		movs	r2, #4
+ 535 0062 4946     		mov	r1, r9
+ 536 0064 5046     		mov	r0, r10
+ 537 0066 FFF7FEFF 		bl	strncmp
+ 538              	.LVL45:
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 539              		.loc 1 111 57 discriminator 1 view .LVU153
+ 540 006a 48B9     		cbnz	r0, .L47
+ 541              	.L46:
+ 112:source\audio/mp3play.c **** 	       }
+ 542              		.loc 1 112 12 is_stmt 1 view .LVU154
+ 112:source\audio/mp3play.c **** 	       }
+ 543              		.loc 1 112 90 is_stmt 0 view .LVU155
+ 544 006c 7A1E     		subs	r2, r7, #1
+ 112:source\audio/mp3play.c **** 	       }
+ 545              		.loc 1 112 85 view .LVU156
+ 546 006e 08F10B01 		add	r1, r8, #11
+ 112:source\audio/mp3play.c **** 	       }
+ 547              		.loc 1 112 12 view .LVU157
+ 548 0072 272A     		cmp	r2, #39
+ 549 0074 28BF     		it	cs
+ 550 0076 2722     		movcs	r2, #39
+ 551 0078 2944     		add	r1, r1, r5
+ 552 007a 3046     		mov	r0, r6
+ 553 007c FFF7FEFF 		bl	strncpy
+ 554              	.LVL46:
+ 555              	.L47:
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 556              		.loc 1 114 9 is_stmt 1 view .LVU158
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 557              		.loc 1 114 13 is_stmt 0 view .LVU159
+ 558 0080 0322     		movs	r2, #3
+ 559 0082 4946     		mov	r1, r9
+ 560 0084 5846     		mov	r0, fp
+ 561 0086 FFF7FEFF 		bl	strncmp
+ 562              	.LVL47:
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 563              		.loc 1 114 12 view .LVU160
+ 564 008a 28B1     		cbz	r0, .L48
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 565              		.loc 1 114 59 discriminator 1 view .LVU161
+ 566 008c 1648     		ldr	r0, .L59+12
+ 567 008e 0422     		movs	r2, #4
+ 568 0090 4946     		mov	r1, r9
+ 569 0092 FFF7FEFF 		bl	strncmp
+ 570              	.LVL48:
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 571              		.loc 1 114 56 discriminator 1 view .LVU162
+ 572 0096 50B9     		cbnz	r0, .L49
+ 573              	.L48:
+ 115:source\audio/mp3play.c **** 	       }
+ 574              		.loc 1 115 12 is_stmt 1 view .LVU163
+ 115:source\audio/mp3play.c **** 	       }
+ 575              		.loc 1 115 91 is_stmt 0 view .LVU164
+ 576 0098 7A1E     		subs	r2, r7, #1
+ 115:source\audio/mp3play.c **** 	       }
+ 577              		.loc 1 115 86 view .LVU165
+ 578 009a 08F10B01 		add	r1, r8, #11
+ 115:source\audio/mp3play.c **** 	       }
+ 579              		.loc 1 115 12 view .LVU166
+ 580 009e 272A     		cmp	r2, #39
+ 581 00a0 28BF     		it	cs
+ 582 00a2 2722     		movcs	r2, #39
+ 583 00a4 2944     		add	r1, r1, r5
+ 584 00a6 06F12800 		add	r0, r6, #40
+ 585 00aa FFF7FEFF 		bl	strncpy
+ 586              	.LVL49:
+ 587              	.L49:
+ 117:source\audio/mp3play.c **** 	 }
+ 588              		.loc 1 117 9 is_stmt 1 view .LVU167
+ 117:source\audio/mp3play.c **** 	 }
+ 589              		.loc 1 117 11 is_stmt 0 view .LVU168
+ 590 00ae 0A37     		adds	r7, r7, #10
+ 591 00b0 B844     		add	r8, r8, r7
+ 592              	.LVL50:
+ 593              	.L44:
+ 108:source\audio/mp3play.c **** 	       framehead = (ID3V23_FrameHead *)(buf + t);
+ 594              		.loc 1 108 12 is_stmt 1 view .LVU169
+ 595 00b2 4445     		cmp	r4, r8
+ 596 00b4 C9D8     		bhi	.L50
+ 597              	.LVL51:
+ 598              	.L51:
+ 120:source\audio/mp3play.c **** }
+ 599              		.loc 1 120 14 is_stmt 0 view .LVU170
+ 600 00b6 0020     		movs	r0, #0
+ 601 00b8 C5E7     		b	.L45
+ 602              	.LVL52:
+ 603              	.L52:
+ 111:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->title,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN(
+ 604              		.loc 1 111 60 view .LVU171
+ 605 00ba DFF830A0 		ldr	r10, .L59+16
+ 114:source\audio/mp3play.c **** 	          strncpy((char *)pctrl->artist,(char *)(buf + t + sizeof(ID3V23_FrameHead) + 1),AUDIO_MIN
+ 606              		.loc 1 114 13 view .LVU172
+ 607 00be DFF830B0 		ldr	fp, .L59+20
+ 107:source\audio/mp3play.c **** 	 while (t < tagsize) {
+ 608              		.loc 1 107 5 view .LVU173
+ 609 00c2 4FF00A08 		mov	r8, #10
+ 610 00c6 F4E7     		b	.L44
+ 611              	.LVL53:
+ 612              	.L43:
+ 119:source\audio/mp3play.c ****       return 0;
+ 613              		.loc 1 119 14 is_stmt 1 view .LVU174
+ 119:source\audio/mp3play.c ****       return 0;
+ 614              		.loc 1 119 31 is_stmt 0 view .LVU175
+ 615 00c8 0023     		movs	r3, #0
+ 616 00ca 86F86230 		strb	r3, [r6, #98]
+ 617 00ce 86F86330 		strb	r3, [r6, #99]
+ 618 00d2 86F86430 		strb	r3, [r6, #100]
+ 619 00d6 86F86530 		strb	r3, [r6, #101]
+ 620 00da ECE7     		b	.L51
+ 621              	.L60:
+ 622              		.align	2
+ 623              	.L59:
+ 624 00dc 00000000 		.word	.LC1
+ 625 00e0 04000000 		.word	.LC2
+ 626 00e4 1D000000 		.word	.LC3
+ 627 00e8 2A000000 		.word	.LC6
+ 628 00ec 21000000 		.word	.LC4
+ 629 00f0 26000000 		.word	.LC5
+ 630              		.cfi_endproc
+ 631              	.LFE126:
+ 633              		.section	.rodata.mp3_get_info.str1.1,"aMS",%progbits,1
+ 634              	.LC7:
+ 635 0000 56425249 		.ascii	"VBRI\000"
+ 635      00
+ 636              	.LC8:
+ 637 0005 58696E67 		.ascii	"Xing\000"
+ 637      00
+ 638              	.LC9:
+ 639 000a 496E666F 		.ascii	"Info\000"
+ 639      00
+ 640              		.section	.text.mp3_get_info,"ax",%progbits
+ 641              		.align	1
+ 642              		.global	mp3_get_info
+ 643              		.syntax unified
+ 644              		.thumb
+ 645              		.thumb_func
+ 647              	mp3_get_info:
+ 648              	.LVL54:
+ 649              	.LFB127:
+ 125:source\audio/mp3play.c ****       HMP3Decoder decoder;
+ 650              		.loc 1 125 1 is_stmt 1 view -0
+ 651              		.cfi_startproc
+ 652              		@ args = 0, pretend = 0, frame = 40
+ 653              		@ frame_needed = 0, uses_anonymous_args = 0
+ 126:source\audio/mp3play.c ****       MP3FrameInfo frame_info;
+ 654              		.loc 1 126 7 view .LVU177
+ 127:source\audio/mp3play.c ****       MP3_FrameXing *fxing;
+ 655              		.loc 1 127 7 view .LVU178
+ 128:source\audio/mp3play.c ****       MP3_FrameVBRI *fvbri;
+ 656              		.loc 1 128 7 view .LVU179
+ 129:source\audio/mp3play.c ****       FIL *fmp3;
+ 657              		.loc 1 129 7 view .LVU180
+ 130:source\audio/mp3play.c ****       unsigned char *buf;
+ 658              		.loc 1 130 7 view .LVU181
+ 131:source\audio/mp3play.c ****       unsigned int br;
+ 659              		.loc 1 131 7 view .LVU182
+ 132:source\audio/mp3play.c ****       unsigned char res;
+ 660              		.loc 1 132 7 view .LVU183
+ 133:source\audio/mp3play.c ****       int offset = 0;
+ 661              		.loc 1 133 7 view .LVU184
+ 134:source\audio/mp3play.c ****       unsigned int p;
+ 662              		.loc 1 134 7 view .LVU185
+ 135:source\audio/mp3play.c ****       short samples_per_frame;
+ 663              		.loc 1 135 7 view .LVU186
+ 136:source\audio/mp3play.c ****       unsigned int totframes;
+ 664              		.loc 1 136 7 view .LVU187
+ 137:source\audio/mp3play.c ****       fmp3 = malloc(sizeof(FIL));
+ 665              		.loc 1 137 7 view .LVU188
+ 138:source\audio/mp3play.c ****       buf = malloc(5 * 1024);
+ 666              		.loc 1 138 7 view .LVU189
+ 125:source\audio/mp3play.c ****       HMP3Decoder decoder;
+ 667              		.loc 1 125 1 is_stmt 0 view .LVU190
+ 668 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 669              		.cfi_def_cfa_offset 36
+ 670              		.cfi_offset 4, -36
+ 671              		.cfi_offset 5, -32
+ 672              		.cfi_offset 6, -28
+ 673              		.cfi_offset 7, -24
+ 674              		.cfi_offset 8, -20
+ 675              		.cfi_offset 9, -16
+ 676              		.cfi_offset 10, -12
+ 677              		.cfi_offset 11, -8
+ 678              		.cfi_offset 14, -4
+ 679 0004 0446     		mov	r4, r0
+ 680 0006 8BB0     		sub	sp, sp, #44
+ 681              		.cfi_def_cfa_offset 80
+ 138:source\audio/mp3play.c ****       buf = malloc(5 * 1024);
+ 682              		.loc 1 138 14 view .LVU191
+ 683 0008 4FF40B70 		mov	r0, #556
+ 684              	.LVL55:
+ 125:source\audio/mp3play.c ****       HMP3Decoder decoder;
+ 685              		.loc 1 125 1 view .LVU192
+ 686 000c 8846     		mov	r8, r1
+ 138:source\audio/mp3play.c ****       buf = malloc(5 * 1024);
+ 687              		.loc 1 138 14 view .LVU193
+ 688 000e FFF7FEFF 		bl	malloc
+ 689              	.LVL56:
+ 138:source\audio/mp3play.c ****       buf = malloc(5 * 1024);
+ 690              		.loc 1 138 14 view .LVU194
+ 691 0012 0546     		mov	r5, r0
+ 692              	.LVL57:
+ 139:source\audio/mp3play.c ****       if (fmp3 && buf) {
+ 693              		.loc 1 139 7 is_stmt 1 view .LVU195
+ 139:source\audio/mp3play.c ****       if (fmp3 && buf) {
+ 694              		.loc 1 139 13 is_stmt 0 view .LVU196
+ 695 0014 4FF4A050 		mov	r0, #5120
+ 696              	.LVL58:
+ 139:source\audio/mp3play.c ****       if (fmp3 && buf) {
+ 697              		.loc 1 139 13 view .LVU197
+ 698 0018 FFF7FEFF 		bl	malloc
+ 699              	.LVL59:
+ 700 001c 0646     		mov	r6, r0
+ 701              	.LVL60:
+ 140:source\audio/mp3play.c **** 	 f_open(fmp3,(const TCHAR *)pname,FA_READ);
+ 702              		.loc 1 140 7 is_stmt 1 view .LVU198
+ 140:source\audio/mp3play.c **** 	 f_open(fmp3,(const TCHAR *)pname,FA_READ);
+ 703              		.loc 1 140 10 is_stmt 0 view .LVU199
+ 704 001e 002D     		cmp	r5, #0
+ 705 0020 00F0B780 		beq	.L80
+ 140:source\audio/mp3play.c **** 	 f_open(fmp3,(const TCHAR *)pname,FA_READ);
+ 706              		.loc 1 140 16 discriminator 1 view .LVU200
+ 707 0024 0028     		cmp	r0, #0
+ 708 0026 00F0B480 		beq	.L80
+ 141:source\audio/mp3play.c **** 	 res = f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 709              		.loc 1 141 3 is_stmt 1 view .LVU201
+ 710 002a 0122     		movs	r2, #1
+ 711 002c 2146     		mov	r1, r4
+ 712 002e 2846     		mov	r0, r5
+ 713              	.LVL61:
+ 141:source\audio/mp3play.c **** 	 res = f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 714              		.loc 1 141 3 is_stmt 0 view .LVU202
+ 715 0030 FFF7FEFF 		bl	f_open
+ 716              	.LVL62:
+ 142:source\audio/mp3play.c **** 	 if (res == 0) {
+ 717              		.loc 1 142 3 is_stmt 1 view .LVU203
+ 142:source\audio/mp3play.c **** 	 if (res == 0) {
+ 718              		.loc 1 142 9 is_stmt 0 view .LVU204
+ 719 0034 02AB     		add	r3, sp, #8
+ 720 0036 4FF4A052 		mov	r2, #5120
+ 721 003a 3146     		mov	r1, r6
+ 722 003c 2846     		mov	r0, r5
+ 723 003e FFF7FEFF 		bl	f_read
+ 724              	.LVL63:
+ 143:source\audio/mp3play.c **** 	    mp3_id3v2_decode(buf,br,pctrl);
+ 725              		.loc 1 143 3 is_stmt 1 view .LVU205
+ 143:source\audio/mp3play.c **** 	    mp3_id3v2_decode(buf,br,pctrl);
+ 726              		.loc 1 143 6 is_stmt 0 view .LVU206
+ 727 0042 0746     		mov	r7, r0
+ 728 0044 68BB     		cbnz	r0, .L63
+ 144:source\audio/mp3play.c **** 	    f_lseek(fmp3,fmp3->fsize - 128);
+ 729              		.loc 1 144 6 is_stmt 1 view .LVU207
+ 730 0046 4246     		mov	r2, r8
+ 731 0048 0299     		ldr	r1, [sp, #8]
+ 732 004a 3046     		mov	r0, r6
+ 733              	.LVL64:
+ 144:source\audio/mp3play.c **** 	    f_lseek(fmp3,fmp3->fsize - 128);
+ 734              		.loc 1 144 6 is_stmt 0 view .LVU208
+ 735 004c FFF7FEFF 		bl	mp3_id3v2_decode
+ 736              	.LVL65:
+ 145:source\audio/mp3play.c **** 	    f_read(fmp3,(unsigned char *)buf,128,&br);
+ 737              		.loc 1 145 6 is_stmt 1 view .LVU209
+ 738 0050 D5F80C12 		ldr	r1, [r5, #524]
+ 739 0054 2846     		mov	r0, r5
+ 740 0056 8039     		subs	r1, r1, #128
+ 741 0058 FFF7FEFF 		bl	f_lseek
+ 742              	.LVL66:
+ 146:source\audio/mp3play.c **** 	    mp3_id3v1_decode(buf,pctrl);
+ 743              		.loc 1 146 6 view .LVU210
+ 744 005c 02AB     		add	r3, sp, #8
+ 745 005e 8022     		movs	r2, #128
+ 746 0060 3146     		mov	r1, r6
+ 747 0062 2846     		mov	r0, r5
+ 748 0064 FFF7FEFF 		bl	f_read
+ 749              	.LVL67:
+ 147:source\audio/mp3play.c **** 	    decoder = MP3InitDecoder();
+ 750              		.loc 1 147 6 view .LVU211
+ 751 0068 4146     		mov	r1, r8
+ 752 006a 3046     		mov	r0, r6
+ 753 006c FFF7FEFF 		bl	mp3_id3v1_decode
+ 754              	.LVL68:
+ 148:source\audio/mp3play.c **** 	    f_lseek(fmp3,pctrl->datastart);
+ 755              		.loc 1 148 6 view .LVU212
+ 148:source\audio/mp3play.c **** 	    f_lseek(fmp3,pctrl->datastart);
+ 756              		.loc 1 148 16 is_stmt 0 view .LVU213
+ 757 0070 FFF7FEFF 		bl	MP3InitDecoder
+ 758              	.LVL69:
+ 759 0074 0190     		str	r0, [sp, #4]
+ 760              	.LVL70:
+ 149:source\audio/mp3play.c **** 	    f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 761              		.loc 1 149 6 is_stmt 1 view .LVU214
+ 762 0076 D8F86210 		ldr	r1, [r8, #98]	@ unaligned
+ 763 007a 2846     		mov	r0, r5
+ 764              	.LVL71:
+ 149:source\audio/mp3play.c **** 	    f_read(fmp3,(unsigned char *)buf,5 * 1024,&br);
+ 765              		.loc 1 149 6 is_stmt 0 view .LVU215
+ 766 007c FFF7FEFF 		bl	f_lseek
+ 767              	.LVL72:
+ 150:source\audio/mp3play.c ****  	    offset = MP3FindSyncWord(buf,br);
+ 768              		.loc 1 150 6 is_stmt 1 view .LVU216
+ 769 0080 02AB     		add	r3, sp, #8
+ 770 0082 4FF4A052 		mov	r2, #5120
+ 771 0086 3146     		mov	r1, r6
+ 772 0088 2846     		mov	r0, r5
+ 773 008a FFF7FEFF 		bl	f_read
+ 774              	.LVL73:
+ 151:source\audio/mp3play.c **** 	    if (offset >= 0 && MP3GetNextFrameInfo(decoder,&frame_info,&buf[offset]) == 0) {
+ 775              		.loc 1 151 7 view .LVU217
+ 151:source\audio/mp3play.c **** 	    if (offset >= 0 && MP3GetNextFrameInfo(decoder,&frame_info,&buf[offset]) == 0) {
+ 776              		.loc 1 151 16 is_stmt 0 view .LVU218
+ 777 008e 0299     		ldr	r1, [sp, #8]
+ 778 0090 3046     		mov	r0, r6
+ 779 0092 FFF7FEFF 		bl	MP3FindSyncWord
+ 780              	.LVL74:
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 781              		.loc 1 152 6 is_stmt 1 view .LVU219
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 782              		.loc 1 152 9 is_stmt 0 view .LVU220
+ 783 0096 041E     		subs	r4, r0, #0
+ 784              	.LVL75:
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 785              		.loc 1 152 9 view .LVU221
+ 786 0098 10DA     		bge	.L64
+ 787              	.LVL76:
+ 788              	.L66:
+ 183:source\audio/mp3play.c **** 	    MP3FreeDecoder(decoder);
+ 789              		.loc 1 183 17 view .LVU222
+ 790 009a FE27     		movs	r7, #254
+ 791              	.LVL77:
+ 792              	.L65:
+ 184:source\audio/mp3play.c ****          }
+ 793              		.loc 1 184 6 is_stmt 1 view .LVU223
+ 794 009c 0198     		ldr	r0, [sp, #4]
+ 795 009e FFF7FEFF 		bl	MP3FreeDecoder
+ 796              	.LVL78:
+ 797              	.L63:
+ 186:source\audio/mp3play.c ****       } else res= 0xFF;
+ 798              		.loc 1 186 3 view .LVU224
+ 799 00a2 2846     		mov	r0, r5
+ 800 00a4 FFF7FEFF 		bl	f_close
+ 801              	.LVL79:
+ 802              	.L62:
+ 188:source\audio/mp3play.c ****       free(buf);
+ 803              		.loc 1 188 7 view .LVU225
+ 804 00a8 2846     		mov	r0, r5
+ 805 00aa FFF7FEFF 		bl	free
+ 806              	.LVL80:
+ 189:source\audio/mp3play.c ****       return res;
+ 807              		.loc 1 189 7 view .LVU226
+ 808 00ae 3046     		mov	r0, r6
+ 809 00b0 FFF7FEFF 		bl	free
+ 810              	.LVL81:
+ 190:source\audio/mp3play.c **** }
+ 811              		.loc 1 190 7 view .LVU227
+ 191:source\audio/mp3play.c **** 
+ 812              		.loc 1 191 1 is_stmt 0 view .LVU228
+ 813 00b4 3846     		mov	r0, r7
+ 814 00b6 0BB0     		add	sp, sp, #44
+ 815              		.cfi_remember_state
+ 816              		.cfi_def_cfa_offset 36
+ 817              		@ sp needed
+ 818 00b8 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 819              	.LVL82:
+ 820              	.L64:
+ 821              		.cfi_restore_state
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 822              		.loc 1 152 25 discriminator 1 view .LVU229
+ 823 00bc 0198     		ldr	r0, [sp, #4]
+ 824              	.LVL83:
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 825              		.loc 1 152 25 discriminator 1 view .LVU230
+ 826 00be 3219     		adds	r2, r6, r4
+ 827 00c0 03A9     		add	r1, sp, #12
+ 828 00c2 FFF7FEFF 		bl	MP3GetNextFrameInfo
+ 829              	.LVL84:
+ 152:source\audio/mp3play.c **** 	       p = offset + 4 + 32;
+ 830              		.loc 1 152 22 discriminator 1 view .LVU231
+ 831 00c6 0028     		cmp	r0, #0
+ 832 00c8 E7D1     		bne	.L66
+ 153:source\audio/mp3play.c **** 	       fvbri = (MP3_FrameVBRI *)(buf + p);
+ 833              		.loc 1 153 9 is_stmt 1 view .LVU232
+ 834              	.LVL85:
+ 154:source\audio/mp3play.c **** 	       if (strncmp("VBRI",(char *)fvbri->id,4) == 0) {
+ 835              		.loc 1 154 9 view .LVU233
+ 153:source\audio/mp3play.c **** 	       fvbri = (MP3_FrameVBRI *)(buf + p);
+ 836              		.loc 1 153 24 is_stmt 0 view .LVU234
+ 837 00ca 04F12401 		add	r1, r4, #36
+ 838              	.LVL86:
+ 154:source\audio/mp3play.c **** 	       if (strncmp("VBRI",(char *)fvbri->id,4) == 0) {
+ 839              		.loc 1 154 15 view .LVU235
+ 840 00ce 3144     		add	r1, r1, r6
+ 841              	.LVL87:
+ 155:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) samples_per_frame = 1152;else samples_per_frame = 576;
+ 842              		.loc 1 155 9 is_stmt 1 view .LVU236
+ 155:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) samples_per_frame = 1152;else samples_per_frame = 576;
+ 843              		.loc 1 155 13 is_stmt 0 view .LVU237
+ 844 00d0 0422     		movs	r2, #4
+ 845 00d2 3148     		ldr	r0, .L89
+ 846 00d4 0091     		str	r1, [sp]
+ 847 00d6 FFF7FEFF 		bl	strncmp
+ 848              	.LVL88:
+ 155:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) samples_per_frame = 1152;else samples_per_frame = 576;
+ 849              		.loc 1 155 13 view .LVU238
+ 850 00da DDE904BA 		ldrd	fp, r10, [sp, #16]
+ 156:source\audio/mp3play.c ****  		  totframes = ((unsigned int)fvbri->frames[0] << 24) | ((unsigned int)fvbri->frames[1] << 16) | 
+ 851              		.loc 1 156 19 view .LVU239
+ 852 00de 099A     		ldr	r2, [sp, #36]
+ 853 00e0 DDF80C90 		ldr	r9, [sp, #12]
+ 155:source\audio/mp3play.c **** 		  if (frame_info.version == MPEG1) samples_per_frame = 1152;else samples_per_frame = 576;
+ 854              		.loc 1 155 12 view .LVU240
+ 855 00e4 E0B9     		cbnz	r0, .L67
+ 156:source\audio/mp3play.c ****  		  totframes = ((unsigned int)fvbri->frames[0] << 24) | ((unsigned int)fvbri->frames[1] << 16) | 
+ 856              		.loc 1 156 5 is_stmt 1 view .LVU241
+ 857 00e6 0099     		ldr	r1, [sp]
+ 858 00e8 D1F80E10 		ldr	r1, [r1, #14]	@ unaligned
+ 156:source\audio/mp3play.c ****  		  totframes = ((unsigned int)fvbri->frames[0] << 24) | ((unsigned int)fvbri->frames[1] << 16) | 
+ 859              		.loc 1 156 56 is_stmt 0 view .LVU242
+ 860 00ec 002A     		cmp	r2, #0
+ 861 00ee 14BF     		ite	ne
+ 862 00f0 4FF41072 		movne	r2, #576
+ 863 00f4 4FF49062 		moveq	r2, #1152
+ 864              	.LVL89:
+ 157:source\audio/mp3play.c **** 		  pctrl->totsec = totframes * samples_per_frame / frame_info.samprate;
+ 865              		.loc 1 157 6 is_stmt 1 view .LVU243
+ 866 00f8 09BA     		rev	r1, r1
+ 867              	.LVL90:
+ 158:source\audio/mp3play.c **** 	       } else {
+ 868              		.loc 1 158 5 view .LVU244
+ 158:source\audio/mp3play.c **** 	       } else {
+ 869              		.loc 1 158 31 is_stmt 0 view .LVU245
+ 870 00fa 4A43     		muls	r2, r1, r2
+ 871              	.LVL91:
+ 872              	.L87:
+ 172:source\audio/mp3play.c **** 		     } else {
+ 873              		.loc 1 172 50 view .LVU246
+ 874 00fc B2FBFAF2 		udiv	r2, r2, r10
+ 875              	.L69:
+ 158:source\audio/mp3play.c **** 	       } else {
+ 876              		.loc 1 158 19 view .LVU247
+ 877 0100 C8F85020 		str	r2, [r8, #80]	@ unaligned
+ 180:source\audio/mp3play.c **** 	       mp3ctrl->samplerate = frame_info.samprate;
+ 878              		.loc 1 180 9 is_stmt 1 view .LVU248
+ 181:source\audio/mp3play.c **** 	       if (frame_info.nChans == 2) mp3ctrl->outsamples = frame_info.outputSamps;else mp3ctrl->outs
+ 879              		.loc 1 181 16 is_stmt 0 view .LVU249
+ 880 0104 254A     		ldr	r2, .L89+4
+ 180:source\audio/mp3play.c **** 	       mp3ctrl->samplerate = frame_info.samprate;
+ 881              		.loc 1 180 24 view .LVU250
+ 882 0106 C8F85890 		str	r9, [r8, #88]	@ unaligned
+ 181:source\audio/mp3play.c **** 	       if (frame_info.nChans == 2) mp3ctrl->outsamples = frame_info.outputSamps;else mp3ctrl->outs
+ 883              		.loc 1 181 9 is_stmt 1 view .LVU251
+ 181:source\audio/mp3play.c **** 	       if (frame_info.nChans == 2) mp3ctrl->outsamples = frame_info.outputSamps;else mp3ctrl->outs
+ 884              		.loc 1 181 16 is_stmt 0 view .LVU252
+ 885 010a 1268     		ldr	r2, [r2]
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 886              		.loc 1 182 57 view .LVU253
+ 887 010c BDF81C30 		ldrh	r3, [sp, #28]
+ 181:source\audio/mp3play.c **** 	       if (frame_info.nChans == 2) mp3ctrl->outsamples = frame_info.outputSamps;else mp3ctrl->outs
+ 888              		.loc 1 181 29 view .LVU254
+ 889 0110 C2F85CA0 		str	r10, [r2, #92]	@ unaligned
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 890              		.loc 1 182 9 is_stmt 1 view .LVU255
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 891              		.loc 1 182 12 is_stmt 0 view .LVU256
+ 892 0114 BBF1020F 		cmp	fp, #2
+ 893 0118 38D1     		bne	.L77
+ 894              	.L78:
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 895              		.loc 1 182 57 view .LVU257
+ 896 011a A2F86030 		strh	r3, [r2, #96]	@ unaligned
+ 897 011e BDE7     		b	.L65
+ 898              	.LVL92:
+ 899              	.L67:
+ 160:source\audio/mp3play.c **** 		     p = frame_info.nChans == 2 ? 32 : 17;
+ 900              		.loc 1 160 5 is_stmt 1 view .LVU258
+ 160:source\audio/mp3play.c **** 		     p = frame_info.nChans == 2 ? 32 : 17;
+ 901              		.loc 1 160 8 is_stmt 0 view .LVU259
+ 902 0120 FAB9     		cbnz	r2, .L70
+ 161:source\audio/mp3play.c **** 		     samples_per_frame = 1152;
+ 903              		.loc 1 161 8 is_stmt 1 view .LVU260
+ 162:source\audio/mp3play.c **** 		  } else {
+ 904              		.loc 1 162 26 is_stmt 0 view .LVU261
+ 905 0122 BBF1020F 		cmp	fp, #2
+ 906 0126 4FF49063 		mov	r3, #1152
+ 907 012a 0093     		str	r3, [sp]
+ 908              	.LVL93:
+ 162:source\audio/mp3play.c **** 		  } else {
+ 909              		.loc 1 162 26 view .LVU262
+ 910 012c 14BF     		ite	ne
+ 911 012e 1122     		movne	r2, #17
+ 912 0130 2022     		moveq	r2, #32
+ 913              	.L71:
+ 914              	.LVL94:
+ 167:source\audio/mp3play.c **** 		  fxing = (MP3_FrameXing *)(buf + p);
+ 915              		.loc 1 167 5 is_stmt 1 view .LVU263
+ 168:source\audio/mp3play.c **** 		  if (strncmp("Xing",(char *)fxing->id,4) == 0 || strncmp("Info",(char *)fxing->id,4) == 0) {
+ 916              		.loc 1 168 5 view .LVU264
+ 167:source\audio/mp3play.c **** 		  fxing = (MP3_FrameXing *)(buf + p);
+ 917              		.loc 1 167 7 is_stmt 0 view .LVU265
+ 918 0132 0434     		adds	r4, r4, #4
+ 919              	.LVL95:
+ 167:source\audio/mp3play.c **** 		  fxing = (MP3_FrameXing *)(buf + p);
+ 920              		.loc 1 167 7 view .LVU266
+ 921 0134 1444     		add	r4, r4, r2
+ 922              	.LVL96:
+ 168:source\audio/mp3play.c **** 		  if (strncmp("Xing",(char *)fxing->id,4) == 0 || strncmp("Info",(char *)fxing->id,4) == 0) {
+ 923              		.loc 1 168 11 view .LVU267
+ 924 0136 3444     		add	r4, r4, r6
+ 925              	.LVL97:
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 926              		.loc 1 169 5 is_stmt 1 view .LVU268
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 927              		.loc 1 169 9 is_stmt 0 view .LVU269
+ 928 0138 1948     		ldr	r0, .L89+8
+ 929 013a 0422     		movs	r2, #4
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 930              		.loc 1 169 9 view .LVU270
+ 931 013c 2146     		mov	r1, r4
+ 932 013e FFF7FEFF 		bl	strncmp
+ 933              	.LVL98:
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 934              		.loc 1 169 8 view .LVU271
+ 935 0142 28B1     		cbz	r0, .L72
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 936              		.loc 1 169 53 discriminator 1 view .LVU272
+ 937 0144 1748     		ldr	r0, .L89+12
+ 938 0146 0422     		movs	r2, #4
+ 939 0148 2146     		mov	r1, r4
+ 940 014a FFF7FEFF 		bl	strncmp
+ 941              	.LVL99:
+ 169:source\audio/mp3play.c **** 		     if (fxing->flags[3] & 0x01) {
+ 942              		.loc 1 169 50 discriminator 1 view .LVU273
+ 943 014e 88B9     		cbnz	r0, .L73
+ 944              	.L72:
+ 170:source\audio/mp3play.c **** 		        totframes = ((unsigned int)fxing->frames[0] << 24) | ((unsigned int)fxing->frames[1] << 1
+ 945              		.loc 1 170 8 is_stmt 1 view .LVU274
+ 170:source\audio/mp3play.c **** 		        totframes = ((unsigned int)fxing->frames[0] << 24) | ((unsigned int)fxing->frames[1] << 1
+ 946              		.loc 1 170 11 is_stmt 0 view .LVU275
+ 947 0150 E279     		ldrb	r2, [r4, #7]	@ zero_extendqisi2
+ 948 0152 D307     		lsls	r3, r2, #31
+ 949 0154 0ED5     		bpl	.L73
+ 171:source\audio/mp3play.c **** 			pctrl->totsec = totframes * samples_per_frame / frame_info.samprate;
+ 950              		.loc 1 171 11 is_stmt 1 view .LVU276
+ 951 0156 A268     		ldr	r2, [r4, #8]	@ unaligned
+ 172:source\audio/mp3play.c **** 		     } else {
+ 952              		.loc 1 172 30 is_stmt 0 view .LVU277
+ 953 0158 009B     		ldr	r3, [sp]
+ 954 015a 12BA     		rev	r2, r2
+ 955              	.LVL100:
+ 172:source\audio/mp3play.c **** 		     } else {
+ 956              		.loc 1 172 4 is_stmt 1 view .LVU278
+ 172:source\audio/mp3play.c **** 		     } else {
+ 957              		.loc 1 172 30 is_stmt 0 view .LVU279
+ 958 015c 5343     		muls	r3, r2, r3
+ 959 015e 1A46     		mov	r2, r3
+ 960 0160 CCE7     		b	.L87
+ 961              	.LVL101:
+ 962              	.L70:
+ 164:source\audio/mp3play.c **** 		     samples_per_frame = 576;
+ 963              		.loc 1 164 8 is_stmt 1 view .LVU280
+ 165:source\audio/mp3play.c **** 		  }
+ 964              		.loc 1 165 26 is_stmt 0 view .LVU281
+ 965 0162 BBF1020F 		cmp	fp, #2
+ 966 0166 4FF41073 		mov	r3, #576
+ 967 016a 0093     		str	r3, [sp]
+ 968              	.LVL102:
+ 165:source\audio/mp3play.c **** 		  }
+ 969              		.loc 1 165 26 view .LVU282
+ 970 016c 14BF     		ite	ne
+ 971 016e 0922     		movne	r2, #9
+ 972 0170 1122     		moveq	r2, #17
+ 973 0172 DEE7     		b	.L71
+ 974              	.LVL103:
+ 975              	.L73:
+ 177:source\audio/mp3play.c **** 		  }
+ 976              		.loc 1 177 8 is_stmt 1 view .LVU283
+ 177:source\audio/mp3play.c **** 		  }
+ 977              		.loc 1 177 58 is_stmt 0 view .LVU284
+ 978 0174 B9F1000F 		cmp	r9, #0
+ 979 0178 4A46     		mov	r2, r9
+ 980 017a B8BF     		it	lt
+ 981 017c 09F10702 		addlt	r2, r9, #7
+ 982 0180 D110     		asrs	r1, r2, #3
+ 177:source\audio/mp3play.c **** 		  }
+ 983              		.loc 1 177 36 view .LVU285
+ 984 0182 D5F80C22 		ldr	r2, [r5, #524]
+ 985 0186 B2FBF1F2 		udiv	r2, r2, r1
+ 986 018a B9E7     		b	.L69
+ 987              	.LVL104:
+ 988              	.L77:
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 989              		.loc 1 182 87 is_stmt 1 discriminator 2 view .LVU286
+ 182:source\audio/mp3play.c **** 	    } else res = 0xFE;
+ 990              		.loc 1 182 107 is_stmt 0 discriminator 2 view .LVU287
+ 991 018c 5B00     		lsls	r3, r3, #1
+ 992 018e 9BB2     		uxth	r3, r3
+ 993 0190 C3E7     		b	.L78
+ 994              	.LVL105:
+ 995              	.L80:
+ 187:source\audio/mp3play.c ****       free(fmp3);
+ 996              		.loc 1 187 17 view .LVU288
+ 997 0192 FF27     		movs	r7, #255
+ 998 0194 88E7     		b	.L62
+ 999              	.L90:
+ 1000 0196 00BF     		.align	2
+ 1001              	.L89:
+ 1002 0198 00000000 		.word	.LC7
+ 1003 019c 00000000 		.word	mp3ctrl
+ 1004 01a0 05000000 		.word	.LC8
+ 1005 01a4 0A000000 		.word	.LC9
+ 1006              		.cfi_endproc
+ 1007              	.LFE127:
+ 1009              		.section	.text.mp3_get_curtime,"ax",%progbits
+ 1010              		.align	1
+ 1011              		.global	mp3_get_curtime
+ 1012              		.syntax unified
+ 1013              		.thumb
+ 1014              		.thumb_func
+ 1016              	mp3_get_curtime:
+ 1017              	.LVL106:
+ 1018              	.LFB128:
+ 195:source\audio/mp3play.c ****       unsigned int fpos = 0;
+ 1019              		.loc 1 195 1 is_stmt 1 view -0
+ 1020              		.cfi_startproc
+ 1021              		@ args = 0, pretend = 0, frame = 0
+ 1022              		@ frame_needed = 0, uses_anonymous_args = 0
+ 196:source\audio/mp3play.c ****       if (fx->fptr>mp3x->datastart) fpos = fx->fptr-mp3x->datastart;
+ 1023              		.loc 1 196 7 view .LVU290
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1024              		.loc 1 197 7 view .LVU291
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1025              		.loc 1 197 13 is_stmt 0 view .LVU292
+ 1026 0000 D0F80822 		ldr	r2, [r0, #520]
+ 198:source\audio/mp3play.c **** }
+ 1027              		.loc 1 198 33 view .LVU293
+ 1028 0004 0B6D     		ldr	r3, [r1, #80]	@ unaligned
+ 195:source\audio/mp3play.c ****       unsigned int fpos = 0;
+ 1029              		.loc 1 195 1 view .LVU294
+ 1030 0006 10B5     		push	{r4, lr}
+ 1031              		.cfi_def_cfa_offset 8
+ 1032              		.cfi_offset 4, -8
+ 1033              		.cfi_offset 14, -4
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1034              		.loc 1 197 24 view .LVU295
+ 1035 0008 D1F86240 		ldr	r4, [r1, #98]	@ unaligned
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1036              		.loc 1 197 10 view .LVU296
+ 1037 000c A242     		cmp	r2, r4
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1038              		.loc 1 197 37 is_stmt 1 view .LVU297
+ 197:source\audio/mp3play.c ****       mp3x->cursec = fpos * mp3x->totsec / (fx->fsize-mp3x->datastart);
+ 1039              		.loc 1 197 42 is_stmt 0 view .LVU298
+ 1040 000e 8CBF     		ite	hi
+ 1041 0010 121B     		subhi	r2, r2, r4
+ 1042              	.LVL107:
+ 196:source\audio/mp3play.c ****       if (fx->fptr>mp3x->datastart) fpos = fx->fptr-mp3x->datastart;
+ 1043              		.loc 1 196 20 view .LVU299
+ 1044 0012 0022     		movls	r2, #0
+ 1045              	.LVL108:
+ 198:source\audio/mp3play.c **** }
+ 1046              		.loc 1 198 7 is_stmt 1 view .LVU300
+ 198:source\audio/mp3play.c **** }
+ 1047              		.loc 1 198 27 is_stmt 0 view .LVU301
+ 1048 0014 5343     		muls	r3, r2, r3
+ 198:source\audio/mp3play.c **** }
+ 1049              		.loc 1 198 54 view .LVU302
+ 1050 0016 D0F80C22 		ldr	r2, [r0, #524]
+ 1051              	.LVL109:
+ 198:source\audio/mp3play.c **** }
+ 1052              		.loc 1 198 54 view .LVU303
+ 1053 001a 121B     		subs	r2, r2, r4
+ 198:source\audio/mp3play.c **** }
+ 1054              		.loc 1 198 42 view .LVU304
+ 1055 001c B3FBF2F3 		udiv	r3, r3, r2
+ 198:source\audio/mp3play.c **** }
+ 1056              		.loc 1 198 20 view .LVU305
+ 1057 0020 4B65     		str	r3, [r1, #84]	@ unaligned
+ 199:source\audio/mp3play.c **** 
+ 1058              		.loc 1 199 1 view .LVU306
+ 1059 0022 10BD     		pop	{r4, pc}
+ 199:source\audio/mp3play.c **** 
+ 1060              		.loc 1 199 1 view .LVU307
+ 1061              		.cfi_endproc
+ 1062              	.LFE128:
+ 1064              		.section	.text.mp3_stop,"ax",%progbits
+ 1065              		.align	1
+ 1066              		.global	mp3_stop
+ 1067              		.syntax unified
+ 1068              		.thumb
+ 1069              		.thumb_func
+ 1071              	mp3_stop:
+ 1072              	.LFB130:
+ 210:source\audio/mp3play.c **** 
+ 211:source\audio/mp3play.c **** 
+ 212:source\audio/mp3play.c **** void mp3_stop (void)
+ 213:source\audio/mp3play.c **** {
+ 1073              		.loc 1 213 1 is_stmt 1 view -0
+ 1074              		.cfi_startproc
+ 1075              		@ args = 0, pretend = 0, frame = 0
+ 1076              		@ frame_needed = 0, uses_anonymous_args = 0
+ 214:source\audio/mp3play.c ****       audio_stop();
+ 1077              		.loc 1 214 7 view .LVU309
+ 213:source\audio/mp3play.c ****       audio_stop();
+ 1078              		.loc 1 213 1 is_stmt 0 view .LVU310
+ 1079 0000 10B5     		push	{r4, lr}
+ 1080              		.cfi_def_cfa_offset 8
+ 1081              		.cfi_offset 4, -8
+ 1082              		.cfi_offset 14, -4
+ 215:source\audio/mp3play.c ****       f_close(audiodev.file);
+ 1083              		.loc 1 215 7 view .LVU311
+ 1084 0002 174C     		ldr	r4, .L95
+ 214:source\audio/mp3play.c ****       audio_stop();
+ 1085              		.loc 1 214 7 view .LVU312
+ 1086 0004 FFF7FEFF 		bl	audio_stop
+ 1087              	.LVL110:
+ 1088              		.loc 1 215 7 is_stmt 1 view .LVU313
+ 1089 0008 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1090 000a FFF7FEFF 		bl	f_close
+ 1091              	.LVL111:
+ 216:source\audio/mp3play.c ****       MP3FreeDecoder(mp3decoder);
+ 1092              		.loc 1 216 7 view .LVU314
+ 1093 000e 154B     		ldr	r3, .L95+4
+ 1094 0010 1868     		ldr	r0, [r3]
+ 1095 0012 FFF7FEFF 		bl	MP3FreeDecoder
+ 1096              	.LVL112:
+ 217:source\audio/mp3play.c ****       free(mp3ctrl);
+ 1097              		.loc 1 217 7 view .LVU315
+ 1098 0016 144B     		ldr	r3, .L95+8
+ 1099 0018 1868     		ldr	r0, [r3]
+ 1100 001a FFF7FEFF 		bl	free
+ 1101              	.LVL113:
+ 218:source\audio/mp3play.c ****       free(mp3_buffer);
+ 1102              		.loc 1 218 7 view .LVU316
+ 1103 001e 134B     		ldr	r3, .L95+12
+ 1104 0020 1868     		ldr	r0, [r3]
+ 1105 0022 FFF7FEFF 		bl	free
+ 1106              	.LVL114:
+ 219:source\audio/mp3play.c ****       free(audiodev.file);
+ 1107              		.loc 1 219 7 view .LVU317
+ 1108 0026 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1109 0028 FFF7FEFF 		bl	free
+ 1110              	.LVL115:
+ 220:source\audio/mp3play.c ****       free(audiodev.i2sbuf1);
+ 1111              		.loc 1 220 7 view .LVU318
+ 1112 002c 2068     		ldr	r0, [r4]	@ unaligned
+ 1113 002e FFF7FEFF 		bl	free
+ 1114              	.LVL116:
+ 221:source\audio/mp3play.c ****       free(audiodev.i2sbuf2);
+ 1115              		.loc 1 221 7 view .LVU319
+ 1116 0032 6068     		ldr	r0, [r4, #4]	@ unaligned
+ 1117 0034 FFF7FEFF 		bl	free
+ 1118              	.LVL117:
+ 222:source\audio/mp3play.c ****       free(audiodev.tbuf);
+ 1119              		.loc 1 222 7 view .LVU320
+ 1120 0038 A068     		ldr	r0, [r4, #8]	@ unaligned
+ 1121 003a FFF7FEFF 		bl	free
+ 1122              	.LVL118:
+ 223:source\audio/mp3play.c ****       audio_run = 0;
+ 1123              		.loc 1 223 7 view .LVU321
+ 1124              		.loc 1 223 17 is_stmt 0 view .LVU322
+ 1125 003e 0C4A     		ldr	r2, .L95+16
+ 1126 0040 0023     		movs	r3, #0
+ 1127 0042 1370     		strb	r3, [r2]
+ 224:source\audio/mp3play.c ****       audio_decode_flag = 0;
+ 1128              		.loc 1 224 7 is_stmt 1 view .LVU323
+ 1129              		.loc 1 224 25 is_stmt 0 view .LVU324
+ 1130 0044 0B4A     		ldr	r2, .L95+20
+ 1131 0046 1370     		strb	r3, [r2]
+ 225:source\audio/mp3play.c ****       audio_read_flag = 0;
+ 1132              		.loc 1 225 7 is_stmt 1 view .LVU325
+ 1133              		.loc 1 225 23 is_stmt 0 view .LVU326
+ 1134 0048 0B4A     		ldr	r2, .L95+24
+ 1135 004a 1370     		strb	r3, [r2]
+ 226:source\audio/mp3play.c ****       audio_pause = 0;
+ 1136              		.loc 1 226 7 is_stmt 1 view .LVU327
+ 1137              		.loc 1 226 19 is_stmt 0 view .LVU328
+ 1138 004c 0B4A     		ldr	r2, .L95+28
+ 1139 004e 1370     		strb	r3, [r2]
+ 227:source\audio/mp3play.c ****       audio_play_function = NULL;
+ 1140              		.loc 1 227 7 is_stmt 1 view .LVU329
+ 1141              		.loc 1 227 27 is_stmt 0 view .LVU330
+ 1142 0050 0B4A     		ldr	r2, .L95+32
+ 1143 0052 1360     		str	r3, [r2]
+ 228:source\audio/mp3play.c ****       audio_stop_function = NULL;
+ 1144              		.loc 1 228 7 is_stmt 1 view .LVU331
+ 1145              		.loc 1 228 27 is_stmt 0 view .LVU332
+ 1146 0054 0B4A     		ldr	r2, .L95+36
+ 1147 0056 1360     		str	r3, [r2]
+ 229:source\audio/mp3play.c ****       music_play = 1;
+ 1148              		.loc 1 229 7 is_stmt 1 view .LVU333
+ 1149              		.loc 1 229 18 is_stmt 0 view .LVU334
+ 1150 0058 0B4B     		ldr	r3, .L95+40
+ 1151 005a 0122     		movs	r2, #1
+ 1152 005c 1A70     		strb	r2, [r3]
+ 230:source\audio/mp3play.c **** }
+ 1153              		.loc 1 230 1 view .LVU335
+ 1154 005e 10BD     		pop	{r4, pc}
+ 1155              	.L96:
+ 1156              		.align	2
+ 1157              	.L95:
+ 1158 0060 00000000 		.word	audiodev
+ 1159 0064 00000000 		.word	mp3decoder
+ 1160 0068 00000000 		.word	mp3ctrl
+ 1161 006c 00000000 		.word	mp3_buffer
+ 1162 0070 00000000 		.word	audio_run
+ 1163 0074 00000000 		.word	audio_decode_flag
+ 1164 0078 00000000 		.word	audio_read_flag
+ 1165 007c 00000000 		.word	audio_pause
+ 1166 0080 00000000 		.word	audio_play_function
+ 1167 0084 00000000 		.word	audio_stop_function
+ 1168 0088 00000000 		.word	music_play
+ 1169              		.cfi_endproc
+ 1170              	.LFE130:
+ 1172              		.section	.rodata.mp3_play_song.str1.1,"aMS",%progbits,1
+ 1173              	.LC10:
+ 1174 0000 46696C65 		.ascii	"File: %s \000"
+ 1174      3A202573 
+ 1174      2000
+ 1175              	.LC11:
+ 1176 000a 5469746C 		.ascii	"Title: %s \000"
+ 1176      653A2025 
+ 1176      732000
+ 1177              	.LC12:
+ 1178 0015 41727469 		.ascii	"Artist: %s \000"
+ 1178      73743A20 
+ 1178      25732000 
+ 1179              	.LC13:
+ 1180 0021 42697472 		.ascii	"Bitrate: %d bps \000"
+ 1180      6174653A 
+ 1180      20256420 
+ 1180      62707320 
+ 1180      00
+ 1181              	.LC14:
+ 1182 0032 53616D70 		.ascii	"Samplerate: %d \000"
+ 1182      6C657261 
+ 1182      74653A20 
+ 1182      25642000 
+ 1183              	.LC15:
+ 1184 0042 54696D65 		.ascii	"Time: %2d:%.2d \000"
+ 1184      3A202532 
+ 1184      643A252E 
+ 1184      32642000 
+ 1185              	.LC16:
+ 1186 0052 566F6C75 		.ascii	"Volume: %2d \000"
+ 1186      6D653A20 
+ 1186      25326420 
+ 1186      00
+ 1187              		.section	.text.mp3_play_song,"ax",%progbits
+ 1188              		.align	1
+ 1189              		.global	mp3_play_song
+ 1190              		.syntax unified
+ 1191              		.thumb
+ 1192              		.thumb_func
+ 1194              	mp3_play_song:
+ 1195              	.LVL119:
+ 1196              	.LFB131:
+ 231:source\audio/mp3play.c **** 
+ 232:source\audio/mp3play.c **** 
+ 233:source\audio/mp3play.c **** unsigned char mp3_play_song (unsigned char *fname)
+ 234:source\audio/mp3play.c **** {
+ 1197              		.loc 1 234 1 is_stmt 1 view -0
+ 1198              		.cfi_startproc
+ 1199              		@ args = 0, pretend = 0, frame = 8
+ 1200              		@ frame_needed = 0, uses_anonymous_args = 0
+ 235:source\audio/mp3play.c ****       unsigned char res;
+ 1201              		.loc 1 235 7 view .LVU337
+ 236:source\audio/mp3play.c ****       mp3decoder = 0;
+ 1202              		.loc 1 236 7 view .LVU338
+ 234:source\audio/mp3play.c ****       unsigned char res;
+ 1203              		.loc 1 234 1 is_stmt 0 view .LVU339
+ 1204 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 1205              		.cfi_def_cfa_offset 36
+ 1206              		.cfi_offset 4, -36
+ 1207              		.cfi_offset 5, -32
+ 1208              		.cfi_offset 6, -28
+ 1209              		.cfi_offset 7, -24
+ 1210              		.cfi_offset 8, -20
+ 1211              		.cfi_offset 9, -16
+ 1212              		.cfi_offset 10, -12
+ 1213              		.cfi_offset 11, -8
+ 1214              		.cfi_offset 14, -4
+ 237:source\audio/mp3play.c ****       mp3_offset = 0;
+ 1215              		.loc 1 237 18 view .LVU340
+ 1216 0004 714B     		ldr	r3, .L121
+ 236:source\audio/mp3play.c ****       mp3decoder = 0;
+ 1217              		.loc 1 236 18 view .LVU341
+ 1218 0006 DFF814A2 		ldr	r10, .L121+80
+ 238:source\audio/mp3play.c ****       mp3_outofdata = 0;
+ 239:source\audio/mp3play.c ****       mp3_bytesleft = 0;
+ 240:source\audio/mp3play.c ****       audio_br = 0;
+ 241:source\audio/mp3play.c ****       mp3ctrl = malloc(sizeof(__mp3ctrl));
+ 1219              		.loc 1 241 15 view .LVU342
+ 1220 000a 714E     		ldr	r6, .L121+4
+ 242:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 243:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1221              		.loc 1 243 21 view .LVU343
+ 1222 000c 714D     		ldr	r5, .L121+8
+ 236:source\audio/mp3play.c ****       mp3_offset = 0;
+ 1223              		.loc 1 236 18 view .LVU344
+ 1224 000e 4FF00008 		mov	r8, #0
+ 237:source\audio/mp3play.c ****       mp3_outofdata = 0;
+ 1225              		.loc 1 237 18 view .LVU345
+ 1226 0012 C3F80080 		str	r8, [r3]
+ 238:source\audio/mp3play.c ****       mp3_bytesleft = 0;
+ 1227              		.loc 1 238 21 view .LVU346
+ 1228 0016 704B     		ldr	r3, .L121+12
+ 236:source\audio/mp3play.c ****       mp3_offset = 0;
+ 1229              		.loc 1 236 18 view .LVU347
+ 1230 0018 CAF80080 		str	r8, [r10]
+ 237:source\audio/mp3play.c ****       mp3_outofdata = 0;
+ 1231              		.loc 1 237 7 is_stmt 1 view .LVU348
+ 238:source\audio/mp3play.c ****       mp3_bytesleft = 0;
+ 1232              		.loc 1 238 7 view .LVU349
+ 238:source\audio/mp3play.c ****       mp3_bytesleft = 0;
+ 1233              		.loc 1 238 21 is_stmt 0 view .LVU350
+ 1234 001c C3F80080 		str	r8, [r3]
+ 239:source\audio/mp3play.c ****       audio_br = 0;
+ 1235              		.loc 1 239 7 is_stmt 1 view .LVU351
+ 239:source\audio/mp3play.c ****       audio_br = 0;
+ 1236              		.loc 1 239 21 is_stmt 0 view .LVU352
+ 1237 0020 6E4B     		ldr	r3, .L121+16
+ 234:source\audio/mp3play.c ****       unsigned char res;
+ 1238              		.loc 1 234 1 view .LVU353
+ 1239 0022 85B0     		sub	sp, sp, #20
+ 1240              		.cfi_def_cfa_offset 56
+ 239:source\audio/mp3play.c ****       audio_br = 0;
+ 1241              		.loc 1 239 21 view .LVU354
+ 1242 0024 C3F80080 		str	r8, [r3]
+ 240:source\audio/mp3play.c ****       mp3ctrl = malloc(sizeof(__mp3ctrl));
+ 1243              		.loc 1 240 7 is_stmt 1 view .LVU355
+ 240:source\audio/mp3play.c ****       mp3ctrl = malloc(sizeof(__mp3ctrl));
+ 1244              		.loc 1 240 16 is_stmt 0 view .LVU356
+ 1245 0028 6D4B     		ldr	r3, .L121+20
+ 234:source\audio/mp3play.c ****       unsigned char res;
+ 1246              		.loc 1 234 1 view .LVU357
+ 1247 002a 0290     		str	r0, [sp, #8]
+ 241:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 1248              		.loc 1 241 17 view .LVU358
+ 1249 002c 6620     		movs	r0, #102
+ 1250              	.LVL120:
+ 240:source\audio/mp3play.c ****       mp3ctrl = malloc(sizeof(__mp3ctrl));
+ 1251              		.loc 1 240 16 view .LVU359
+ 1252 002e C3F80080 		str	r8, [r3]
+ 241:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 1253              		.loc 1 241 7 is_stmt 1 view .LVU360
+ 241:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 1254              		.loc 1 241 17 is_stmt 0 view .LVU361
+ 1255 0032 FFF7FEFF 		bl	malloc
+ 1256              	.LVL121:
+ 241:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 1257              		.loc 1 241 15 view .LVU362
+ 1258 0036 3060     		str	r0, [r6]
+ 242:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1259              		.loc 1 242 7 is_stmt 1 view .LVU363
+ 241:source\audio/mp3play.c ****       mp3_buffer = malloc(MP3_FILE_BUF_SZ);
+ 1260              		.loc 1 241 17 is_stmt 0 view .LVU364
+ 1261 0038 0446     		mov	r4, r0
+ 242:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1262              		.loc 1 242 20 view .LVU365
+ 1263 003a 4FF4A050 		mov	r0, #5120
+ 1264 003e FFF7FEFF 		bl	malloc
+ 1265              	.LVL122:
+ 242:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1266              		.loc 1 242 18 view .LVU366
+ 1267 0042 684B     		ldr	r3, .L121+24
+ 242:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1268              		.loc 1 242 20 view .LVU367
+ 1269 0044 0390     		str	r0, [sp, #12]
+ 242:source\audio/mp3play.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 1270              		.loc 1 242 18 view .LVU368
+ 1271 0046 1860     		str	r0, [r3]
+ 1272              		.loc 1 243 7 is_stmt 1 view .LVU369
+ 1273              		.loc 1 243 30 is_stmt 0 view .LVU370
+ 1274 0048 4FF40B70 		mov	r0, #556
+ 1275 004c FFF7FEFF 		bl	malloc
+ 1276              	.LVL123:
+ 1277              		.loc 1 243 21 view .LVU371
+ 1278 0050 E860     		str	r0, [r5, #12]	@ unaligned
+ 244:source\audio/mp3play.c ****       audiodev.i2sbuf1 = malloc(2304 * 2);
+ 1279              		.loc 1 244 7 is_stmt 1 view .LVU372
+ 243:source\audio/mp3play.c ****       audiodev.i2sbuf1 = malloc(2304 * 2);
+ 1280              		.loc 1 243 30 is_stmt 0 view .LVU373
+ 1281 0052 8146     		mov	r9, r0
+ 1282              		.loc 1 244 26 view .LVU374
+ 1283 0054 4FF49050 		mov	r0, #4608
+ 1284 0058 FFF7FEFF 		bl	malloc
+ 1285              	.LVL124:
+ 1286              		.loc 1 244 24 view .LVU375
+ 1287 005c 2860     		str	r0, [r5]	@ unaligned
+ 245:source\audio/mp3play.c ****       audiodev.i2sbuf2 = malloc(2304 * 2);
+ 1288              		.loc 1 245 7 is_stmt 1 view .LVU376
+ 244:source\audio/mp3play.c ****       audiodev.i2sbuf1 = malloc(2304 * 2);
+ 1289              		.loc 1 244 26 is_stmt 0 view .LVU377
+ 1290 005e 8346     		mov	fp, r0
+ 1291              		.loc 1 245 26 view .LVU378
+ 1292 0060 4FF49050 		mov	r0, #4608
+ 1293 0064 FFF7FEFF 		bl	malloc
+ 1294              	.LVL125:
+ 1295              		.loc 1 245 24 view .LVU379
+ 1296 0068 6860     		str	r0, [r5, #4]	@ unaligned
+ 246:source\audio/mp3play.c ****       audiodev.tbuf = malloc(2304 * 2);
+ 1297              		.loc 1 246 7 is_stmt 1 view .LVU380
+ 245:source\audio/mp3play.c ****       audiodev.i2sbuf2 = malloc(2304 * 2);
+ 1298              		.loc 1 245 26 is_stmt 0 view .LVU381
+ 1299 006a 0746     		mov	r7, r0
+ 1300              		.loc 1 246 23 view .LVU382
+ 1301 006c 4FF49050 		mov	r0, #4608
+ 1302 0070 FFF7FEFF 		bl	malloc
+ 1303              	.LVL126:
+ 1304 0074 0246     		mov	r2, r0
+ 1305              		.loc 1 246 21 view .LVU383
+ 1306 0076 A860     		str	r0, [r5, #8]	@ unaligned
+ 247:source\audio/mp3play.c ****       audiodev.file_seek = mp3_file_seek;
+ 1307              		.loc 1 247 7 is_stmt 1 view .LVU384
+ 1308              		.loc 1 247 26 is_stmt 0 view .LVU385
+ 1309 0078 5B48     		ldr	r0, .L121+28
+ 1310 007a 2861     		str	r0, [r5, #16]	@ unaligned
+ 248:source\audio/mp3play.c ****       if (!mp3ctrl || !mp3_buffer || !audiodev.file || !audiodev.i2sbuf1 || !audiodev.i2sbuf2 || !a
+ 1311              		.loc 1 248 7 is_stmt 1 view .LVU386
+ 1312              		.loc 1 248 10 is_stmt 0 view .LVU387
+ 1313 007c 4CB1     		cbz	r4, .L98
+ 1314              		.loc 1 248 20 discriminator 1 view .LVU388
+ 1315 007e 039B     		ldr	r3, [sp, #12]
+ 1316 0080 3BB1     		cbz	r3, .L98
+ 1317              		.loc 1 248 35 discriminator 2 view .LVU389
+ 1318 0082 B9F1000F 		cmp	r9, #0
+ 1319 0086 04D0     		beq	.L98
+ 1320              		.loc 1 248 53 discriminator 3 view .LVU390
+ 1321 0088 BBF1000F 		cmp	fp, #0
+ 1322 008c 01D0     		beq	.L98
+ 1323              		.loc 1 248 74 discriminator 4 view .LVU391
+ 1324 008e 07B1     		cbz	r7, .L98
+ 1325              		.loc 1 248 95 discriminator 5 view .LVU392
+ 1326 0090 BAB9     		cbnz	r2, .L99
+ 1327              	.L98:
+ 249:source\audio/mp3play.c **** 	 free(mp3ctrl);
+ 1328              		.loc 1 249 3 view .LVU393
+ 1329 0092 2046     		mov	r0, r4
+ 1330 0094 0292     		str	r2, [sp, #8]
+ 1331              	.LVL127:
+ 1332              		.loc 1 249 3 is_stmt 1 view .LVU394
+ 1333 0096 FFF7FEFF 		bl	free
+ 1334              	.LVL128:
+ 250:source\audio/mp3play.c **** 	 free(mp3_buffer);
+ 1335              		.loc 1 250 3 view .LVU395
+ 1336 009a 0398     		ldr	r0, [sp, #12]
+ 1337 009c FFF7FEFF 		bl	free
+ 1338              	.LVL129:
+ 251:source\audio/mp3play.c **** 	 free(audiodev.file);
+ 1339              		.loc 1 251 3 view .LVU396
+ 1340 00a0 4846     		mov	r0, r9
+ 1341 00a2 FFF7FEFF 		bl	free
+ 1342              	.LVL130:
+ 252:source\audio/mp3play.c **** 	 free(audiodev.i2sbuf1);
+ 1343              		.loc 1 252 3 view .LVU397
+ 1344 00a6 5846     		mov	r0, fp
+ 1345 00a8 FFF7FEFF 		bl	free
+ 1346              	.LVL131:
+ 253:source\audio/mp3play.c **** 	 free(audiodev.i2sbuf2);
+ 1347              		.loc 1 253 3 view .LVU398
+ 1348 00ac 3846     		mov	r0, r7
+ 1349 00ae FFF7FEFF 		bl	free
+ 1350              	.LVL132:
+ 254:source\audio/mp3play.c **** 	 free(audiodev.tbuf);
+ 1351              		.loc 1 254 3 view .LVU399
+ 1352 00b2 029A     		ldr	r2, [sp, #8]
+ 1353 00b4 1046     		mov	r0, r2
+ 1354 00b6 FFF7FEFF 		bl	free
+ 1355              	.LVL133:
+ 255:source\audio/mp3play.c **** 	 return 1;
+ 1356              		.loc 1 255 3 view .LVU400
+ 1357              		.loc 1 255 10 is_stmt 0 view .LVU401
+ 1358 00ba 0120     		movs	r0, #1
+ 1359              	.L100:
+ 256:source\audio/mp3play.c ****       }
+ 257:source\audio/mp3play.c ****       memset(audiodev.i2sbuf1,0,2304 * 2);
+ 258:source\audio/mp3play.c ****       memset(audiodev.i2sbuf2,0,2304 * 2);
+ 259:source\audio/mp3play.c ****       memset(mp3ctrl,0,sizeof(__mp3ctrl));
+ 260:source\audio/mp3play.c ****       res = mp3_get_info(fname,mp3ctrl);
+ 261:source\audio/mp3play.c ****       if (res == 0) {
+ 262:source\audio/mp3play.c ****       	 lcd_printf(0,20,"File: %s ",fname);
+ 263:source\audio/mp3play.c ****          lcd_printf(0,22,"Title: %s ",mp3ctrl->title);
+ 264:source\audio/mp3play.c ****          lcd_printf(0,24,"Artist: %s ",mp3ctrl->artist);
+ 265:source\audio/mp3play.c ****          lcd_printf(0,26,"Bitrate: %d bps ",mp3ctrl->bitrate);
+ 266:source\audio/mp3play.c ****          lcd_printf(0,27,"Samplerate: %d ", mp3ctrl->samplerate);
+ 267:source\audio/mp3play.c ****          lcd_printf(0,28,"Time: %2d:%.2d ",mp3ctrl->totsec / 60,mp3ctrl->totsec % 60);
+ 268:source\audio/mp3play.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 269:source\audio/mp3play.c ****          WM8978_I2S_Cfg(2,0);
+ 270:source\audio/mp3play.c **** 	 I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 271:source\audio/mp3play.c **** 	 I2S2_SampleRate_Set(mp3ctrl->samplerate);
+ 272:source\audio/mp3play.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,mp3ctrl->outsamples);
+ 273:source\audio/mp3play.c **** 	 i2s_tx_callback = mp3_i2s_dma_tx_callback;
+ 274:source\audio/mp3play.c **** 	 mp3decoder = MP3InitDecoder();
+ 275:source\audio/mp3play.c **** 	 res = f_open(audiodev.file,(char *)fname,FA_READ);
+ 276:source\audio/mp3play.c ****       }
+ 277:source\audio/mp3play.c ****       if (res == 0 && mp3decoder != 0) {
+ 278:source\audio/mp3play.c **** 	 f_lseek(audiodev.file,mp3ctrl->datastart);
+ 279:source\audio/mp3play.c **** 	 audio_start();
+ 280:source\audio/mp3play.c ****          audio_read_flag = 1;
+ 281:source\audio/mp3play.c ****          audio_run = 1;
+ 282:source\audio/mp3play.c ****       } else {
+ 283:source\audio/mp3play.c ****       	 mp3_stop();
+ 284:source\audio/mp3play.c ****       }
+ 285:source\audio/mp3play.c ****       return 0;
+ 286:source\audio/mp3play.c **** }
+ 1360              		.loc 1 286 1 view .LVU402
+ 1361 00bc 05B0     		add	sp, sp, #20
+ 1362              		.cfi_remember_state
+ 1363              		.cfi_def_cfa_offset 36
+ 1364              		@ sp needed
+ 1365 00be BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 1366              	.LVL134:
+ 1367              	.L99:
+ 1368              		.cfi_restore_state
+ 257:source\audio/mp3play.c ****       memset(audiodev.i2sbuf2,0,2304 * 2);
+ 1369              		.loc 1 257 7 is_stmt 1 view .LVU403
+ 1370 00c2 4FF49052 		mov	r2, #4608
+ 1371 00c6 4146     		mov	r1, r8
+ 1372 00c8 5846     		mov	r0, fp
+ 1373 00ca FFF7FEFF 		bl	memset
+ 1374              	.LVL135:
+ 258:source\audio/mp3play.c ****       memset(mp3ctrl,0,sizeof(__mp3ctrl));
+ 1375              		.loc 1 258 7 view .LVU404
+ 1376 00ce 4FF49052 		mov	r2, #4608
+ 1377 00d2 4146     		mov	r1, r8
+ 1378 00d4 3846     		mov	r0, r7
+ 1379 00d6 FFF7FEFF 		bl	memset
+ 1380              	.LVL136:
+ 259:source\audio/mp3play.c ****       res = mp3_get_info(fname,mp3ctrl);
+ 1381              		.loc 1 259 7 view .LVU405
+ 1382 00da 6622     		movs	r2, #102
+ 1383 00dc 4146     		mov	r1, r8
+ 1384 00de 2046     		mov	r0, r4
+ 1385 00e0 FFF7FEFF 		bl	memset
+ 1386              	.LVL137:
+ 260:source\audio/mp3play.c ****       if (res == 0) {
+ 1387              		.loc 1 260 7 view .LVU406
+ 260:source\audio/mp3play.c ****       if (res == 0) {
+ 1388              		.loc 1 260 13 is_stmt 0 view .LVU407
+ 1389 00e4 2146     		mov	r1, r4
+ 1390 00e6 0298     		ldr	r0, [sp, #8]
+ 1391 00e8 FFF7FEFF 		bl	mp3_get_info
+ 1392              	.LVL138:
+ 261:source\audio/mp3play.c ****       	 lcd_printf(0,20,"File: %s ",fname);
+ 1393              		.loc 1 261 7 is_stmt 1 view .LVU408
+ 261:source\audio/mp3play.c ****       	 lcd_printf(0,20,"File: %s ",fname);
+ 1394              		.loc 1 261 10 is_stmt 0 view .LVU409
+ 1395 00ec 0446     		mov	r4, r0
+ 1396 00ee 0028     		cmp	r0, #0
+ 1397 00f0 68D1     		bne	.L101
+ 262:source\audio/mp3play.c ****          lcd_printf(0,22,"Title: %s ",mp3ctrl->title);
+ 1398              		.loc 1 262 9 is_stmt 1 view .LVU410
+ 1399 00f2 029B     		ldr	r3, [sp, #8]
+ 1400 00f4 3D4A     		ldr	r2, .L121+32
+ 1401 00f6 1421     		movs	r1, #20
+ 1402 00f8 FFF7FEFF 		bl	lcd_printf
+ 1403              	.LVL139:
+ 263:source\audio/mp3play.c ****          lcd_printf(0,24,"Artist: %s ",mp3ctrl->artist);
+ 1404              		.loc 1 263 10 view .LVU411
+ 1405 00fc 3368     		ldr	r3, [r6]
+ 1406 00fe 3C4A     		ldr	r2, .L121+36
+ 1407 0100 1621     		movs	r1, #22
+ 1408 0102 2046     		mov	r0, r4
+ 1409 0104 FFF7FEFF 		bl	lcd_printf
+ 1410              	.LVL140:
+ 264:source\audio/mp3play.c ****          lcd_printf(0,26,"Bitrate: %d bps ",mp3ctrl->bitrate);
+ 1411              		.loc 1 264 10 view .LVU412
+ 264:source\audio/mp3play.c ****          lcd_printf(0,26,"Bitrate: %d bps ",mp3ctrl->bitrate);
+ 1412              		.loc 1 264 47 is_stmt 0 view .LVU413
+ 1413 0108 3368     		ldr	r3, [r6]
+ 264:source\audio/mp3play.c ****          lcd_printf(0,26,"Bitrate: %d bps ",mp3ctrl->bitrate);
+ 1414              		.loc 1 264 10 view .LVU414
+ 1415 010a 3A4A     		ldr	r2, .L121+40
+ 1416 010c 2833     		adds	r3, r3, #40
+ 1417 010e 1821     		movs	r1, #24
+ 1418 0110 2046     		mov	r0, r4
+ 1419 0112 FFF7FEFF 		bl	lcd_printf
+ 1420              	.LVL141:
+ 265:source\audio/mp3play.c ****          lcd_printf(0,27,"Samplerate: %d ", mp3ctrl->samplerate);
+ 1421              		.loc 1 265 10 is_stmt 1 view .LVU415
+ 1422 0116 3368     		ldr	r3, [r6]
+ 1423 0118 374A     		ldr	r2, .L121+44
+ 1424 011a 9B6D     		ldr	r3, [r3, #88]	@ unaligned
+ 1425 011c 1A21     		movs	r1, #26
+ 1426 011e 2046     		mov	r0, r4
+ 1427 0120 FFF7FEFF 		bl	lcd_printf
+ 1428              	.LVL142:
+ 266:source\audio/mp3play.c ****          lcd_printf(0,28,"Time: %2d:%.2d ",mp3ctrl->totsec / 60,mp3ctrl->totsec % 60);
+ 1429              		.loc 1 266 10 view .LVU416
+ 1430 0124 3368     		ldr	r3, [r6]
+ 1431 0126 354A     		ldr	r2, .L121+48
+ 1432 0128 DB6D     		ldr	r3, [r3, #92]	@ unaligned
+ 1433 012a 1B21     		movs	r1, #27
+ 1434 012c 2046     		mov	r0, r4
+ 1435 012e FFF7FEFF 		bl	lcd_printf
+ 1436              	.LVL143:
+ 267:source\audio/mp3play.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 1437              		.loc 1 267 10 view .LVU417
+ 267:source\audio/mp3play.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 1438              		.loc 1 267 51 is_stmt 0 view .LVU418
+ 1439 0132 3368     		ldr	r3, [r6]
+ 1440 0134 1A6D     		ldr	r2, [r3, #80]	@ unaligned
+ 267:source\audio/mp3play.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 1441              		.loc 1 267 10 view .LVU419
+ 1442 0136 3C21     		movs	r1, #60
+ 1443 0138 B2FBF1F3 		udiv	r3, r2, r1
+ 1444 013c 01FB1322 		mls	r2, r1, r3, r2
+ 1445 0140 0092     		str	r2, [sp]
+ 1446 0142 1C21     		movs	r1, #28
+ 1447 0144 2E4A     		ldr	r2, .L121+52
+ 1448 0146 2046     		mov	r0, r4
+ 1449 0148 FFF7FEFF 		bl	lcd_printf
+ 1450              	.LVL144:
+ 268:source\audio/mp3play.c ****          WM8978_I2S_Cfg(2,0);
+ 1451              		.loc 1 268 10 is_stmt 1 view .LVU420
+ 1452 014c 2D4B     		ldr	r3, .L121+56
+ 1453 014e 2E4A     		ldr	r2, .L121+60
+ 1454 0150 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1455 0152 1C21     		movs	r1, #28
+ 1456 0154 1420     		movs	r0, #20
+ 1457 0156 FFF7FEFF 		bl	lcd_printf
+ 1458              	.LVL145:
+ 269:source\audio/mp3play.c **** 	 I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 1459              		.loc 1 269 10 view .LVU421
+ 1460 015a 2146     		mov	r1, r4
+ 1461 015c 0220     		movs	r0, #2
+ 1462 015e FFF7FEFF 		bl	WM8978_I2S_Cfg
+ 1463              	.LVL146:
+ 270:source\audio/mp3play.c **** 	 I2S2_SampleRate_Set(mp3ctrl->samplerate);
+ 1464              		.loc 1 270 3 view .LVU422
+ 1465 0162 2246     		mov	r2, r4
+ 1466 0164 4FF40071 		mov	r1, #512
+ 1467 0168 0123     		movs	r3, #1
+ 1468 016a 2046     		mov	r0, r4
+ 1469 016c FFF7FEFF 		bl	I2S2_Init
+ 1470              	.LVL147:
+ 271:source\audio/mp3play.c **** 	 I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,mp3ctrl->outsamples);
+ 1471              		.loc 1 271 3 view .LVU423
+ 1472 0170 3368     		ldr	r3, [r6]
+ 1473 0172 D86D     		ldr	r0, [r3, #92]	@ unaligned
+ 1474 0174 FFF7FEFF 		bl	I2S2_SampleRate_Set
+ 1475              	.LVL148:
+ 272:source\audio/mp3play.c **** 	 i2s_tx_callback = mp3_i2s_dma_tx_callback;
+ 1476              		.loc 1 272 3 view .LVU424
+ 1477 0178 3368     		ldr	r3, [r6]
+ 1478 017a 6968     		ldr	r1, [r5, #4]	@ unaligned
+ 1479 017c B3F86020 		ldrh	r2, [r3, #96]	@ unaligned
+ 1480 0180 2868     		ldr	r0, [r5]	@ unaligned
+ 1481 0182 FFF7FEFF 		bl	I2S2_TX_DMA_Init
+ 1482              	.LVL149:
+ 273:source\audio/mp3play.c **** 	 mp3decoder = MP3InitDecoder();
+ 1483              		.loc 1 273 3 view .LVU425
+ 273:source\audio/mp3play.c **** 	 mp3decoder = MP3InitDecoder();
+ 1484              		.loc 1 273 19 is_stmt 0 view .LVU426
+ 1485 0186 214B     		ldr	r3, .L121+64
+ 1486 0188 214A     		ldr	r2, .L121+68
+ 1487 018a 1A60     		str	r2, [r3]
+ 274:source\audio/mp3play.c **** 	 res = f_open(audiodev.file,(char *)fname,FA_READ);
+ 1488              		.loc 1 274 3 is_stmt 1 view .LVU427
+ 274:source\audio/mp3play.c **** 	 res = f_open(audiodev.file,(char *)fname,FA_READ);
+ 1489              		.loc 1 274 16 is_stmt 0 view .LVU428
+ 1490 018c FFF7FEFF 		bl	MP3InitDecoder
+ 1491              	.LVL150:
+ 274:source\audio/mp3play.c **** 	 res = f_open(audiodev.file,(char *)fname,FA_READ);
+ 1492              		.loc 1 274 14 view .LVU429
+ 1493 0190 CAF80000 		str	r0, [r10]
+ 275:source\audio/mp3play.c ****       }
+ 1494              		.loc 1 275 3 is_stmt 1 view .LVU430
+ 275:source\audio/mp3play.c ****       }
+ 1495              		.loc 1 275 9 is_stmt 0 view .LVU431
+ 1496 0194 0299     		ldr	r1, [sp, #8]
+ 1497 0196 E868     		ldr	r0, [r5, #12]	@ unaligned
+ 1498 0198 0122     		movs	r2, #1
+ 1499 019a FFF7FEFF 		bl	f_open
+ 1500              	.LVL151:
+ 277:source\audio/mp3play.c **** 	 f_lseek(audiodev.file,mp3ctrl->datastart);
+ 1501              		.loc 1 277 7 is_stmt 1 view .LVU432
+ 277:source\audio/mp3play.c **** 	 f_lseek(audiodev.file,mp3ctrl->datastart);
+ 1502              		.loc 1 277 10 is_stmt 0 view .LVU433
+ 1503 019e 88B9     		cbnz	r0, .L101
+ 277:source\audio/mp3play.c **** 	 f_lseek(audiodev.file,mp3ctrl->datastart);
+ 1504              		.loc 1 277 20 discriminator 1 view .LVU434
+ 1505 01a0 DAF80030 		ldr	r3, [r10]
+ 1506 01a4 73B1     		cbz	r3, .L101
+ 278:source\audio/mp3play.c **** 	 audio_start();
+ 1507              		.loc 1 278 3 is_stmt 1 view .LVU435
+ 278:source\audio/mp3play.c **** 	 audio_start();
+ 1508              		.loc 1 278 32 is_stmt 0 view .LVU436
+ 1509 01a6 3368     		ldr	r3, [r6]
+ 278:source\audio/mp3play.c **** 	 audio_start();
+ 1510              		.loc 1 278 3 view .LVU437
+ 1511 01a8 E868     		ldr	r0, [r5, #12]	@ unaligned
+ 1512              	.LVL152:
+ 278:source\audio/mp3play.c **** 	 audio_start();
+ 1513              		.loc 1 278 3 view .LVU438
+ 1514 01aa D3F86210 		ldr	r1, [r3, #98]	@ unaligned
+ 1515 01ae FFF7FEFF 		bl	f_lseek
+ 1516              	.LVL153:
+ 279:source\audio/mp3play.c ****          audio_read_flag = 1;
+ 1517              		.loc 1 279 3 is_stmt 1 view .LVU439
+ 1518 01b2 FFF7FEFF 		bl	audio_start
+ 1519              	.LVL154:
+ 280:source\audio/mp3play.c ****          audio_run = 1;
+ 1520              		.loc 1 280 10 view .LVU440
+ 280:source\audio/mp3play.c ****          audio_run = 1;
+ 1521              		.loc 1 280 26 is_stmt 0 view .LVU441
+ 1522 01b6 174A     		ldr	r2, .L121+72
+ 1523 01b8 0123     		movs	r3, #1
+ 1524 01ba 1370     		strb	r3, [r2]
+ 281:source\audio/mp3play.c ****       } else {
+ 1525              		.loc 1 281 10 is_stmt 1 view .LVU442
+ 281:source\audio/mp3play.c ****       } else {
+ 1526              		.loc 1 281 20 is_stmt 0 view .LVU443
+ 1527 01bc 164A     		ldr	r2, .L121+76
+ 1528 01be 1370     		strb	r3, [r2]
+ 1529              	.LVL155:
+ 1530              	.L102:
+ 285:source\audio/mp3play.c **** }
+ 1531              		.loc 1 285 14 view .LVU444
+ 1532 01c0 0020     		movs	r0, #0
+ 1533 01c2 7BE7     		b	.L100
+ 1534              	.LVL156:
+ 1535              	.L101:
+ 283:source\audio/mp3play.c ****       }
+ 1536              		.loc 1 283 9 is_stmt 1 view .LVU445
+ 1537 01c4 FFF7FEFF 		bl	mp3_stop
+ 1538              	.LVL157:
+ 1539 01c8 FAE7     		b	.L102
+ 1540              	.L122:
+ 1541 01ca 00BF     		.align	2
+ 1542              	.L121:
+ 1543 01cc 00000000 		.word	mp3_offset
+ 1544 01d0 00000000 		.word	mp3ctrl
+ 1545 01d4 00000000 		.word	audiodev
+ 1546 01d8 00000000 		.word	mp3_outofdata
+ 1547 01dc 00000000 		.word	mp3_bytesleft
+ 1548 01e0 00000000 		.word	audio_br
+ 1549 01e4 00000000 		.word	mp3_buffer
+ 1550 01e8 00000000 		.word	mp3_file_seek
+ 1551 01ec 00000000 		.word	.LC10
+ 1552 01f0 0A000000 		.word	.LC11
+ 1553 01f4 15000000 		.word	.LC12
+ 1554 01f8 21000000 		.word	.LC13
+ 1555 01fc 32000000 		.word	.LC14
+ 1556 0200 42000000 		.word	.LC15
+ 1557 0204 00000000 		.word	volume
+ 1558 0208 52000000 		.word	.LC16
+ 1559 020c 00000000 		.word	i2s_tx_callback
+ 1560 0210 00000000 		.word	mp3_i2s_dma_tx_callback
+ 1561 0214 00000000 		.word	audio_read_flag
+ 1562 0218 00000000 		.word	audio_run
+ 1563 021c 00000000 		.word	mp3decoder
+ 1564              		.cfi_endproc
+ 1565              	.LFE131:
+ 1567              		.section	.rodata.mp3_play.str1.1,"aMS",%progbits,1
+ 1568              	.LC17:
+ 1569 0000 54696D65 		.ascii	"Time: %2d:%.2d %2d:%.2d \000"
+ 1569      3A202532 
+ 1569      643A252E 
+ 1569      32642025 
+ 1569      32643A25 
+ 1570              	.LC18:
+ 1571 0019 6465636F 		.ascii	"decode error: %d \000"
+ 1571      64652065 
+ 1571      72726F72 
+ 1571      3A202564 
+ 1571      2000
+ 1572              		.section	.text.mp3_play,"ax",%progbits
+ 1573              		.align	1
+ 1574              		.global	mp3_play
+ 1575              		.syntax unified
+ 1576              		.thumb
+ 1577              		.thumb_func
+ 1579              	mp3_play:
+ 1580              	.LFB132:
+ 287:source\audio/mp3play.c **** 
+ 288:source\audio/mp3play.c **** 
+ 289:source\audio/mp3play.c **** void mp3_play (void)
+ 290:source\audio/mp3play.c **** {
+ 1581              		.loc 1 290 1 view -0
+ 1582              		.cfi_startproc
+ 1583              		@ args = 0, pretend = 0, frame = 0
+ 1584              		@ frame_needed = 0, uses_anonymous_args = 0
+ 291:source\audio/mp3play.c ****      unsigned char res;
+ 1585              		.loc 1 291 6 view .LVU447
+ 292:source\audio/mp3play.c ****       int err = 0;
+ 1586              		.loc 1 292 7 view .LVU448
+ 1587              	.LVL158:
+ 293:source\audio/mp3play.c ****       if ((audiodev.status & (1 << 1)) && (audio_decode_flag == 0) && (audio_pause == 0)) {
+ 1588              		.loc 1 293 7 view .LVU449
+ 290:source\audio/mp3play.c ****      unsigned char res;
+ 1589              		.loc 1 290 1 is_stmt 0 view .LVU450
+ 1590 0000 2DE9FF47 		push	{r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, lr}
+ 1591              		.cfi_def_cfa_offset 48
+ 1592              		.cfi_offset 4, -32
+ 1593              		.cfi_offset 5, -28
+ 1594              		.cfi_offset 6, -24
+ 1595              		.cfi_offset 7, -20
+ 1596              		.cfi_offset 8, -16
+ 1597              		.cfi_offset 9, -12
+ 1598              		.cfi_offset 10, -8
+ 1599              		.cfi_offset 14, -4
+ 1600              		.loc 1 293 20 view .LVU451
+ 1601 0004 7A4C     		ldr	r4, .L151
+ 1602 0006 7B4E     		ldr	r6, .L151+4
+ 1603 0008 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 1604              		.loc 1 293 10 view .LVU452
+ 1605 000a 13F0020F 		tst	r3, #2
+ 1606 000e 3ED0     		beq	.L125
+ 1607              		.loc 1 293 62 discriminator 1 view .LVU453
+ 1608 0010 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 1609              		.loc 1 293 40 discriminator 1 view .LVU454
+ 1610 0012 002B     		cmp	r3, #0
+ 1611 0014 3BD1     		bne	.L125
+ 1612              		.loc 1 293 84 discriminator 2 view .LVU455
+ 1613 0016 784B     		ldr	r3, .L151+8
+ 1614 0018 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1615              		.loc 1 293 68 discriminator 2 view .LVU456
+ 1616 001a 03F0FF05 		and	r5, r3, #255
+ 1617 001e 002B     		cmp	r3, #0
+ 1618 0020 35D1     		bne	.L125
+ 294:source\audio/mp3play.c ****          if (audio_delay >= 100) {
+ 1619              		.loc 1 294 10 is_stmt 1 view .LVU457
+ 1620              		.loc 1 294 26 is_stmt 0 view .LVU458
+ 1621 0022 764B     		ldr	r3, .L151+12
+ 1622 0024 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1623              		.loc 1 294 13 view .LVU459
+ 1624 0026 632A     		cmp	r2, #99
+ 1625 0028 2CD9     		bls	.L128
+ 295:source\audio/mp3play.c ****             audio_delay = 0;
+ 1626              		.loc 1 295 13 is_stmt 1 view .LVU460
+ 1627              		.loc 1 295 25 is_stmt 0 view .LVU461
+ 1628 002a 1D70     		strb	r5, [r3]
+ 296:source\audio/mp3play.c **** 	    mp3_get_curtime(audiodev.file,mp3ctrl);
+ 1629              		.loc 1 296 6 is_stmt 1 view .LVU462
+ 1630 002c 744B     		ldr	r3, .L151+16
+ 1631 002e E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1632 0030 1968     		ldr	r1, [r3]
+ 1633 0032 FFF7FEFF 		bl	mp3_get_curtime
+ 1634              	.LVL159:
+ 297:source\audio/mp3play.c **** 	    audiodev.totsec = mp3ctrl->totsec;
+ 1635              		.loc 1 297 6 view .LVU463
+ 1636              		.loc 1 297 31 is_stmt 0 view .LVU464
+ 1637 0036 086D     		ldr	r0, [r1, #80]	@ unaligned
+ 1638              		.loc 1 297 22 view .LVU465
+ 1639 0038 C4F82200 		str	r0, [r4, #34]	@ unaligned
+ 298:source\audio/mp3play.c **** 	    audiodev.cursec = mp3ctrl->cursec;
+ 1640              		.loc 1 298 6 is_stmt 1 view .LVU466
+ 1641              		.loc 1 298 31 is_stmt 0 view .LVU467
+ 1642 003c 4A6D     		ldr	r2, [r1, #84]	@ unaligned
+ 1643              		.loc 1 298 22 view .LVU468
+ 1644 003e C4F82620 		str	r2, [r4, #38]	@ unaligned
+ 299:source\audio/mp3play.c **** 	    audiodev.bitrate = mp3ctrl->bitrate;
+ 1645              		.loc 1 299 6 is_stmt 1 view .LVU469
+ 1646              		.loc 1 299 32 is_stmt 0 view .LVU470
+ 1647 0042 8B6D     		ldr	r3, [r1, #88]	@ unaligned
+ 1648              		.loc 1 299 23 view .LVU471
+ 1649 0044 C4F82A30 		str	r3, [r4, #42]	@ unaligned
+ 300:source\audio/mp3play.c **** 	    audiodev.samplerate = mp3ctrl->samplerate;
+ 1650              		.loc 1 300 6 is_stmt 1 view .LVU472
+ 1651              		.loc 1 300 35 is_stmt 0 view .LVU473
+ 1652 0048 CB6D     		ldr	r3, [r1, #92]	@ unaligned
+ 1653              		.loc 1 300 26 view .LVU474
+ 1654 004a C4F82E30 		str	r3, [r4, #46]	@ unaligned
+ 301:source\audio/mp3play.c **** 	    audiodev.bps = 16;
+ 1655              		.loc 1 301 6 is_stmt 1 view .LVU475
+ 1656              		.loc 1 301 19 is_stmt 0 view .LVU476
+ 1657 004e 1023     		movs	r3, #16
+ 1658 0050 84F83230 		strb	r3, [r4, #50]
+ 302:source\audio/mp3play.c ****             if (mp3ctrl->cursec != audio_old_sec) {
+ 1659              		.loc 1 302 33 view .LVU477
+ 1660 0054 6B4B     		ldr	r3, .L151+20
+ 301:source\audio/mp3play.c **** 	    audiodev.bps = 16;
+ 1661              		.loc 1 301 19 view .LVU478
+ 1662 0056 84F83350 		strb	r5, [r4, #51]
+ 1663              		.loc 1 302 13 is_stmt 1 view .LVU479
+ 1664              		.loc 1 302 16 is_stmt 0 view .LVU480
+ 1665 005a 1968     		ldr	r1, [r3]
+ 1666 005c 8A42     		cmp	r2, r1
+ 1667 005e 11D0     		beq	.L128
+ 303:source\audio/mp3play.c ****                audio_old_sec = mp3ctrl->cursec;
+ 1668              		.loc 1 303 16 is_stmt 1 view .LVU481
+ 304:source\audio/mp3play.c ****                lcd_printf(0,28,"Time: %2d:%.2d %2d:%.2d ",mp3ctrl->totsec / 60,mp3ctrl->totsec % 60
+ 1669              		.loc 1 304 16 is_stmt 0 view .LVU482
+ 1670 0060 3C21     		movs	r1, #60
+ 303:source\audio/mp3play.c ****                audio_old_sec = mp3ctrl->cursec;
+ 1671              		.loc 1 303 30 view .LVU483
+ 1672 0062 1A60     		str	r2, [r3]
+ 1673              		.loc 1 304 16 is_stmt 1 view .LVU484
+ 1674 0064 B2FBF1F7 		udiv	r7, r2, r1
+ 1675 0068 B0FBF1F3 		udiv	r3, r0, r1
+ 1676 006c 01FB1722 		mls	r2, r1, r7, r2
+ 1677 0070 01FB1300 		mls	r0, r1, r3, r0
+ 1678 0074 CDE90172 		strd	r7, r2, [sp, #4]
+ 1679 0078 0090     		str	r0, [sp]
+ 1680 007a 634A     		ldr	r2, .L151+24
+ 1681 007c 1C21     		movs	r1, #28
+ 1682 007e 2846     		mov	r0, r5
+ 1683 0080 FFF7FEFF 		bl	lcd_printf
+ 1684              	.LVL160:
+ 1685              	.L128:
+ 305:source\audio/mp3play.c **** 	       //if (audio_old_sec >= 20) mp3_stop();
+ 306:source\audio/mp3play.c ****             }
+ 307:source\audio/mp3play.c ****          }
+ 308:source\audio/mp3play.c ****          if (audiodev.status & 0x01) audio_decode_flag = 1;
+ 1686              		.loc 1 308 10 view .LVU485
+ 1687              		.loc 1 308 22 is_stmt 0 view .LVU486
+ 1688 0084 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 1689              		.loc 1 308 13 view .LVU487
+ 1690 0086 DA07     		lsls	r2, r3, #31
+ 1691              		.loc 1 308 38 is_stmt 1 view .LVU488
+ 1692              		.loc 1 308 56 is_stmt 0 view .LVU489
+ 1693 0088 44BF     		itt	mi
+ 1694 008a 0123     		movmi	r3, #1
+ 1695 008c 3370     		strbmi	r3, [r6]
+ 1696              	.L125:
+ 309:source\audio/mp3play.c ****       }
+ 310:source\audio/mp3play.c ****       if ((audio_decode_flag) && (audio_pause == 0)) {
+ 1697              		.loc 1 310 7 is_stmt 1 view .LVU490
+ 1698              		.loc 1 310 11 is_stmt 0 view .LVU491
+ 1699 008e 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 1700 0090 DFF89881 		ldr	r8, .L151+60
+ 1701              		.loc 1 310 10 view .LVU492
+ 1702 0094 C3B1     		cbz	r3, .L130
+ 1703              		.loc 1 310 47 discriminator 1 view .LVU493
+ 1704 0096 584B     		ldr	r3, .L151+8
+ 1705 0098 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1706              		.loc 1 310 31 discriminator 1 view .LVU494
+ 1707 009a 03F0FF09 		and	r9, r3, #255
+ 1708 009e 9BB9     		cbnz	r3, .L130
+ 311:source\audio/mp3play.c ****          mp3_offset = MP3FindSyncWord(mp3_readptr,mp3_bytesleft);
+ 1709              		.loc 1 311 10 is_stmt 1 view .LVU495
+ 1710              		.loc 1 311 23 is_stmt 0 view .LVU496
+ 1711 00a0 5A4D     		ldr	r5, .L151+28
+ 1712 00a2 5B4F     		ldr	r7, .L151+32
+ 1713 00a4 2968     		ldr	r1, [r5]
+ 1714 00a6 3868     		ldr	r0, [r7]
+ 1715 00a8 FFF7FEFF 		bl	MP3FindSyncWord
+ 1716              	.LVL161:
+ 1717              		.loc 1 311 21 view .LVU497
+ 1718 00ac 594B     		ldr	r3, .L151+36
+ 312:source\audio/mp3play.c **** 	 if ((mp3_offset < 0) || ((audiodev.status & (1 << 1)) == 0)) {
+ 1719              		.loc 1 312 6 view .LVU498
+ 1720 00ae 0028     		cmp	r0, #0
+ 311:source\audio/mp3play.c ****          mp3_offset = MP3FindSyncWord(mp3_readptr,mp3_bytesleft);
+ 1721              		.loc 1 311 21 view .LVU499
+ 1722 00b0 1860     		str	r0, [r3]
+ 1723              		.loc 1 312 3 is_stmt 1 view .LVU500
+ 1724              		.loc 1 312 6 is_stmt 0 view .LVU501
+ 1725 00b2 02DB     		blt	.L131
+ 1726              		.loc 1 312 37 discriminator 1 view .LVU502
+ 1727 00b4 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 1728              		.loc 1 312 24 discriminator 1 view .LVU503
+ 1729 00b6 9B07     		lsls	r3, r3, #30
+ 1730 00b8 31D4     		bmi	.L132
+ 1731              	.L131:
+ 313:source\audio/mp3play.c **** 	    mp3_outofdata = 1;
+ 1732              		.loc 1 313 6 is_stmt 1 view .LVU504
+ 1733              		.loc 1 313 20 is_stmt 0 view .LVU505
+ 1734 00ba 574A     		ldr	r2, .L151+40
+ 1735 00bc 0123     		movs	r3, #1
+ 1736 00be 1360     		str	r3, [r2]
+ 314:source\audio/mp3play.c **** 	    audio_read_flag = 1;
+ 1737              		.loc 1 314 6 is_stmt 1 view .LVU506
+ 1738              		.loc 1 314 22 is_stmt 0 view .LVU507
+ 1739 00c0 88F80030 		strb	r3, [r8]
+ 315:source\audio/mp3play.c **** 	    audio_decode_flag = 0;
+ 1740              		.loc 1 315 6 is_stmt 1 view .LVU508
+ 1741              	.LVL162:
+ 1742              	.L136:
+ 316:source\audio/mp3play.c **** 	 } else {
+ 317:source\audio/mp3play.c **** 	    mp3_readptr += mp3_offset;
+ 318:source\audio/mp3play.c **** 	    mp3_bytesleft -= mp3_offset;
+ 319:source\audio/mp3play.c **** 	    //err = MP3Decode(mp3decoder,&mp3_readptr,&mp3_bytesleft,(short *)audiodev.tbuf,0);	// POINTER
+ 320:source\audio/mp3play.c **** 	    err = MP3Decode(mp3decoder,&mp3_readptr,&mp3_bytesleft,(void *)audiodev.tbuf,0);
+ 321:source\audio/mp3play.c **** 	    if (err != 0) {
+ 322:source\audio/mp3play.c **** 	       lcd_printf(0,29,"decode error: %d ",err);
+ 323:source\audio/mp3play.c **** 	       mp3_stop();
+ 324:source\audio/mp3play.c **** 	       audio_decode_flag = 0;
+ 325:source\audio/mp3play.c **** 	       audio_read_flag = 0;
+ 326:source\audio/mp3play.c **** 	    } else {
+ 327:source\audio/mp3play.c **** 	       MP3GetLastFrameInfo(mp3decoder,&mp3frameinfo);
+ 328:source\audio/mp3play.c **** 	       if (mp3ctrl->bitrate != (unsigned int)mp3frameinfo.bitrate) {
+ 329:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 330:source\audio/mp3play.c **** 	       }
+ 331:source\audio/mp3play.c **** 	       //mp3_fill_buffer((unsigned short *)audiodev.tbuf,mp3frameinfo.outputSamps,mp3frameinfo.nCh
+ 332:source\audio/mp3play.c **** 	       mp3_fill_buffer((void *)audiodev.tbuf,mp3frameinfo.outputSamps,mp3frameinfo.nChans);
+ 333:source\audio/mp3play.c **** 	    }
+ 334:source\audio/mp3play.c **** 	    if (mp3_bytesleft < MAINBUF_SIZE * 2) {
+ 335:source\audio/mp3play.c **** 	       memmove(mp3_buffer,mp3_readptr,mp3_bytesleft);
+ 336:source\audio/mp3play.c **** 	       f_read(audiodev.file,mp3_buffer + mp3_bytesleft,MP3_FILE_BUF_SZ - mp3_bytesleft,&audio_br);
+ 337:source\audio/mp3play.c **** 	       if (audio_br < (unsigned int)(MP3_FILE_BUF_SZ - mp3_bytesleft)) {
+ 338:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 339:source\audio/mp3play.c **** 	       }
+ 340:source\audio/mp3play.c **** 	       mp3_bytesleft = MP3_FILE_BUF_SZ;
+ 341:source\audio/mp3play.c **** 	       mp3_readptr = mp3_buffer;
+ 342:source\audio/mp3play.c **** 	    }
+ 343:source\audio/mp3play.c **** 	    audio_decode_flag = 0;
+ 1743              		.loc 1 343 6 view .LVU509
+ 1744              		.loc 1 343 24 is_stmt 0 view .LVU510
+ 1745 00c4 0023     		movs	r3, #0
+ 1746 00c6 3370     		strb	r3, [r6]
+ 1747              	.L130:
+ 344:source\audio/mp3play.c **** 	 }
+ 345:source\audio/mp3play.c ****       }
+ 346:source\audio/mp3play.c ****       if ((audio_read_flag) && (audio_pause == 0)) {
+ 1748              		.loc 1 346 7 is_stmt 1 view .LVU511
+ 1749              		.loc 1 346 11 is_stmt 0 view .LVU512
+ 1750 00c8 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1751              		.loc 1 346 10 view .LVU513
+ 1752 00cc 23B3     		cbz	r3, .L123
+ 1753              		.loc 1 346 45 discriminator 1 view .LVU514
+ 1754 00ce 4A4B     		ldr	r3, .L151+8
+ 1755 00d0 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1756              		.loc 1 346 29 discriminator 1 view .LVU515
+ 1757 00d2 02F0FF03 		and	r3, r2, #255
+ 1758 00d6 FAB9     		cbnz	r2, .L123
+ 347:source\audio/mp3play.c **** 	 mp3_readptr = mp3_buffer;
+ 1759              		.loc 1 347 3 is_stmt 1 view .LVU516
+ 1760              		.loc 1 347 15 is_stmt 0 view .LVU517
+ 1761 00d8 504A     		ldr	r2, .L151+44
+ 348:source\audio/mp3play.c **** 	 mp3_offset = 0;
+ 349:source\audio/mp3play.c **** 	 mp3_outofdata = 0;
+ 350:source\audio/mp3play.c **** 	 mp3_bytesleft = 0;
+ 1762              		.loc 1 350 17 view .LVU518
+ 1763 00da 4C4D     		ldr	r5, .L151+28
+ 347:source\audio/mp3play.c **** 	 mp3_readptr = mp3_buffer;
+ 1764              		.loc 1 347 15 view .LVU519
+ 1765 00dc 1168     		ldr	r1, [r2]
+ 1766 00de 4C4A     		ldr	r2, .L151+32
+ 351:source\audio/mp3play.c **** 	 res = f_read(audiodev.file,mp3_buffer,MP3_FILE_BUF_SZ,&audio_br);
+ 1767              		.loc 1 351 9 view .LVU520
+ 1768 00e0 4F4F     		ldr	r7, .L151+48
+ 347:source\audio/mp3play.c **** 	 mp3_readptr = mp3_buffer;
+ 1769              		.loc 1 347 15 view .LVU521
+ 1770 00e2 1160     		str	r1, [r2]
+ 348:source\audio/mp3play.c **** 	 mp3_offset = 0;
+ 1771              		.loc 1 348 3 is_stmt 1 view .LVU522
+ 348:source\audio/mp3play.c **** 	 mp3_offset = 0;
+ 1772              		.loc 1 348 14 is_stmt 0 view .LVU523
+ 1773 00e4 4B4A     		ldr	r2, .L151+36
+ 350:source\audio/mp3play.c **** 	 res = f_read(audiodev.file,mp3_buffer,MP3_FILE_BUF_SZ,&audio_br);
+ 1774              		.loc 1 350 17 view .LVU524
+ 1775 00e6 2B60     		str	r3, [r5]
+ 348:source\audio/mp3play.c **** 	 mp3_offset = 0;
+ 1776              		.loc 1 348 14 view .LVU525
+ 1777 00e8 1360     		str	r3, [r2]
+ 349:source\audio/mp3play.c **** 	 mp3_bytesleft = 0;
+ 1778              		.loc 1 349 3 is_stmt 1 view .LVU526
+ 349:source\audio/mp3play.c **** 	 mp3_bytesleft = 0;
+ 1779              		.loc 1 349 17 is_stmt 0 view .LVU527
+ 1780 00ea 4B4A     		ldr	r2, .L151+40
+ 1781 00ec 1360     		str	r3, [r2]
+ 350:source\audio/mp3play.c **** 	 res = f_read(audiodev.file,mp3_buffer,MP3_FILE_BUF_SZ,&audio_br);
+ 1782              		.loc 1 350 3 is_stmt 1 view .LVU528
+ 1783              		.loc 1 351 3 view .LVU529
+ 1784              		.loc 1 351 9 is_stmt 0 view .LVU530
+ 1785 00ee E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1786 00f0 3B46     		mov	r3, r7
+ 1787 00f2 4FF4A052 		mov	r2, #5120
+ 1788 00f6 FFF7FEFF 		bl	f_read
+ 1789              	.LVL163:
+ 352:source\audio/mp3play.c **** 	 mp3_bytesleft += audio_br;
+ 1790              		.loc 1 352 3 is_stmt 1 view .LVU531
+ 1791              		.loc 1 352 17 is_stmt 0 view .LVU532
+ 1792 00fa 2B68     		ldr	r3, [r5]
+ 1793 00fc 3A68     		ldr	r2, [r7]
+ 1794 00fe 1344     		add	r3, r3, r2
+ 1795 0100 2B60     		str	r3, [r5]
+ 353:source\audio/mp3play.c **** 	 if ((res) || (audio_br == 0)) {
+ 1796              		.loc 1 353 3 is_stmt 1 view .LVU533
+ 1797              		.loc 1 353 6 is_stmt 0 view .LVU534
+ 1798 0102 08B9     		cbnz	r0, .L139
+ 1799              		.loc 1 353 13 discriminator 1 view .LVU535
+ 1800 0104 002A     		cmp	r2, #0
+ 1801 0106 6FD1     		bne	.L140
+ 1802              	.L139:
+ 354:source\audio/mp3play.c ****             audio_run  = 0;
+ 1803              		.loc 1 354 13 is_stmt 1 view .LVU536
+ 1804              		.loc 1 354 24 is_stmt 0 view .LVU537
+ 1805 0108 464B     		ldr	r3, .L151+52
+ 1806 010a 0022     		movs	r2, #0
+ 1807 010c 1A70     		strb	r2, [r3]
+ 355:source\audio/mp3play.c **** 	    mp3_stop();
+ 1808              		.loc 1 355 6 is_stmt 1 view .LVU538
+ 1809 010e FFF7FEFF 		bl	mp3_stop
+ 1810              	.LVL164:
+ 1811              	.L141:
+ 356:source\audio/mp3play.c **** 	 } else {
+ 357:source\audio/mp3play.c **** 	    audio_decode_flag = 1;
+ 358:source\audio/mp3play.c **** 	 }
+ 359:source\audio/mp3play.c **** 	 audio_read_flag = 0;
+ 1812              		.loc 1 359 3 view .LVU539
+ 1813              		.loc 1 359 19 is_stmt 0 view .LVU540
+ 1814 0112 0023     		movs	r3, #0
+ 1815 0114 88F80030 		strb	r3, [r8]
+ 1816              	.LVL165:
+ 1817              	.L123:
+ 360:source\audio/mp3play.c ****       }
+ 361:source\audio/mp3play.c **** }
+ 1818              		.loc 1 361 1 view .LVU541
+ 1819 0118 04B0     		add	sp, sp, #16
+ 1820              		.cfi_remember_state
+ 1821              		.cfi_def_cfa_offset 32
+ 1822              		@ sp needed
+ 1823 011a BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 1824              	.LVL166:
+ 1825              	.L132:
+ 1826              		.cfi_restore_state
+ 317:source\audio/mp3play.c **** 	    mp3_bytesleft -= mp3_offset;
+ 1827              		.loc 1 317 6 is_stmt 1 view .LVU542
+ 317:source\audio/mp3play.c **** 	    mp3_bytesleft -= mp3_offset;
+ 1828              		.loc 1 317 18 is_stmt 0 view .LVU543
+ 1829 011e 3B68     		ldr	r3, [r7]
+ 320:source\audio/mp3play.c **** 	    if (err != 0) {
+ 1830              		.loc 1 320 12 view .LVU544
+ 1831 0120 DFF80CA1 		ldr	r10, .L151+64
+ 317:source\audio/mp3play.c **** 	    mp3_bytesleft -= mp3_offset;
+ 1832              		.loc 1 317 18 view .LVU545
+ 1833 0124 0344     		add	r3, r3, r0
+ 1834 0126 3B60     		str	r3, [r7]
+ 318:source\audio/mp3play.c **** 	    //err = MP3Decode(mp3decoder,&mp3_readptr,&mp3_bytesleft,(short *)audiodev.tbuf,0);	// POINTER
+ 1835              		.loc 1 318 6 is_stmt 1 view .LVU546
+ 318:source\audio/mp3play.c **** 	    //err = MP3Decode(mp3decoder,&mp3_readptr,&mp3_bytesleft,(short *)audiodev.tbuf,0);	// POINTER
+ 1836              		.loc 1 318 20 is_stmt 0 view .LVU547
+ 1837 0128 2B68     		ldr	r3, [r5]
+ 1838 012a 1B1A     		subs	r3, r3, r0
+ 1839 012c 2B60     		str	r3, [r5]
+ 320:source\audio/mp3play.c **** 	    if (err != 0) {
+ 1840              		.loc 1 320 6 is_stmt 1 view .LVU548
+ 320:source\audio/mp3play.c **** 	    if (err != 0) {
+ 1841              		.loc 1 320 12 is_stmt 0 view .LVU549
+ 1842 012e CDF80090 		str	r9, [sp]
+ 1843 0132 A368     		ldr	r3, [r4, #8]	@ unaligned
+ 1844 0134 DAF80000 		ldr	r0, [r10]
+ 1845 0138 2A46     		mov	r2, r5
+ 1846 013a 3946     		mov	r1, r7
+ 1847 013c FFF7FEFF 		bl	MP3Decode
+ 1848              	.LVL167:
+ 321:source\audio/mp3play.c **** 	       lcd_printf(0,29,"decode error: %d ",err);
+ 1849              		.loc 1 321 6 is_stmt 1 view .LVU550
+ 321:source\audio/mp3play.c **** 	       lcd_printf(0,29,"decode error: %d ",err);
+ 1850              		.loc 1 321 9 is_stmt 0 view .LVU551
+ 1851 0140 0346     		mov	r3, r0
+ 1852 0142 0028     		cmp	r0, #0
+ 1853 0144 39D0     		beq	.L133
+ 322:source\audio/mp3play.c **** 	       mp3_stop();
+ 1854              		.loc 1 322 9 is_stmt 1 view .LVU552
+ 1855 0146 384A     		ldr	r2, .L151+56
+ 1856 0148 1D21     		movs	r1, #29
+ 1857 014a 4846     		mov	r0, r9
+ 1858              	.LVL168:
+ 322:source\audio/mp3play.c **** 	       mp3_stop();
+ 1859              		.loc 1 322 9 is_stmt 0 view .LVU553
+ 1860 014c FFF7FEFF 		bl	lcd_printf
+ 1861              	.LVL169:
+ 323:source\audio/mp3play.c **** 	       audio_decode_flag = 0;
+ 1862              		.loc 1 323 9 is_stmt 1 view .LVU554
+ 1863 0150 FFF7FEFF 		bl	mp3_stop
+ 1864              	.LVL170:
+ 324:source\audio/mp3play.c **** 	       audio_read_flag = 0;
+ 1865              		.loc 1 324 9 view .LVU555
+ 324:source\audio/mp3play.c **** 	       audio_read_flag = 0;
+ 1866              		.loc 1 324 27 is_stmt 0 view .LVU556
+ 1867 0154 86F80090 		strb	r9, [r6]
+ 325:source\audio/mp3play.c **** 	    } else {
+ 1868              		.loc 1 325 9 is_stmt 1 view .LVU557
+ 325:source\audio/mp3play.c **** 	    } else {
+ 1869              		.loc 1 325 25 is_stmt 0 view .LVU558
+ 1870 0158 88F80090 		strb	r9, [r8]
+ 1871              	.L134:
+ 334:source\audio/mp3play.c **** 	       memmove(mp3_buffer,mp3_readptr,mp3_bytesleft);
+ 1872              		.loc 1 334 6 is_stmt 1 view .LVU559
+ 334:source\audio/mp3play.c **** 	       memmove(mp3_buffer,mp3_readptr,mp3_bytesleft);
+ 1873              		.loc 1 334 24 is_stmt 0 view .LVU560
+ 1874 015c 2A68     		ldr	r2, [r5]
+ 334:source\audio/mp3play.c **** 	       memmove(mp3_buffer,mp3_readptr,mp3_bytesleft);
+ 1875              		.loc 1 334 9 view .LVU561
+ 1876 015e 40F62773 		movw	r3, #3879
+ 1877 0162 9A42     		cmp	r2, r3
+ 1878 0164 AEDC     		bgt	.L136
+ 335:source\audio/mp3play.c **** 	       f_read(audiodev.file,mp3_buffer + mp3_bytesleft,MP3_FILE_BUF_SZ - mp3_bytesleft,&audio_br);
+ 1879              		.loc 1 335 9 is_stmt 1 view .LVU562
+ 1880 0166 DFF8B490 		ldr	r9, .L151+44
+ 1881 016a 3968     		ldr	r1, [r7]
+ 1882 016c D9F80000 		ldr	r0, [r9]
+ 336:source\audio/mp3play.c **** 	       if (audio_br < (unsigned int)(MP3_FILE_BUF_SZ - mp3_bytesleft)) {
+ 1883              		.loc 1 336 9 is_stmt 0 view .LVU563
+ 1884 0170 DFF8ACA0 		ldr	r10, .L151+48
+ 335:source\audio/mp3play.c **** 	       f_read(audiodev.file,mp3_buffer + mp3_bytesleft,MP3_FILE_BUF_SZ - mp3_bytesleft,&audio_br);
+ 1885              		.loc 1 335 9 view .LVU564
+ 1886 0174 FFF7FEFF 		bl	memmove
+ 1887              	.LVL171:
+ 336:source\audio/mp3play.c **** 	       if (audio_br < (unsigned int)(MP3_FILE_BUF_SZ - mp3_bytesleft)) {
+ 1888              		.loc 1 336 9 is_stmt 1 view .LVU565
+ 1889 0178 2968     		ldr	r1, [r5]
+ 1890 017a D9F80000 		ldr	r0, [r9]
+ 1891 017e C1F5A052 		rsb	r2, r1, #5120
+ 1892 0182 5346     		mov	r3, r10
+ 1893 0184 0144     		add	r1, r1, r0
+ 1894 0186 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1895 0188 FFF7FEFF 		bl	f_read
+ 1896              	.LVL172:
+ 337:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 1897              		.loc 1 337 9 view .LVU566
+ 337:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 1898              		.loc 1 337 55 is_stmt 0 view .LVU567
+ 1899 018c 2868     		ldr	r0, [r5]
+ 337:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 1900              		.loc 1 337 22 view .LVU568
+ 1901 018e DAF80030 		ldr	r3, [r10]
+ 337:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 1902              		.loc 1 337 55 view .LVU569
+ 1903 0192 C0F5A052 		rsb	r2, r0, #5120
+ 337:source\audio/mp3play.c **** 		  memset(mp3_buffer + mp3_bytesleft + audio_br,0,MP3_FILE_BUF_SZ - mp3_bytesleft - audio_br);
+ 1904              		.loc 1 337 12 view .LVU570
+ 1905 0196 9A42     		cmp	r2, r3
+ 1906 0198 08D9     		bls	.L137
+ 338:source\audio/mp3play.c **** 	       }
+ 1907              		.loc 1 338 5 is_stmt 1 view .LVU571
+ 338:source\audio/mp3play.c **** 	       }
+ 1908              		.loc 1 338 39 is_stmt 0 view .LVU572
+ 1909 019a 0344     		add	r3, r3, r0
+ 1910 019c D9F80000 		ldr	r0, [r9]
+ 338:source\audio/mp3play.c **** 	       }
+ 1911              		.loc 1 338 5 view .LVU573
+ 1912 01a0 C3F5A052 		rsb	r2, r3, #5120
+ 1913 01a4 0021     		movs	r1, #0
+ 1914 01a6 1844     		add	r0, r0, r3
+ 1915 01a8 FFF7FEFF 		bl	memset
+ 1916              	.LVL173:
+ 1917              	.L137:
+ 340:source\audio/mp3play.c **** 	       mp3_readptr = mp3_buffer;
+ 1918              		.loc 1 340 9 is_stmt 1 view .LVU574
+ 340:source\audio/mp3play.c **** 	       mp3_readptr = mp3_buffer;
+ 1919              		.loc 1 340 23 is_stmt 0 view .LVU575
+ 1920 01ac 4FF4A053 		mov	r3, #5120
+ 1921 01b0 2B60     		str	r3, [r5]
+ 341:source\audio/mp3play.c **** 	    }
+ 1922              		.loc 1 341 9 is_stmt 1 view .LVU576
+ 341:source\audio/mp3play.c **** 	    }
+ 1923              		.loc 1 341 21 is_stmt 0 view .LVU577
+ 1924 01b2 D9F80030 		ldr	r3, [r9]
+ 1925 01b6 3B60     		str	r3, [r7]
+ 1926 01b8 84E7     		b	.L136
+ 1927              	.LVL174:
+ 1928              	.L133:
+ 327:source\audio/mp3play.c **** 	       if (mp3ctrl->bitrate != (unsigned int)mp3frameinfo.bitrate) {
+ 1929              		.loc 1 327 9 is_stmt 1 view .LVU578
+ 1930 01ba DFF87890 		ldr	r9, .L151+68
+ 1931 01be DAF80000 		ldr	r0, [r10]
+ 1932              	.LVL175:
+ 327:source\audio/mp3play.c **** 	       if (mp3ctrl->bitrate != (unsigned int)mp3frameinfo.bitrate) {
+ 1933              		.loc 1 327 9 is_stmt 0 view .LVU579
+ 1934 01c2 4946     		mov	r1, r9
+ 1935 01c4 FFF7FEFF 		bl	MP3GetLastFrameInfo
+ 1936              	.LVL176:
+ 328:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 1937              		.loc 1 328 9 is_stmt 1 view .LVU580
+ 328:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 1938              		.loc 1 328 20 is_stmt 0 view .LVU581
+ 1939 01c8 0D4B     		ldr	r3, .L151+16
+ 328:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 1940              		.loc 1 328 33 view .LVU582
+ 1941 01ca D9F80020 		ldr	r2, [r9]
+ 328:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 1942              		.loc 1 328 20 view .LVU583
+ 1943 01ce 1B68     		ldr	r3, [r3]
+ 1944 01d0 996D     		ldr	r1, [r3, #88]	@ unaligned
+ 328:source\audio/mp3play.c **** 	          mp3ctrl->bitrate = mp3frameinfo.bitrate;
+ 1945              		.loc 1 328 12 view .LVU584
+ 1946 01d2 9142     		cmp	r1, r2
+ 329:source\audio/mp3play.c **** 	       }
+ 1947              		.loc 1 329 12 is_stmt 1 view .LVU585
+ 329:source\audio/mp3play.c **** 	       }
+ 1948              		.loc 1 329 29 is_stmt 0 view .LVU586
+ 1949 01d4 18BF     		it	ne
+ 1950 01d6 9A65     		strne	r2, [r3, #88]	@ unaligned
+ 332:source\audio/mp3play.c **** 	    }
+ 1951              		.loc 1 332 9 is_stmt 1 view .LVU587
+ 1952 01d8 B9F81010 		ldrh	r1, [r9, #16]
+ 1953 01dc 99F80420 		ldrb	r2, [r9, #4]	@ zero_extendqisi2
+ 1954 01e0 A068     		ldr	r0, [r4, #8]	@ unaligned
+ 1955 01e2 FFF7FEFF 		bl	mp3_fill_buffer
+ 1956              	.LVL177:
+ 1957 01e6 B9E7     		b	.L134
+ 1958              	.LVL178:
+ 1959              	.L140:
+ 357:source\audio/mp3play.c **** 	 }
+ 1960              		.loc 1 357 6 view .LVU588
+ 357:source\audio/mp3play.c **** 	 }
+ 1961              		.loc 1 357 24 is_stmt 0 view .LVU589
+ 1962 01e8 0123     		movs	r3, #1
+ 1963 01ea 3370     		strb	r3, [r6]
+ 1964 01ec 91E7     		b	.L141
+ 1965              	.L152:
+ 1966 01ee 00BF     		.align	2
+ 1967              	.L151:
+ 1968 01f0 00000000 		.word	audiodev
+ 1969 01f4 00000000 		.word	audio_decode_flag
+ 1970 01f8 00000000 		.word	audio_pause
+ 1971 01fc 00000000 		.word	audio_delay
+ 1972 0200 00000000 		.word	mp3ctrl
+ 1973 0204 00000000 		.word	audio_old_sec
+ 1974 0208 00000000 		.word	.LC17
+ 1975 020c 00000000 		.word	mp3_bytesleft
+ 1976 0210 00000000 		.word	mp3_readptr
+ 1977 0214 00000000 		.word	mp3_offset
+ 1978 0218 00000000 		.word	mp3_outofdata
+ 1979 021c 00000000 		.word	mp3_buffer
+ 1980 0220 00000000 		.word	audio_br
+ 1981 0224 00000000 		.word	audio_run
+ 1982 0228 19000000 		.word	.LC18
+ 1983 022c 00000000 		.word	audio_read_flag
+ 1984 0230 00000000 		.word	mp3decoder
+ 1985 0234 00000000 		.word	mp3frameinfo
+ 1986              		.cfi_endproc
+ 1987              	.LFE132:
+ 1989              		.global	mp3_bytesleft
+ 1990              		.section	.bss.mp3_bytesleft,"aw",%nobits
+ 1991              		.align	2
+ 1994              	mp3_bytesleft:
+ 1995 0000 00000000 		.space	4
+ 1996              		.global	mp3_outofdata
+ 1997              		.section	.bss.mp3_outofdata,"aw",%nobits
+ 1998              		.align	2
+ 2001              	mp3_outofdata:
+ 2002 0000 00000000 		.space	4
+ 2003              		.global	mp3_offset
+ 2004              		.section	.bss.mp3_offset,"aw",%nobits
+ 2005              		.align	2
+ 2008              	mp3_offset:
+ 2009 0000 00000000 		.space	4
+ 2010              		.global	mp3_readptr
+ 2011              		.section	.bss.mp3_readptr,"aw",%nobits
+ 2012              		.align	2
+ 2015              	mp3_readptr:
+ 2016 0000 00000000 		.space	4
+ 2017              		.global	mp3_buffer
+ 2018              		.section	.bss.mp3_buffer,"aw",%nobits
+ 2019              		.align	2
+ 2022              	mp3_buffer:
+ 2023 0000 00000000 		.space	4
+ 2024              		.global	mp3frameinfo
+ 2025              		.section	.bss.mp3frameinfo,"aw",%nobits
+ 2026              		.align	2
+ 2029              	mp3frameinfo:
+ 2030 0000 00000000 		.space	28
+ 2030      00000000 
+ 2030      00000000 
+ 2030      00000000 
+ 2030      00000000 
+ 2031              		.global	mp3decoder
+ 2032              		.section	.bss.mp3decoder,"aw",%nobits
+ 2033              		.align	2
+ 2036              	mp3decoder:
+ 2037 0000 00000000 		.space	4
+ 2038              		.global	mp3witchbuf
+ 2039              		.section	.bss.mp3witchbuf,"aw",%nobits
+ 2042              	mp3witchbuf:
+ 2043 0000 00       		.space	1
+ 2044              		.global	mp3transferend
+ 2045              		.section	.bss.mp3transferend,"aw",%nobits
+ 2048              	mp3transferend:
+ 2049 0000 00       		.space	1
+ 2050              		.global	mp3ctrl
+ 2051              		.section	.bss.mp3ctrl,"aw",%nobits
+ 2052              		.align	2
+ 2055              	mp3ctrl:
+ 2056 0000 00000000 		.space	4
+ 2057              		.text
+ 2058              	.Letext0:
+ 2059              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 2060              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 2061              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 2062              		.file 5 "source\\audio\\../fatfs/integer.h"
+ 2063              		.file 6 "source\\audio\\../fatfs/ff.h"
+ 2064              		.file 7 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\lib\\gcc\\ar
+ 2065              		.file 8 "source\\audio\\../prototype.h"
+ 2066              		.file 9 "source\\audio\\mp3dec.h"
+ 2067              		.file 10 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 2068              		.file 11 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 2069              		.file 12 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 mp3play.c
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:21     .text.mp3_i2s_dma_tx_callback:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:27     .text.mp3_i2s_dma_tx_callback:00000000 mp3_i2s_dma_tx_callback
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:112    .text.mp3_i2s_dma_tx_callback:0000004c $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2042   .bss.mp3witchbuf:00000000 mp3witchbuf
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2048   .bss.mp3transferend:00000000 mp3transferend
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:120    .text.mp3_file_seek:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:126    .text.mp3_file_seek:00000000 mp3_file_seek
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:163    .text.mp3_file_seek:00000020 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:168    .text.mp3_fill_buffer:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:174    .text.mp3_fill_buffer:00000000 mp3_fill_buffer
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:304    .text.mp3_fill_buffer:00000074 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:316    .text.mp3_id3v1_decode:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:322    .text.mp3_id3v1_decode:00000000 mp3_id3v1_decode
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:399    .text.mp3_id3v1_decode:0000003c $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:417    .text.mp3_id3v2_decode:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:423    .text.mp3_id3v2_decode:00000000 mp3_id3v2_decode
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:624    .text.mp3_id3v2_decode:000000dc $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:641    .text.mp3_get_info:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:647    .text.mp3_get_info:00000000 mp3_get_info
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1002   .text.mp3_get_info:00000198 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2055   .bss.mp3ctrl:00000000 mp3ctrl
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1010   .text.mp3_get_curtime:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1016   .text.mp3_get_curtime:00000000 mp3_get_curtime
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1065   .text.mp3_stop:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1071   .text.mp3_stop:00000000 mp3_stop
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1158   .text.mp3_stop:00000060 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2036   .bss.mp3decoder:00000000 mp3decoder
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2022   .bss.mp3_buffer:00000000 mp3_buffer
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1188   .text.mp3_play_song:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1194   .text.mp3_play_song:00000000 mp3_play_song
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1543   .text.mp3_play_song:000001cc $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2008   .bss.mp3_offset:00000000 mp3_offset
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2001   .bss.mp3_outofdata:00000000 mp3_outofdata
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1994   .bss.mp3_bytesleft:00000000 mp3_bytesleft
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1573   .text.mp3_play:00000000 $t
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1579   .text.mp3_play:00000000 mp3_play
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1968   .text.mp3_play:000001f0 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2015   .bss.mp3_readptr:00000000 mp3_readptr
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2029   .bss.mp3frameinfo:00000000 mp3frameinfo
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1991   .bss.mp3_bytesleft:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:1998   .bss.mp3_outofdata:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2005   .bss.mp3_offset:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2012   .bss.mp3_readptr:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2019   .bss.mp3_buffer:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2026   .bss.mp3frameinfo:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2033   .bss.mp3decoder:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2043   .bss.mp3witchbuf:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2049   .bss.mp3transferend:00000000 $d
+C:\Users\37593\AppData\Local\Temp\cc4ZJGBW.s:2052   .bss.mp3ctrl:00000000 $d
+
+UNDEFINED SYMBOLS
+audiodev
+f_lseek
+tick_process
+tick
+audio_pause
+strncmp
+strncpy
+lcd_printf
+malloc
+f_open
+f_read
+MP3InitDecoder
+MP3FindSyncWord
+MP3FreeDecoder
+f_close
+free
+MP3GetNextFrameInfo
+audio_stop
+audio_run
+audio_decode_flag
+audio_read_flag
+audio_play_function
+audio_stop_function
+music_play
+memset
+WM8978_I2S_Cfg
+I2S2_Init
+I2S2_SampleRate_Set
+I2S2_TX_DMA_Init
+audio_start
+audio_br
+volume
+i2s_tx_callback
+MP3Decode
+memmove
+MP3GetLastFrameInfo
+audio_delay
+audio_old_sec

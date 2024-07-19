@@ -1,0 +1,329 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"random_disp.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\lcd\\random_disp.c"
+  20              		.section	.text.random_display,"ax",%progbits
+  21              		.align	1
+  22              		.global	random_display
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	random_display:
+  28              	.LFB123:
+   1:source\lcd/random_disp.c **** /********************************************************************************/
+   2:source\lcd/random_disp.c **** /* random_disp.c                                                                */
+   3:source\lcd/random_disp.c **** /* STM32F407ZGT6                                                                */
+   4:source\lcd/random_disp.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\lcd/random_disp.c **** /* stm32f4x_test								*/
+   6:source\lcd/random_disp.c **** /********************************************************************************/
+   7:source\lcd/random_disp.c **** #include "../../hwdefs.h"
+   8:source\lcd/random_disp.c **** #include "../prototype.h"
+   9:source\lcd/random_disp.c **** #include "../color.h"
+  10:source\lcd/random_disp.c **** #include <stdlib.h>
+  11:source\lcd/random_disp.c **** 
+  12:source\lcd/random_disp.c **** 
+  13:source\lcd/random_disp.c **** static const unsigned short a_color[8] = {
+  14:source\lcd/random_disp.c ****       reg565(0x000000), 
+  15:source\lcd/random_disp.c ****       reg565(0x0000FF), 
+  16:source\lcd/random_disp.c ****       reg565(0x00FF00), 
+  17:source\lcd/random_disp.c ****       reg565(0x00FFFF), 
+  18:source\lcd/random_disp.c ****       reg565(0xFF0000), 
+  19:source\lcd/random_disp.c ****       reg565(0xFF00FF), 
+  20:source\lcd/random_disp.c ****       reg565(0xFFFF00), 
+  21:source\lcd/random_disp.c ****       reg565(0xFFFFFF)
+  22:source\lcd/random_disp.c **** };
+  23:source\lcd/random_disp.c **** 
+  24:source\lcd/random_disp.c **** 
+  25:source\lcd/random_disp.c **** void random_display (void)
+  26:source\lcd/random_disp.c **** {
+  29              		.loc 1 26 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 16
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  27:source\lcd/random_disp.c ****       unsigned short i = 0;
+  33              		.loc 1 27 7 view .LVU1
+  34              	.LVL0:
+  28:source\lcd/random_disp.c ****       unsigned short x_size = maxx;
+  35              		.loc 1 28 7 view .LVU2
+  26:source\lcd/random_disp.c ****       unsigned short i = 0;
+  36              		.loc 1 26 1 is_stmt 0 view .LVU3
+  37 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+  38              		.cfi_def_cfa_offset 36
+  39              		.cfi_offset 4, -36
+  40              		.cfi_offset 5, -32
+  41              		.cfi_offset 6, -28
+  42              		.cfi_offset 7, -24
+  43              		.cfi_offset 8, -20
+  44              		.cfi_offset 9, -16
+  45              		.cfi_offset 10, -12
+  46              		.cfi_offset 11, -8
+  47              		.cfi_offset 14, -4
+  48              		.loc 1 28 22 view .LVU4
+  49 0004 284B     		ldr	r3, .L4
+  29:source\lcd/random_disp.c ****       unsigned short y_size = maxy;
+  30:source\lcd/random_disp.c ****       unsigned short num_pixels = 0;
+  31:source\lcd/random_disp.c ****       short r_x0,r_x1,r_y0,r_y1;
+  32:source\lcd/random_disp.c ****       unsigned short a_color_index[8];
+  33:source\lcd/random_disp.c ****       for (i=0;i<8;i++) {
+  34:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  50              		.loc 1 34 28 view .LVU5
+  51 0006 2949     		ldr	r1, .L4+4
+  28:source\lcd/random_disp.c ****       unsigned short y_size = maxy;
+  52              		.loc 1 28 22 view .LVU6
+  53 0008 1E88     		ldrh	r6, [r3]
+  54              	.LVL1:
+  29:source\lcd/random_disp.c ****       unsigned short y_size = maxy;
+  55              		.loc 1 29 7 is_stmt 1 view .LVU7
+  29:source\lcd/random_disp.c ****       unsigned short y_size = maxy;
+  56              		.loc 1 29 22 is_stmt 0 view .LVU8
+  57 000a 294B     		ldr	r3, .L4+8
+  58 000c 1F88     		ldrh	r7, [r3]
+  59              	.LVL2:
+  30:source\lcd/random_disp.c ****       short r_x0,r_x1,r_y0,r_y1;
+  60              		.loc 1 30 7 is_stmt 1 view .LVU9
+  31:source\lcd/random_disp.c ****       unsigned short a_color_index[8];
+  61              		.loc 1 31 7 view .LVU10
+  32:source\lcd/random_disp.c ****       for (i=0;i<8;i++) {
+  62              		.loc 1 32 7 view .LVU11
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  63              		.loc 1 33 7 view .LVU12
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  64              		.loc 1 33 17 view .LVU13
+  65              		.loc 1 34 11 view .LVU14
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  66              		.loc 1 33 21 view .LVU15
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  67              		.loc 1 33 17 view .LVU16
+  68              		.loc 1 34 11 view .LVU17
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  69              		.loc 1 33 21 view .LVU18
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  70              		.loc 1 33 17 view .LVU19
+  71              		.loc 1 34 11 view .LVU20
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  72              		.loc 1 33 21 view .LVU21
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  73              		.loc 1 33 17 view .LVU22
+  74              		.loc 1 34 11 view .LVU23
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  75              		.loc 1 33 21 view .LVU24
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  76              		.loc 1 33 17 view .LVU25
+  77              		.loc 1 34 11 view .LVU26
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  78              		.loc 1 33 21 view .LVU27
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  79              		.loc 1 33 17 view .LVU28
+  80              		.loc 1 34 11 view .LVU29
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  81              		.loc 1 33 21 view .LVU30
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  82              		.loc 1 33 17 view .LVU31
+  83              		.loc 1 34 11 view .LVU32
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  84              		.loc 1 33 21 view .LVU33
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  85              		.loc 1 33 17 view .LVU34
+  86              		.loc 1 34 11 view .LVU35
+  87              		.loc 1 34 28 is_stmt 0 view .LVU36
+  88 000e 294B     		ldr	r3, .L4+12
+  26:source\lcd/random_disp.c ****       unsigned short i = 0;
+  89              		.loc 1 26 1 view .LVU37
+  90 0010 87B0     		sub	sp, sp, #28
+  91              		.cfi_def_cfa_offset 64
+  92              		.loc 1 34 28 view .LVU38
+  93 0012 4FF4F812 		mov	r2, #2031616
+  94 0016 CDE90223 		strd	r2, r3, [sp, #8]
+  95 001a 6FF01F03 		mvn	r3, #31
+  96 001e CDE90413 		strd	r1, r3, [sp, #16]
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  97              		.loc 1 33 21 is_stmt 1 view .LVU39
+  98              	.LVL3:
+  33:source\lcd/random_disp.c ****           a_color_index[i] = a_color[i];
+  99              		.loc 1 33 17 view .LVU40
+  35:source\lcd/random_disp.c ****       }  
+  36:source\lcd/random_disp.c ****       for (i=0;i<1000;i++) {
+ 100              		.loc 1 36 17 view .LVU41
+  37:source\lcd/random_disp.c ****           /* Reload IWDG counter */
+  38:source\lcd/random_disp.c ****           IWDG_ReloadCounter();      	
+  39:source\lcd/random_disp.c ****           set_color(a_color_index[i & 7]);
+  40:source\lcd/random_disp.c ****           /* Calculate random positions */
+  41:source\lcd/random_disp.c ****           r_x0 = rand() % x_size - x_size / 2;
+ 101              		.loc 1 41 34 is_stmt 0 view .LVU42
+ 102 0022 4FEA560B 		lsr	fp, r6, #1
+  42:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 103              		.loc 1 42 34 view .LVU43
+ 104 0026 4FEA570A 		lsr	r10, r7, #1
+ 105 002a 4FF00008 		mov	r8, #0
+ 106              	.LVL4:
+ 107              	.L2:
+  38:source\lcd/random_disp.c ****           set_color(a_color_index[i & 7]);
+ 108              		.loc 1 38 11 is_stmt 1 view .LVU44
+ 109 002e FFF7FEFF 		bl	IWDG_ReloadCounter
+ 110              	.LVL5:
+  39:source\lcd/random_disp.c ****           /* Calculate random positions */
+ 111              		.loc 1 39 11 view .LVU45
+ 112 0032 06AA     		add	r2, sp, #24
+  39:source\lcd/random_disp.c ****           /* Calculate random positions */
+ 113              		.loc 1 39 37 is_stmt 0 view .LVU46
+ 114 0034 08F00703 		and	r3, r8, #7
+  39:source\lcd/random_disp.c ****           /* Calculate random positions */
+ 115              		.loc 1 39 11 view .LVU47
+ 116 0038 02EB4303 		add	r3, r2, r3, lsl #1
+  36:source\lcd/random_disp.c ****           /* Reload IWDG counter */
+ 117              		.loc 1 36 17 view .LVU48
+ 118 003c 08F10108 		add	r8, r8, #1
+ 119              	.LVL6:
+  39:source\lcd/random_disp.c ****           /* Calculate random positions */
+ 120              		.loc 1 39 11 view .LVU49
+ 121 0040 33F8100C 		ldrh	r0, [r3, #-16]
+ 122 0044 FFF7FEFF 		bl	set_color
+ 123              	.LVL7:
+  41:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 124              		.loc 1 41 11 is_stmt 1 view .LVU50
+  41:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 125              		.loc 1 41 18 is_stmt 0 view .LVU51
+ 126 0048 FFF7FEFF 		bl	rand
+ 127              	.LVL8:
+  41:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 128              		.loc 1 41 25 view .LVU52
+ 129 004c 90FBF6F3 		sdiv	r3, r0, r6
+ 130 0050 03FB1604 		mls	r4, r3, r6, r0
+ 131              		.loc 1 42 18 view .LVU53
+ 132 0054 FFF7FEFF 		bl	rand
+ 133              	.LVL9:
+ 134              		.loc 1 42 25 view .LVU54
+ 135 0058 90FBF7F3 		sdiv	r3, r0, r7
+ 136 005c 03FB1705 		mls	r5, r3, r7, r0
+  43:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 137              		.loc 1 43 25 view .LVU55
+ 138 0060 FFF7FEFF 		bl	rand
+ 139              	.LVL10:
+ 140 0064 8146     		mov	r9, r0
+  44:source\lcd/random_disp.c ****           r_y1 = r_y0 + rand() % y_size;
+ 141              		.loc 1 44 25 view .LVU56
+ 142 0066 FFF7FEFF 		bl	rand
+ 143              	.LVL11:
+  43:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 144              		.loc 1 43 32 view .LVU57
+ 145 006a 99FBF6F1 		sdiv	r1, r9, r6
+  41:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 146              		.loc 1 41 34 view .LVU58
+ 147 006e A4EB0B04 		sub	r4, r4, fp
+  43:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 148              		.loc 1 43 32 view .LVU59
+ 149 0072 06FB1192 		mls	r2, r6, r1, r9
+  42:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 150              		.loc 1 42 34 view .LVU60
+ 151 0076 A5EB0A05 		sub	r5, r5, r10
+  45:source\lcd/random_disp.c ****           LCD_Fill(r_x0, r_y0, r_x1, r_y1,foreground_color);
+ 152              		.loc 1 45 11 view .LVU61
+ 153 007a 0F49     		ldr	r1, .L4+16
+  44:source\lcd/random_disp.c ****           r_y1 = r_y0 + rand() % y_size;
+ 154              		.loc 1 44 32 view .LVU62
+ 155 007c 90FBF7F3 		sdiv	r3, r0, r7
+  41:source\lcd/random_disp.c ****           r_y0 = rand() % y_size - y_size / 2;
+ 156              		.loc 1 41 34 view .LVU63
+ 157 0080 A4B2     		uxth	r4, r4
+ 158              	.LVL12:
+  42:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 159              		.loc 1 42 11 is_stmt 1 view .LVU64
+  42:source\lcd/random_disp.c ****           r_x1 = r_x0 + rand() % x_size;
+ 160              		.loc 1 42 34 is_stmt 0 view .LVU65
+ 161 0082 ADB2     		uxth	r5, r5
+ 162              	.LVL13:
+  43:source\lcd/random_disp.c ****           r_y1 = r_y0 + rand() % y_size;
+ 163              		.loc 1 43 11 is_stmt 1 view .LVU66
+  44:source\lcd/random_disp.c ****           LCD_Fill(r_x0, r_y0, r_x1, r_y1,foreground_color);
+ 164              		.loc 1 44 11 view .LVU67
+ 165              		.loc 1 45 11 view .LVU68
+  44:source\lcd/random_disp.c ****           LCD_Fill(r_x0, r_y0, r_x1, r_y1,foreground_color);
+ 166              		.loc 1 44 32 is_stmt 0 view .LVU69
+ 167 0084 03FB1700 		mls	r0, r3, r7, r0
+ 168              	.LVL14:
+ 169              		.loc 1 45 11 view .LVU70
+ 170 0088 0988     		ldrh	r1, [r1]
+ 171 008a 0091     		str	r1, [sp]
+  44:source\lcd/random_disp.c ****           LCD_Fill(r_x0, r_y0, r_x1, r_y1,foreground_color);
+ 172              		.loc 1 44 23 view .LVU71
+ 173 008c 2B18     		adds	r3, r5, r0
+  43:source\lcd/random_disp.c ****           r_y1 = r_y0 + rand() % y_size;
+ 174              		.loc 1 43 23 view .LVU72
+ 175 008e 2244     		add	r2, r2, r4
+ 176              		.loc 1 45 11 view .LVU73
+ 177 0090 1BB2     		sxth	r3, r3
+ 178 0092 12B2     		sxth	r2, r2
+ 179 0094 29B2     		sxth	r1, r5
+ 180 0096 20B2     		sxth	r0, r4
+ 181 0098 FFF7FEFF 		bl	LCD_Fill
+ 182              	.LVL15:
+  46:source\lcd/random_disp.c ****           /* Clip rectangle to visible area and add the number of pixels (for speed computation) */
+  47:source\lcd/random_disp.c ****           if (r_x1 >= x_size) r_x1 = x_size - 1;
+ 183              		.loc 1 47 11 is_stmt 1 view .LVU74
+  48:source\lcd/random_disp.c ****           if (r_y1 >= y_size) r_y1 = y_size - 1;
+ 184              		.loc 1 48 11 view .LVU75
+  49:source\lcd/random_disp.c ****           if (r_x0 < 0) r_x0 = 0;
+ 185              		.loc 1 49 11 view .LVU76
+  50:source\lcd/random_disp.c ****           if (r_y1 < 0) r_y1 = 0;
+ 186              		.loc 1 50 11 view .LVU77
+  51:source\lcd/random_disp.c ****           num_pixels += (r_x1 - r_x0) * (r_y1 - r_y0);
+ 187              		.loc 1 51 11 view .LVU78
+  36:source\lcd/random_disp.c ****           /* Reload IWDG counter */
+ 188              		.loc 1 36 24 view .LVU79
+  36:source\lcd/random_disp.c ****           /* Reload IWDG counter */
+ 189              		.loc 1 36 17 view .LVU80
+ 190 009c B8F57A7F 		cmp	r8, #1000
+ 191 00a0 C5D1     		bne	.L2
+  52:source\lcd/random_disp.c ****       }
+  53:source\lcd/random_disp.c **** }
+ 192              		.loc 1 53 1 is_stmt 0 view .LVU81
+ 193 00a2 07B0     		add	sp, sp, #28
+ 194              		.cfi_def_cfa_offset 36
+ 195              		@ sp needed
+ 196 00a4 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 197              	.LVL16:
+ 198              	.L5:
+ 199              		.loc 1 53 1 view .LVU82
+ 200              		.align	2
+ 201              	.L4:
+ 202 00a8 00000000 		.word	maxx
+ 203 00ac 00F81FF8 		.word	-132122624
+ 204 00b0 00000000 		.word	maxy
+ 205 00b4 E007FF07 		.word	134154208
+ 206 00b8 00000000 		.word	foreground_color
+ 207              		.cfi_endproc
+ 208              	.LFE123:
+ 210              		.text
+ 211              	.Letext0:
+ 212              		.file 2 "source\\lcd\\../prototype.h"
+ 213              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 214              		.file 4 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_iwdg.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 random_disp.c
+C:\Users\37593\AppData\Local\Temp\ccAgIr2k.s:21     .text.random_display:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccAgIr2k.s:27     .text.random_display:00000000 random_display
+C:\Users\37593\AppData\Local\Temp\ccAgIr2k.s:202    .text.random_display:000000a8 $d
+
+UNDEFINED SYMBOLS
+IWDG_ReloadCounter
+set_color
+rand
+LCD_Fill
+maxx
+maxy
+foreground_color

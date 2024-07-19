@@ -1,0 +1,3664 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"audio.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\audio\\audio.c"
+  20              		.section	.text.get_heap_end,"ax",%progbits
+  21              		.align	1
+  22              		.global	get_heap_end
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	get_heap_end:
+  28              	.LFB123:
+   1:source\audio/audio.c **** /********************************************************************************/
+   2:source\audio/audio.c **** /* audio.c                                                                      */
+   3:source\audio/audio.c **** /* STM32F407ZGT6                                                                */
+   4:source\audio/audio.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\audio/audio.c **** /* stm32f4x_test								*/
+   6:source\audio/audio.c **** /********************************************************************************/
+   7:source\audio/audio.c **** #include "../../hwdefs.h"
+   8:source\audio/audio.c **** #include "../prototype.h"
+   9:source\audio/audio.c **** #include "../color.h"
+  10:source\audio/audio.c **** 
+  11:source\audio/audio.c **** #include <errno.h>
+  12:source\audio/audio.c **** #include <stdlib.h>
+  13:source\audio/audio.c **** #include <string.h>
+  14:source\audio/audio.c **** 
+  15:source\audio/audio.c **** #define audio_file_address			(((unsigned char *)0x68000000))
+  16:source\audio/audio.c **** 
+  17:source\audio/audio.c **** void (*audio_play_function)(void);
+  18:source\audio/audio.c **** void (*audio_stop_function)(void);
+  19:source\audio/audio.c **** 
+  20:source\audio/audio.c **** char *audio_file;
+  21:source\audio/audio.c **** 
+  22:source\audio/audio.c **** const char *music_extend [4] = {"MP3","APE","WAV","FLAC"};
+  23:source\audio/audio.c **** unsigned char music_number,fnum,music_play,dp_page,display_line,display_line_flag,rflag;
+  24:source\audio/audio.c **** __audiodev audiodev;
+  25:source\audio/audio.c **** unsigned short wait_count;
+  26:source\audio/audio.c **** 
+  27:source\audio/audio.c **** FATFS *fs[_VOLUMES];
+  28:source\audio/audio.c **** FIL *file;
+  29:source\audio/audio.c **** FIL *ftemp;
+  30:source\audio/audio.c **** UINT br,bw;
+  31:source\audio/audio.c **** FILINFO fileinfo;
+  32:source\audio/audio.c **** DIR dir;
+  33:source\audio/audio.c **** unsigned char *fatbuf;
+  34:source\audio/audio.c **** extern char _end;			/* Defined by the linker */
+  35:source\audio/audio.c **** static char *heap_end;
+  36:source\audio/audio.c **** volatile unsigned char play_key,play_audio,play_key_count;
+  37:source\audio/audio.c **** 
+  38:source\audio/audio.c **** volatile unsigned char audio_delay,audio_decode_flag,audio_read_flag,audio_run,audio_pause,audio_re
+  39:source\audio/audio.c **** unsigned int audio_old_sec,audio_br = 0;
+  40:source\audio/audio.c **** 
+  41:source\audio/audio.c **** extern unsigned char old_ir;
+  42:source\audio/audio.c **** extern volatile unsigned char volume,volume_flag;
+  43:source\audio/audio.c **** 
+  44:source\audio/audio.c **** 
+  45:source\audio/audio.c **** 
+  46:source\audio/audio.c **** #define SBRK_VERBOSE 			0
+  47:source\audio/audio.c **** 
+  48:source\audio/audio.c **** 
+  49:source\audio/audio.c **** char *get_heap_end (void)
+  50:source\audio/audio.c **** {
+  29              		.loc 1 50 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  51:source\audio/audio.c ****       return (char*) heap_end;
+  34              		.loc 1 51 7 view .LVU1
+  52:source\audio/audio.c **** }
+  35              		.loc 1 52 1 is_stmt 0 view .LVU2
+  36 0000 014B     		ldr	r3, .L2
+  37 0002 1868     		ldr	r0, [r3]
+  38 0004 7047     		bx	lr
+  39              	.L3:
+  40 0006 00BF     		.align	2
+  41              	.L2:
+  42 0008 00000000 		.word	heap_end
+  43              		.cfi_endproc
+  44              	.LFE123:
+  46              		.section	.text.get_stack_top,"ax",%progbits
+  47              		.align	1
+  48              		.global	get_stack_top
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	get_stack_top:
+  54              	.LFB124:
+  53:source\audio/audio.c **** 
+  54:source\audio/audio.c **** 
+  55:source\audio/audio.c **** char *get_stack_top (void)
+  56:source\audio/audio.c **** {
+  55              		.loc 1 56 1 is_stmt 1 view -0
+  56              		.cfi_startproc
+  57              		@ args = 0, pretend = 0, frame = 0
+  58              		@ frame_needed = 0, uses_anonymous_args = 0
+  59              		@ link register save eliminated.
+  57:source\audio/audio.c ****       return (char*) __get_MSP();
+  60              		.loc 1 57 7 view .LVU4
+  61              	.LBB8:
+  62              	.LBI8:
+  63              		.file 2 "c:/project/stm32fx_iolib/stm32fxxx/cmsis/cmsis_gcc.h"
+   1:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**************************************************************************//**
+   2:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  * @file     cmsis_gcc.h
+   3:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  * @brief    CMSIS Cortex-M Core Function/Instruction Header File
+   4:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  * @version  V4.30
+   5:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  * @date     20. October 2015
+   6:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  ******************************************************************************/
+   7:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /* Copyright (c) 2009 - 2015 ARM LIMITED
+   8:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+   9:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    All rights reserved.
+  10:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    Redistribution and use in source and binary forms, with or without
+  11:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    modification, are permitted provided that the following conditions are met:
+  12:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    - Redistributions of source code must retain the above copyright
+  13:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****      notice, this list of conditions and the following disclaimer.
+  14:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    - Redistributions in binary form must reproduce the above copyright
+  15:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****      notice, this list of conditions and the following disclaimer in the
+  16:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****      documentation and/or other materials provided with the distribution.
+  17:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    - Neither the name of ARM nor the names of its contributors may be used
+  18:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****      to endorse or promote products derived from this software without
+  19:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****      specific prior written permission.
+  20:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    *
+  21:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS AND CONTRIBUTORS BE
+  25:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    POSSIBILITY OF SUCH DAMAGE.
+  32:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****    ---------------------------------------------------------------------------*/
+  33:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  34:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  35:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #ifndef __CMSIS_GCC_H
+  36:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #define __CMSIS_GCC_H
+  37:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  38:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /* ignore some GCC warnings */
+  39:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #if defined ( __GNUC__ )
+  40:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #pragma GCC diagnostic push
+  41:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wsign-conversion"
+  42:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wconversion"
+  43:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wunused-parameter"
+  44:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** #endif
+  45:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  46:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  47:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /* ###########################  Core Function Access  ########################### */
+  48:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /** \ingroup  CMSIS_Core_FunctionInterface
+  49:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****     \defgroup CMSIS_Core_RegAccFunctions CMSIS Core Register Access Functions
+  50:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   @{
+  51:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+  52:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  53:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+  54:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Enable IRQ Interrupts
+  55:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Enables IRQ interrupts by clearing the I-bit in the CPSR.
+  56:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****            Can only be executed in Privileged modes.
+  57:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+  58:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE void __enable_irq(void)
+  59:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+  60:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("cpsie i" : : : "memory");
+  61:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+  62:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  63:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  64:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+  65:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Disable IRQ Interrupts
+  66:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Disables IRQ interrupts by setting the I-bit in the CPSR.
+  67:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   Can only be executed in Privileged modes.
+  68:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+  69:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE void __disable_irq(void)
+  70:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+  71:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("cpsid i" : : : "memory");
+  72:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+  73:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  74:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  75:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+  76:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get Control Register
+  77:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the content of the Control Register.
+  78:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \return               Control Register value
+  79:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+  80:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_CONTROL(void)
+  81:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+  82:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   uint32_t result;
+  83:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  84:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, control" : "=r" (result) );
+  85:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+  86:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+  87:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  88:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  89:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+  90:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Set Control Register
+  91:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Writes the given value to the Control Register.
+  92:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \param [in]    control  Control Register value to set
+  93:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+  94:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE void __set_CONTROL(uint32_t control)
+  95:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+  96:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MSR control, %0" : : "r" (control) : "memory");
+  97:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+  98:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+  99:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 100:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 101:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get IPSR Register
+ 102:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the content of the IPSR Register.
+ 103:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \return               IPSR Register value
+ 104:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 105:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_IPSR(void)
+ 106:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 107:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   uint32_t result;
+ 108:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 109:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
+ 110:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+ 111:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+ 112:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 113:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 114:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 115:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get APSR Register
+ 116:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the content of the APSR Register.
+ 117:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \return               APSR Register value
+ 118:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 119:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_APSR(void)
+ 120:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 121:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   uint32_t result;
+ 122:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 123:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, apsr" : "=r" (result) );
+ 124:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+ 125:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+ 126:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 127:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 128:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 129:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get xPSR Register
+ 130:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the content of the xPSR Register.
+ 131:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 132:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****     \return               xPSR Register value
+ 133:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 134:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_xPSR(void)
+ 135:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 136:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   uint32_t result;
+ 137:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 138:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, xpsr" : "=r" (result) );
+ 139:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+ 140:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+ 141:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 142:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 143:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 144:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get Process Stack Pointer
+ 145:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the current value of the Process Stack Pointer (PSP).
+ 146:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \return               PSP Register value
+ 147:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 148:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_PSP(void)
+ 149:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 150:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   register uint32_t result;
+ 151:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 152:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, psp\n"  : "=r" (result) );
+ 153:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+ 154:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+ 155:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 156:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 157:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 158:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Set Process Stack Pointer
+ 159:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Assigns the given value to the Process Stack Pointer (PSP).
+ 160:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \param [in]    topOfProcStack  Process Stack Pointer value to set
+ 161:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 162:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE void __set_PSP(uint32_t topOfProcStack)
+ 163:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 164:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   //__ASM volatile ("MSR psp, %0\n" : : "r" (topOfProcStack) : "sp");
+ 165:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MSR psp, %0\n" : : "r" (topOfProcStack) : );  
+ 166:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** }
+ 167:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 168:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 169:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** /**
+ 170:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \brief   Get Main Stack Pointer
+ 171:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \details Returns the current value of the Main Stack Pointer (MSP).
+ 172:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   \return               MSP Register value
+ 173:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****  */
+ 174:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** __attribute__( ( always_inline ) ) __STATIC_INLINE uint32_t __get_MSP(void)
+  64              		.loc 2 174 61 view .LVU5
+  65              	.LBB9:
+ 175:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 176:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   register uint32_t result;
+  66              		.loc 2 176 3 view .LVU6
+ 177:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 178:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   __ASM volatile ("MRS %0, msp\n" : "=r" (result) );
+  67              		.loc 2 178 3 view .LVU7
+  68              		.syntax unified
+  69              	@ 178 "c:/project/stm32fx_iolib/stm32fxxx/cmsis/cmsis_gcc.h" 1
+  70 0000 EFF30880 		MRS r0, msp
+  71              	
+  72              	@ 0 "" 2
+  73              	.LVL0:
+ 179:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+  74              		.loc 2 179 3 view .LVU8
+  75              		.loc 2 179 3 is_stmt 0 view .LVU9
+  76              		.thumb
+  77              		.syntax unified
+  78              	.LBE9:
+  79              	.LBE8:
+  58:source\audio/audio.c **** }
+  80              		.loc 1 58 1 view .LVU10
+  81 0004 7047     		bx	lr
+  82              		.cfi_endproc
+  83              	.LFE124:
+  85              		.section	.text._kill,"ax",%progbits
+  86              		.align	1
+  87              		.global	_kill
+  88              		.syntax unified
+  89              		.thumb
+  90              		.thumb_func
+  92              	_kill:
+  93              	.LVL1:
+  94              	.LFB125:
+  59:source\audio/audio.c **** 
+  60:source\audio/audio.c **** 
+  61:source\audio/audio.c **** int _kill (int pid, int sig)
+  62:source\audio/audio.c **** {
+  95              		.loc 1 62 1 is_stmt 1 view -0
+  96              		.cfi_startproc
+  97              		@ args = 0, pretend = 0, frame = 0
+  98              		@ frame_needed = 0, uses_anonymous_args = 0
+  63:source\audio/audio.c ****       pid = pid; sig = sig;		/* avoid warnings */
+  99              		.loc 1 63 7 view .LVU12
+ 100              		.loc 1 63 18 view .LVU13
+  64:source\audio/audio.c ****       errno = EINVAL;
+ 101              		.loc 1 64 7 view .LVU14
+  62:source\audio/audio.c ****       pid = pid; sig = sig;		/* avoid warnings */
+ 102              		.loc 1 62 1 is_stmt 0 view .LVU15
+ 103 0000 08B5     		push	{r3, lr}
+ 104              		.cfi_def_cfa_offset 8
+ 105              		.cfi_offset 3, -8
+ 106              		.cfi_offset 14, -4
+ 107              		.loc 1 64 7 view .LVU16
+ 108 0002 FFF7FEFF 		bl	__errno
+ 109              	.LVL2:
+ 110              		.loc 1 64 13 view .LVU17
+ 111 0006 1623     		movs	r3, #22
+ 112 0008 0360     		str	r3, [r0]
+  65:source\audio/audio.c ****       return -1;
+ 113              		.loc 1 65 7 is_stmt 1 view .LVU18
+  66:source\audio/audio.c **** }
+ 114              		.loc 1 66 1 is_stmt 0 view .LVU19
+ 115 000a 4FF0FF30 		mov	r0, #-1
+ 116 000e 08BD     		pop	{r3, pc}
+ 117              		.cfi_endproc
+ 118              	.LFE125:
+ 120              		.section	.rodata._exit.str1.1,"aMS",%progbits,1
+ 121              	.LC0:
+ 122 0000 5F657869 		.ascii	"_exit called with parameter %d \000"
+ 122      74206361 
+ 122      6C6C6564 
+ 122      20776974 
+ 122      68207061 
+ 123              		.section	.text._exit,"ax",%progbits
+ 124              		.align	1
+ 125              		.global	_exit
+ 126              		.syntax unified
+ 127              		.thumb
+ 128              		.thumb_func
+ 130              	_exit:
+ 131              	.LVL3:
+ 132              	.LFB126:
+  67:source\audio/audio.c **** 
+  68:source\audio/audio.c **** 
+  69:source\audio/audio.c **** void _exit (int status)
+  70:source\audio/audio.c **** {
+ 133              		.loc 1 70 1 is_stmt 1 view -0
+ 134              		.cfi_startproc
+ 135              		@ Volatile: function does not return.
+ 136              		@ args = 0, pretend = 0, frame = 0
+ 137              		@ frame_needed = 0, uses_anonymous_args = 0
+  71:source\audio/audio.c ****       lcd_printf(0,29,"_exit called with parameter %d ", status);
+ 138              		.loc 1 71 7 view .LVU21
+  70:source\audio/audio.c ****       lcd_printf(0,29,"_exit called with parameter %d ", status);
+ 139              		.loc 1 70 1 is_stmt 0 view .LVU22
+ 140 0000 08B5     		push	{r3, lr}
+ 141              		.cfi_def_cfa_offset 8
+ 142              		.cfi_offset 3, -8
+ 143              		.cfi_offset 14, -4
+ 144              		.loc 1 71 7 view .LVU23
+ 145 0002 034A     		ldr	r2, .L8
+  70:source\audio/audio.c ****       lcd_printf(0,29,"_exit called with parameter %d ", status);
+ 146              		.loc 1 70 1 view .LVU24
+ 147 0004 0346     		mov	r3, r0
+ 148              		.loc 1 71 7 view .LVU25
+ 149 0006 1D21     		movs	r1, #29
+ 150 0008 0020     		movs	r0, #0
+ 151              	.LVL4:
+ 152              		.loc 1 71 7 view .LVU26
+ 153 000a FFF7FEFF 		bl	lcd_printf
+ 154              	.LVL5:
+ 155              	.L7:
+  72:source\audio/audio.c ****       while(1) {;}
+ 156              		.loc 1 72 7 is_stmt 1 discriminator 1 view .LVU27
+ 157              		.loc 1 72 17 discriminator 1 view .LVU28
+ 158              		.loc 1 72 12 discriminator 1 view .LVU29
+ 159 000e FEE7     		b	.L7
+ 160              	.L9:
+ 161              		.align	2
+ 162              	.L8:
+ 163 0010 00000000 		.word	.LC0
+ 164              		.cfi_endproc
+ 165              	.LFE126:
+ 167              		.section	.text._getpid,"ax",%progbits
+ 168              		.align	1
+ 169              		.global	_getpid
+ 170              		.syntax unified
+ 171              		.thumb
+ 172              		.thumb_func
+ 174              	_getpid:
+ 175              	.LFB127:
+  73:source\audio/audio.c **** }
+  74:source\audio/audio.c **** 
+  75:source\audio/audio.c **** 
+  76:source\audio/audio.c **** int _getpid (void)
+  77:source\audio/audio.c **** {
+ 176              		.loc 1 77 1 view -0
+ 177              		.cfi_startproc
+ 178              		@ args = 0, pretend = 0, frame = 0
+ 179              		@ frame_needed = 0, uses_anonymous_args = 0
+ 180              		@ link register save eliminated.
+  78:source\audio/audio.c ****       return 1;
+ 181              		.loc 1 78 7 view .LVU31
+  79:source\audio/audio.c **** }
+ 182              		.loc 1 79 1 is_stmt 0 view .LVU32
+ 183 0000 0120     		movs	r0, #1
+ 184 0002 7047     		bx	lr
+ 185              		.cfi_endproc
+ 186              	.LFE127:
+ 188              		.section	.rodata._sbrk.str1.1,"aMS",%progbits,1
+ 189              	.LC1:
+ 190 0000 48656170 		.ascii	"Heap and stack collision \000"
+ 190      20616E64 
+ 190      20737461 
+ 190      636B2063 
+ 190      6F6C6C69 
+ 191              		.section	.text._sbrk,"ax",%progbits
+ 192              		.align	1
+ 193              		.global	_sbrk
+ 194              		.syntax unified
+ 195              		.thumb
+ 196              		.thumb_func
+ 198              	_sbrk:
+ 199              	.LVL6:
+ 200              	.LFB128:
+  80:source\audio/audio.c **** 
+  81:source\audio/audio.c **** 
+  82:source\audio/audio.c **** void *_sbrk (int incr)
+  83:source\audio/audio.c **** {
+ 201              		.loc 1 83 1 is_stmt 1 view -0
+ 202              		.cfi_startproc
+ 203              		@ args = 0, pretend = 0, frame = 0
+ 204              		@ frame_needed = 0, uses_anonymous_args = 0
+  84:source\audio/audio.c ****       char *prev_heap_end;
+ 205              		.loc 1 84 7 view .LVU34
+  85:source\audio/audio.c **** #if SBRK_VERBOSE
+  86:source\audio/audio.c ****       lcd_printf(0,29,"_sbrk called with incr %d ", incr);
+  87:source\audio/audio.c **** #endif
+  88:source\audio/audio.c ****       if (heap_end == 0) {
+ 206              		.loc 1 88 7 view .LVU35
+ 207              		.loc 1 88 20 is_stmt 0 view .LVU36
+ 208 0000 0A4A     		ldr	r2, .L14
+ 209              		.loc 1 88 10 view .LVU37
+ 210 0002 1168     		ldr	r1, [r2]
+  83:source\audio/audio.c ****       char *prev_heap_end;
+ 211              		.loc 1 83 1 view .LVU38
+ 212 0004 08B5     		push	{r3, lr}
+ 213              		.cfi_def_cfa_offset 8
+ 214              		.cfi_offset 3, -8
+ 215              		.cfi_offset 14, -4
+  83:source\audio/audio.c ****       char *prev_heap_end;
+ 216              		.loc 1 83 1 view .LVU39
+ 217 0006 0346     		mov	r3, r0
+ 218              		.loc 1 88 10 view .LVU40
+ 219 0008 09B9     		cbnz	r1, .L12
+  89:source\audio/audio.c **** 	 heap_end = &_end;
+ 220              		.loc 1 89 3 is_stmt 1 view .LVU41
+ 221              		.loc 1 89 12 is_stmt 0 view .LVU42
+ 222 000a 0949     		ldr	r1, .L14+4
+ 223 000c 1160     		str	r1, [r2]
+ 224              	.L12:
+  90:source\audio/audio.c ****       }
+  91:source\audio/audio.c ****       prev_heap_end = heap_end;
+ 225              		.loc 1 91 7 is_stmt 1 view .LVU43
+ 226              		.loc 1 91 21 is_stmt 0 view .LVU44
+ 227 000e 1068     		ldr	r0, [r2]
+ 228              	.LVL7:
+  92:source\audio/audio.c **** #if 1
+  93:source\audio/audio.c ****       if (heap_end + incr > get_stack_top()) {
+ 229              		.loc 1 93 7 is_stmt 1 view .LVU45
+ 230              		.loc 1 93 20 is_stmt 0 view .LVU46
+ 231 0010 0344     		add	r3, r3, r0
+ 232              	.LVL8:
+ 233              	.LBB10:
+ 234              	.LBI10:
+  55:source\audio/audio.c **** {
+ 235              		.loc 1 55 7 is_stmt 1 view .LVU47
+ 236              	.LBB11:
+  57:source\audio/audio.c **** }
+ 237              		.loc 1 57 7 view .LVU48
+ 238              	.LBB12:
+ 239              	.LBI12:
+ 174:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** {
+ 240              		.loc 2 174 61 view .LVU49
+ 241              	.LBB13:
+ 176:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h **** 
+ 242              		.loc 2 176 3 view .LVU50
+ 178:c:/project/stm32fx_iolib/stm32fxxx/cmsis\cmsis_gcc.h ****   return(result);
+ 243              		.loc 2 178 3 view .LVU51
+ 244              		.syntax unified
+ 245              	@ 178 "c:/project/stm32fx_iolib/stm32fxxx/cmsis/cmsis_gcc.h" 1
+ 246 0012 EFF30881 		MRS r1, msp
+ 247              	
+ 248              	@ 0 "" 2
+ 249              	.LVL9:
+ 250              		.loc 2 179 3 view .LVU52
+ 251              		.loc 2 179 3 is_stmt 0 view .LVU53
+ 252              		.thumb
+ 253              		.syntax unified
+ 254              	.LBE13:
+ 255              	.LBE12:
+ 256              	.LBE11:
+ 257              	.LBE10:
+ 258              		.loc 1 93 10 view .LVU54
+ 259 0016 8B42     		cmp	r3, r1
+ 260 0018 06D9     		bls	.L13
+  94:source\audio/audio.c **** 	  lcd_printf(0,29,"Heap and stack collision ");
+ 261              		.loc 1 94 4 is_stmt 1 view .LVU55
+ 262 001a 064A     		ldr	r2, .L14+8
+ 263 001c 1D21     		movs	r1, #29
+ 264 001e 0020     		movs	r0, #0
+ 265              	.LVL10:
+ 266              		.loc 1 94 4 is_stmt 0 view .LVU56
+ 267 0020 FFF7FEFF 		bl	lcd_printf
+ 268              	.LVL11:
+  95:source\audio/audio.c ****          abort();
+ 269              		.loc 1 95 10 is_stmt 1 view .LVU57
+ 270 0024 FFF7FEFF 		bl	abort
+ 271              	.LVL12:
+ 272              	.L13:
+  96:source\audio/audio.c ****       }
+  97:source\audio/audio.c **** #endif
+  98:source\audio/audio.c ****       heap_end += incr;
+ 273              		.loc 1 98 7 view .LVU58
+ 274              		.loc 1 98 16 is_stmt 0 view .LVU59
+ 275 0028 1360     		str	r3, [r2]
+  99:source\audio/audio.c ****       return (void *)prev_heap_end;
+ 276              		.loc 1 99 7 is_stmt 1 view .LVU60
+ 100:source\audio/audio.c **** }
+ 277              		.loc 1 100 1 is_stmt 0 view .LVU61
+ 278 002a 08BD     		pop	{r3, pc}
+ 279              	.L15:
+ 280              		.align	2
+ 281              	.L14:
+ 282 002c 00000000 		.word	heap_end
+ 283 0030 00000000 		.word	_end
+ 284 0034 00000000 		.word	.LC1
+ 285              		.cfi_endproc
+ 286              	.LFE128:
+ 288              		.section	.text.char_upper,"ax",%progbits
+ 289              		.align	1
+ 290              		.global	char_upper
+ 291              		.syntax unified
+ 292              		.thumb
+ 293              		.thumb_func
+ 295              	char_upper:
+ 296              	.LVL13:
+ 297              	.LFB129:
+ 101:source\audio/audio.c **** 
+ 102:source\audio/audio.c **** 
+ 103:source\audio/audio.c **** unsigned char char_upper (unsigned char c)
+ 104:source\audio/audio.c **** {
+ 298              		.loc 1 104 1 is_stmt 1 view -0
+ 299              		.cfi_startproc
+ 300              		@ args = 0, pretend = 0, frame = 0
+ 301              		@ frame_needed = 0, uses_anonymous_args = 0
+ 302              		@ link register save eliminated.
+ 105:source\audio/audio.c ****       if (c < 'A') return c;
+ 303              		.loc 1 105 7 view .LVU63
+ 106:source\audio/audio.c ****       if (c >= 'a') return c - 0x20;else return c;
+ 304              		.loc 1 106 7 view .LVU64
+ 305              		.loc 1 106 10 is_stmt 0 view .LVU65
+ 306 0000 6028     		cmp	r0, #96
+ 307              		.loc 1 106 21 is_stmt 1 view .LVU66
+ 308              		.loc 1 106 30 is_stmt 0 view .LVU67
+ 309 0002 84BF     		itt	hi
+ 310 0004 2038     		subhi	r0, r0, #32
+ 311              	.LVL14:
+ 312              		.loc 1 106 30 view .LVU68
+ 313 0006 C0B2     		uxtbhi	r0, r0
+ 107:source\audio/audio.c **** }
+ 314              		.loc 1 107 1 view .LVU69
+ 315 0008 7047     		bx	lr
+ 316              		.cfi_endproc
+ 317              	.LFE129:
+ 319              		.section	.rodata.audio_file_list.str1.1,"aMS",%progbits,1
+ 320              	.LC2:
+ 321 0000 20202020 		.ascii	"                                        \000"
+ 321      20202020 
+ 321      20202020 
+ 321      20202020 
+ 321      20202020 
+ 322              	.LC3:
+ 323 0029 706C6179 		.ascii	"play_list\000"
+ 323      5F6C6973 
+ 323      7400
+ 324              	.LC4:
+ 325 0033 6261636B 		.ascii	"back\000"
+ 325      00
+ 326              	.LC5:
+ 327 0038 6D656D6F 		.ascii	"memo\000"
+ 327      00
+ 328              	.LC6:
+ 329 003d 2532643A 		.ascii	"%2d: %s \000"
+ 329      20257320 
+ 329      00
+ 330              		.section	.text.audio_file_list,"ax",%progbits
+ 331              		.align	1
+ 332              		.global	audio_file_list
+ 333              		.syntax unified
+ 334              		.thumb
+ 335              		.thumb_func
+ 337              	audio_file_list:
+ 338              	.LFB130:
+ 108:source\audio/audio.c **** 
+ 109:source\audio/audio.c **** 
+ 110:source\audio/audio.c **** void audio_file_list (void)
+ 111:source\audio/audio.c **** {
+ 339              		.loc 1 111 1 is_stmt 1 view -0
+ 340              		.cfi_startproc
+ 341              		@ args = 0, pretend = 0, frame = 0
+ 342              		@ frame_needed = 0, uses_anonymous_args = 0
+ 112:source\audio/audio.c ****       unsigned int index;
+ 343              		.loc 1 112 7 view .LVU71
+ 113:source\audio/audio.c ****       foreground_color = YELLOW;
+ 344              		.loc 1 113 7 view .LVU72
+ 111:source\audio/audio.c ****       unsigned int index;
+ 345              		.loc 1 111 1 is_stmt 0 view .LVU73
+ 346 0000 F7B5     		push	{r0, r1, r2, r4, r5, r6, r7, lr}
+ 347              		.cfi_def_cfa_offset 32
+ 348              		.cfi_offset 4, -20
+ 349              		.cfi_offset 5, -16
+ 350              		.cfi_offset 6, -12
+ 351              		.cfi_offset 7, -8
+ 352              		.cfi_offset 14, -4
+ 114:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 353              		.loc 1 114 7 view .LVU74
+ 354 0002 204C     		ldr	r4, .L22
+ 113:source\audio/audio.c ****       foreground_color = YELLOW;
+ 355              		.loc 1 113 24 view .LVU75
+ 356 0004 204D     		ldr	r5, .L22+4
+ 357              		.loc 1 114 7 view .LVU76
+ 358 0006 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 115:source\audio/audio.c ****       if (display_line_flag == 1) {
+ 359              		.loc 1 115 29 view .LVU77
+ 360 0008 204E     		ldr	r6, .L22+8
+ 114:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 361              		.loc 1 114 7 view .LVU78
+ 362 000a 214A     		ldr	r2, .L22+12
+ 113:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 363              		.loc 1 113 24 view .LVU79
+ 364 000c 4FF6E077 		movw	r7, #65504
+ 114:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 365              		.loc 1 114 7 view .LVU80
+ 366 0010 0331     		adds	r1, r1, #3
+ 367 0012 0020     		movs	r0, #0
+ 113:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 368              		.loc 1 113 24 view .LVU81
+ 369 0014 2F80     		strh	r7, [r5]	@ movhi
+ 114:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"                                        ");
+ 370              		.loc 1 114 7 is_stmt 1 view .LVU82
+ 371 0016 FFF7FEFF 		bl	lcd_printf
+ 372              	.LVL15:
+ 373              		.loc 1 115 7 view .LVU83
+ 374              		.loc 1 115 10 is_stmt 0 view .LVU84
+ 375 001a 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 376 001c 012B     		cmp	r3, #1
+ 377 001e 14D1     		bne	.L19
+ 116:source\audio/audio.c **** 		foreground_color = WHITE;
+ 378              		.loc 1 116 3 is_stmt 1 view .LVU85
+ 379              		.loc 1 116 20 is_stmt 0 view .LVU86
+ 380 0020 4FF6FF73 		movw	r3, #65535
+ 117:source\audio/audio.c ****          lcd_printf(0,18,"play_list");
+ 381              		.loc 1 117 10 view .LVU87
+ 382 0024 1B4A     		ldr	r2, .L22+16
+ 116:source\audio/audio.c **** 		foreground_color = WHITE;
+ 383              		.loc 1 116 20 view .LVU88
+ 384 0026 2B80     		strh	r3, [r5]	@ movhi
+ 385              		.loc 1 117 10 is_stmt 1 view .LVU89
+ 386 0028 1221     		movs	r1, #18
+ 387 002a 0020     		movs	r0, #0
+ 388 002c FFF7FEFF 		bl	lcd_printf
+ 389              	.LVL16:
+ 118:source\audio/audio.c **** 		lcd_printf(16,18,"back");
+ 390              		.loc 1 118 3 view .LVU90
+ 391 0030 194A     		ldr	r2, .L22+20
+ 392 0032 1221     		movs	r1, #18
+ 393 0034 1020     		movs	r0, #16
+ 394 0036 FFF7FEFF 		bl	lcd_printf
+ 395              	.LVL17:
+ 119:source\audio/audio.c **** 		lcd_printf(28,18,"memo");
+ 396              		.loc 1 119 3 view .LVU91
+ 397 003a 184A     		ldr	r2, .L22+24
+ 398 003c 1221     		movs	r1, #18
+ 399 003e 1C20     		movs	r0, #28
+ 400 0040 FFF7FEFF 		bl	lcd_printf
+ 401              	.LVL18:
+ 120:source\audio/audio.c **** 		foreground_color = YELLOW;
+ 402              		.loc 1 120 3 view .LVU92
+ 121:source\audio/audio.c ****          display_line_flag = 2;
+ 403              		.loc 1 121 28 is_stmt 0 view .LVU93
+ 404 0044 0223     		movs	r3, #2
+ 120:source\audio/audio.c **** 		foreground_color = YELLOW;
+ 405              		.loc 1 120 20 view .LVU94
+ 406 0046 2F80     		strh	r7, [r5]	@ movhi
+ 407              		.loc 1 121 10 is_stmt 1 view .LVU95
+ 408              		.loc 1 121 28 is_stmt 0 view .LVU96
+ 409 0048 3370     		strb	r3, [r6]
+ 410              	.L19:
+ 122:source\audio/audio.c ****       }
+ 123:source\audio/audio.c ****       index = (dp_page + display_line) * 128;
+ 411              		.loc 1 123 7 is_stmt 1 view .LVU97
+ 412              		.loc 1 123 24 is_stmt 0 view .LVU98
+ 413 004a 154B     		ldr	r3, .L22+28
+ 124:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"%2d: %s ",(dp_page + display_line + 1),(audio_file + index));
+ 414              		.loc 1 124 7 view .LVU99
+ 415 004c 154A     		ldr	r2, .L22+32
+ 123:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"%2d: %s ",(dp_page + display_line + 1),(audio_file + index));
+ 416              		.loc 1 123 24 view .LVU100
+ 417 004e 2178     		ldrb	r1, [r4]	@ zero_extendqisi2
+ 418 0050 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 419              		.loc 1 124 7 view .LVU101
+ 420 0052 1268     		ldr	r2, [r2]
+ 123:source\audio/audio.c ****       lcd_printf(0,3 + display_line,"%2d: %s ",(dp_page + display_line + 1),(audio_file + index));
+ 421              		.loc 1 123 24 view .LVU102
+ 422 0054 0B44     		add	r3, r3, r1
+ 423              	.LVL19:
+ 424              		.loc 1 124 7 is_stmt 1 view .LVU103
+ 425 0056 02EBC312 		add	r2, r2, r3, lsl #7
+ 426 005a 0092     		str	r2, [sp]
+ 427 005c 0133     		adds	r3, r3, #1
+ 428              	.LVL20:
+ 429              		.loc 1 124 7 is_stmt 0 view .LVU104
+ 430 005e 124A     		ldr	r2, .L22+36
+ 431 0060 0331     		adds	r1, r1, #3
+ 432 0062 0020     		movs	r0, #0
+ 433 0064 FFF7FEFF 		bl	lcd_printf
+ 434              	.LVL21:
+ 125:source\audio/audio.c ****       display_line++;
+ 435              		.loc 1 125 7 is_stmt 1 view .LVU105
+ 436              		.loc 1 125 19 is_stmt 0 view .LVU106
+ 437 0068 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 438 006a 0133     		adds	r3, r3, #1
+ 439 006c DBB2     		uxtb	r3, r3
+ 126:source\audio/audio.c ****       if (display_line >= 15) {
+ 440              		.loc 1 126 7 is_stmt 1 view .LVU107
+ 441              		.loc 1 126 10 is_stmt 0 view .LVU108
+ 442 006e 0E2B     		cmp	r3, #14
+ 127:source\audio/audio.c ****       	 display_line = 0;
+ 443              		.loc 1 127 22 view .LVU109
+ 444 0070 89BF     		itett	hi
+ 445 0072 0023     		movhi	r3, #0
+ 125:source\audio/audio.c ****       display_line++;
+ 446              		.loc 1 125 19 view .LVU110
+ 447 0074 2370     		strbls	r3, [r4]
+ 448              		.loc 1 127 9 is_stmt 1 view .LVU111
+ 449              		.loc 1 127 22 is_stmt 0 view .LVU112
+ 450 0076 2370     		strbhi	r3, [r4]
+ 128:source\audio/audio.c ****       	 display_line_flag = 0;
+ 451              		.loc 1 128 9 is_stmt 1 view .LVU113
+ 452              		.loc 1 128 27 is_stmt 0 view .LVU114
+ 453 0078 3370     		strbhi	r3, [r6]
+ 129:source\audio/audio.c ****       }
+ 130:source\audio/audio.c ****       foreground_color = WHITE;
+ 454              		.loc 1 130 7 is_stmt 1 view .LVU115
+ 455              		.loc 1 130 24 is_stmt 0 view .LVU116
+ 456 007a 4FF6FF73 		movw	r3, #65535
+ 457 007e 2B80     		strh	r3, [r5]	@ movhi
+ 131:source\audio/audio.c **** }
+ 458              		.loc 1 131 1 view .LVU117
+ 459 0080 03B0     		add	sp, sp, #12
+ 460              		.cfi_def_cfa_offset 20
+ 461              		@ sp needed
+ 462 0082 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 463              	.L23:
+ 464              		.align	2
+ 465              	.L22:
+ 466 0084 00000000 		.word	display_line
+ 467 0088 00000000 		.word	foreground_color
+ 468 008c 00000000 		.word	display_line_flag
+ 469 0090 00000000 		.word	.LC2
+ 470 0094 29000000 		.word	.LC3
+ 471 0098 33000000 		.word	.LC4
+ 472 009c 38000000 		.word	.LC5
+ 473 00a0 00000000 		.word	dp_page
+ 474 00a4 00000000 		.word	audio_file
+ 475 00a8 3D000000 		.word	.LC6
+ 476              		.cfi_endproc
+ 477              	.LFE130:
+ 479              		.section	.rodata.find_music.str1.1,"aMS",%progbits,1
+ 480              	.LC7:
+ 481 0000 2F617564 		.ascii	"/audio\000"
+ 481      696F00
+ 482              	.LC8:
+ 483 0007 46696E64 		.ascii	"Find %d \000"
+ 483      20256420 
+ 483      00
+ 484              		.section	.text.find_music,"ax",%progbits
+ 485              		.align	1
+ 486              		.global	find_music
+ 487              		.syntax unified
+ 488              		.thumb
+ 489              		.thumb_func
+ 491              	find_music:
+ 492              	.LFB131:
+ 132:source\audio/audio.c **** 
+ 133:source\audio/audio.c **** 
+ 134:source\audio/audio.c **** unsigned char find_music (void)
+ 135:source\audio/audio.c **** {
+ 493              		.loc 1 135 1 is_stmt 1 view -0
+ 494              		.cfi_startproc
+ 495              		@ args = 0, pretend = 0, frame = 0
+ 496              		@ frame_needed = 0, uses_anonymous_args = 0
+ 136:source\audio/audio.c ****       unsigned char res,i,find;
+ 497              		.loc 1 136 7 view .LVU119
+ 137:source\audio/audio.c ****       unsigned int index;
+ 498              		.loc 1 137 7 view .LVU120
+ 138:source\audio/audio.c ****       char *fn;
+ 499              		.loc 1 138 7 view .LVU121
+ 139:source\audio/audio.c ****       find = 0;
+ 500              		.loc 1 139 7 view .LVU122
+ 501              	.LVL22:
+ 140:source\audio/audio.c **** #if _USE_LFN
+ 141:source\audio/audio.c ****       fileinfo.lfsize = _MAX_LFN * 2 + 1;
+ 502              		.loc 1 141 7 view .LVU123
+ 135:source\audio/audio.c ****       unsigned char res,i,find;
+ 503              		.loc 1 135 1 is_stmt 0 view .LVU124
+ 504 0000 2DE9F84F 		push	{r3, r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 505              		.cfi_def_cfa_offset 40
+ 506              		.cfi_offset 3, -40
+ 507              		.cfi_offset 4, -36
+ 508              		.cfi_offset 5, -32
+ 509              		.cfi_offset 6, -28
+ 510              		.cfi_offset 7, -24
+ 511              		.cfi_offset 8, -20
+ 512              		.cfi_offset 9, -16
+ 513              		.cfi_offset 10, -12
+ 514              		.cfi_offset 11, -8
+ 515              		.cfi_offset 14, -4
+ 516              		.loc 1 141 23 view .LVU125
+ 517 0004 314D     		ldr	r5, .L45
+ 518 0006 40F2FF10 		movw	r0, #511
+ 519 000a E861     		str	r0, [r5, #28]
+ 142:source\audio/audio.c ****       fileinfo.lfname = (void *)malloc(fileinfo.lfsize);
+ 520              		.loc 1 142 7 is_stmt 1 view .LVU126
+ 521              		.loc 1 142 25 is_stmt 0 view .LVU127
+ 522 000c FFF7FEFF 		bl	malloc
+ 523              	.LVL23:
+ 143:source\audio/audio.c **** #endif
+ 144:source\audio/audio.c ****       res = f_opendir(&dir,(const TCHAR *)"/audio");
+ 524              		.loc 1 144 13 view .LVU128
+ 525 0010 2F49     		ldr	r1, .L45+4
+ 142:source\audio/audio.c ****       fileinfo.lfname = (void *)malloc(fileinfo.lfsize);
+ 526              		.loc 1 142 23 view .LVU129
+ 527 0012 A861     		str	r0, [r5, #24]
+ 528              		.loc 1 144 7 is_stmt 1 view .LVU130
+ 529              		.loc 1 144 13 is_stmt 0 view .LVU131
+ 530 0014 2F48     		ldr	r0, .L45+8
+ 531 0016 FFF7FEFF 		bl	f_opendir
+ 532              	.LVL24:
+ 145:source\audio/audio.c ****       if (res == FR_OK) {
+ 533              		.loc 1 145 7 is_stmt 1 view .LVU132
+ 534              		.loc 1 145 10 is_stmt 0 view .LVU133
+ 535 001a 0446     		mov	r4, r0
+ 536 001c 0028     		cmp	r0, #0
+ 537 001e 50D1     		bne	.L44
+ 538              	.LBB16:
+ 539              	.LBB17:
+ 146:source\audio/audio.c ****          while ((f_readdir(&dir, &fileinfo) == FR_OK) && fileinfo.fname[0]) {
+ 540              		.loc 1 146 18 view .LVU134
+ 541 0020 DFF8B0A0 		ldr	r10, .L45+8
+ 147:source\audio/audio.c **** #if _USE_LFN
+ 148:source\audio/audio.c ****       fn = *fileinfo.lfname ? fileinfo.lfname : fileinfo.fname;
+ 542              		.loc 1 148 47 view .LVU135
+ 543 0024 05F1090B 		add	fp, r5, #9
+ 544              	.LVL25:
+ 545              	.L25:
+ 146:source\audio/audio.c ****          while ((f_readdir(&dir, &fileinfo) == FR_OK) && fileinfo.fname[0]) {
+ 546              		.loc 1 146 55 is_stmt 1 view .LVU136
+ 146:source\audio/audio.c ****          while ((f_readdir(&dir, &fileinfo) == FR_OK) && fileinfo.fname[0]) {
+ 547              		.loc 1 146 18 is_stmt 0 view .LVU137
+ 548 0028 2946     		mov	r1, r5
+ 549 002a 5046     		mov	r0, r10
+ 550 002c FFF7FEFF 		bl	f_readdir
+ 551              	.LVL26:
+ 146:source\audio/audio.c ****          while ((f_readdir(&dir, &fileinfo) == FR_OK) && fileinfo.fname[0]) {
+ 552              		.loc 1 146 55 view .LVU138
+ 553 0030 88B1     		cbz	r0, .L30
+ 554              	.L33:
+ 149:source\audio/audio.c **** #else
+ 150:source\audio/audio.c ****       fn = fileinfo.fname;;
+ 151:source\audio/audio.c **** #endif
+ 152:source\audio/audio.c **** 	       i = strlen(fn);
+ 153:source\audio/audio.c **** 	       if (strcasecmp(&fn[i-3],music_extend[0]) == 0 || strcasecmp(&fn[i-3],music_extend[1]) == 0 
+ 154:source\audio/audio.c **** 	       	  index = find * 128;
+ 155:source\audio/audio.c **** 	       	  strcpy(audio_file + index,fn);
+ 156:source\audio/audio.c **** 	          find++;
+ 157:source\audio/audio.c **** 	       }
+ 158:source\audio/audio.c ****          }
+ 159:source\audio/audio.c ****          lcd_printf(30,1,"Find %d ",find);
+ 555              		.loc 1 159 10 is_stmt 1 view .LVU139
+ 556 0032 294A     		ldr	r2, .L45+12
+ 557 0034 2346     		mov	r3, r4
+ 558 0036 1E20     		movs	r0, #30
+ 559 0038 0121     		movs	r1, #1
+ 560 003a FFF7FEFF 		bl	lcd_printf
+ 561              	.LVL27:
+ 160:source\audio/audio.c ****          display_line = 0;
+ 562              		.loc 1 160 10 view .LVU140
+ 563              		.loc 1 160 23 is_stmt 0 view .LVU141
+ 564 003e 274B     		ldr	r3, .L45+16
+ 161:source\audio/audio.c ****          display_line_flag = 1;
+ 162:source\audio/audio.c **** #if _USE_LFN         
+ 163:source\audio/audio.c ****          free(fileinfo.lfname);
+ 565              		.loc 1 163 10 view .LVU142
+ 566 0040 A869     		ldr	r0, [r5, #24]
+ 160:source\audio/audio.c ****          display_line = 0;
+ 567              		.loc 1 160 23 view .LVU143
+ 568 0042 0022     		movs	r2, #0
+ 569 0044 1A70     		strb	r2, [r3]
+ 161:source\audio/audio.c ****          display_line_flag = 1;
+ 570              		.loc 1 161 10 is_stmt 1 view .LVU144
+ 161:source\audio/audio.c ****          display_line_flag = 1;
+ 571              		.loc 1 161 28 is_stmt 0 view .LVU145
+ 572 0046 264B     		ldr	r3, .L45+20
+ 573 0048 0122     		movs	r2, #1
+ 574 004a 1A70     		strb	r2, [r3]
+ 575              		.loc 1 163 10 is_stmt 1 view .LVU146
+ 576 004c FFF7FEFF 		bl	free
+ 577              	.LVL28:
+ 164:source\audio/audio.c **** #endif
+ 165:source\audio/audio.c **** 	 return find;
+ 578              		.loc 1 165 3 view .LVU147
+ 579              	.L31:
+ 580              		.loc 1 165 3 is_stmt 0 view .LVU148
+ 581              	.LBE17:
+ 582              	.LBE16:
+ 166:source\audio/audio.c ****       }
+ 167:source\audio/audio.c **** #if _USE_LFN 
+ 168:source\audio/audio.c ****       free(fileinfo.lfname);
+ 169:source\audio/audio.c **** #endif
+ 170:source\audio/audio.c ****       return 0;
+ 171:source\audio/audio.c **** }
+ 583              		.loc 1 171 1 view .LVU149
+ 584 0050 2046     		mov	r0, r4
+ 585 0052 BDE8F88F 		pop	{r3, r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 586              	.LVL29:
+ 587              	.L30:
+ 588              	.LBB19:
+ 589              	.LBB18:
+ 146:source\audio/audio.c **** #if _USE_LFN
+ 590              		.loc 1 146 55 view .LVU150
+ 591 0056 6B7A     		ldrb	r3, [r5, #9]	@ zero_extendqisi2
+ 592 0058 002B     		cmp	r3, #0
+ 593 005a EAD0     		beq	.L33
+ 148:source\audio/audio.c **** #else
+ 594              		.loc 1 148 7 is_stmt 1 view .LVU151
+ 148:source\audio/audio.c **** #else
+ 595              		.loc 1 148 21 is_stmt 0 view .LVU152
+ 596 005c AE69     		ldr	r6, [r5, #24]
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 597              		.loc 1 153 13 view .LVU153
+ 598 005e DFF88890 		ldr	r9, .L45+28
+ 148:source\audio/audio.c **** #else
+ 599              		.loc 1 148 47 view .LVU154
+ 600 0062 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 601 0064 002B     		cmp	r3, #0
+ 602 0066 08BF     		it	eq
+ 603 0068 5E46     		moveq	r6, fp
+ 604              	.LVL30:
+ 152:source\audio/audio.c **** 	       if (strcasecmp(&fn[i-3],music_extend[0]) == 0 || strcasecmp(&fn[i-3],music_extend[1]) == 0 
+ 605              		.loc 1 152 9 is_stmt 1 view .LVU155
+ 152:source\audio/audio.c **** 	       if (strcasecmp(&fn[i-3],music_extend[0]) == 0 || strcasecmp(&fn[i-3],music_extend[1]) == 0 
+ 606              		.loc 1 152 13 is_stmt 0 view .LVU156
+ 607 006a 3046     		mov	r0, r6
+ 608 006c FFF7FEFF 		bl	strlen
+ 609              	.LVL31:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 610              		.loc 1 153 9 is_stmt 1 view .LVU157
+ 611 0070 C7B2     		uxtb	r7, r0
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 612              		.loc 1 153 27 is_stmt 0 view .LVU158
+ 613 0072 A7F10308 		sub	r8, r7, #3
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 614              		.loc 1 153 24 view .LVU159
+ 615 0076 B044     		add	r8, r8, r6
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 616              		.loc 1 153 13 view .LVU160
+ 617 0078 D9F80010 		ldr	r1, [r9]
+ 618 007c 4046     		mov	r0, r8
+ 619              	.LVL32:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 620              		.loc 1 153 13 view .LVU161
+ 621 007e FFF7FEFF 		bl	strcasecmp
+ 622              	.LVL33:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 623              		.loc 1 153 12 view .LVU162
+ 624 0082 98B1     		cbz	r0, .L28
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 625              		.loc 1 153 58 view .LVU163
+ 626 0084 D9F80410 		ldr	r1, [r9, #4]
+ 627 0088 4046     		mov	r0, r8
+ 628 008a FFF7FEFF 		bl	strcasecmp
+ 629              	.LVL34:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 630              		.loc 1 153 55 view .LVU164
+ 631 008e 68B1     		cbz	r0, .L28
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 632              		.loc 1 153 103 view .LVU165
+ 633 0090 D9F80810 		ldr	r1, [r9, #8]
+ 634 0094 4046     		mov	r0, r8
+ 635 0096 FFF7FEFF 		bl	strcasecmp
+ 636              	.LVL35:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 637              		.loc 1 153 100 view .LVU166
+ 638 009a 38B1     		cbz	r0, .L28
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 639              		.loc 1 153 162 view .LVU167
+ 640 009c 381F     		subs	r0, r7, #4
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 641              		.loc 1 153 148 view .LVU168
+ 642 009e D9F80C10 		ldr	r1, [r9, #12]
+ 643 00a2 3044     		add	r0, r0, r6
+ 644 00a4 FFF7FEFF 		bl	strcasecmp
+ 645              	.LVL36:
+ 153:source\audio/audio.c **** 	       	  index = find * 128;
+ 646              		.loc 1 153 145 view .LVU169
+ 647 00a8 0028     		cmp	r0, #0
+ 648 00aa BDD1     		bne	.L25
+ 649              	.L28:
+ 154:source\audio/audio.c **** 	       	  strcpy(audio_file + index,fn);
+ 650              		.loc 1 154 12 is_stmt 1 view .LVU170
+ 651              	.LVL37:
+ 155:source\audio/audio.c **** 	          find++;
+ 652              		.loc 1 155 12 view .LVU171
+ 653 00ac 0D4B     		ldr	r3, .L45+24
+ 654 00ae 1B68     		ldr	r3, [r3]
+ 154:source\audio/audio.c **** 	       	  strcpy(audio_file + index,fn);
+ 655              		.loc 1 154 25 is_stmt 0 view .LVU172
+ 656 00b0 20B2     		sxth	r0, r4
+ 155:source\audio/audio.c **** 	          find++;
+ 657              		.loc 1 155 12 view .LVU173
+ 658 00b2 3146     		mov	r1, r6
+ 659 00b4 03EBC010 		add	r0, r3, r0, lsl #7
+ 156:source\audio/audio.c **** 	       }
+ 660              		.loc 1 156 16 view .LVU174
+ 661 00b8 0134     		adds	r4, r4, #1
+ 662              	.LVL38:
+ 155:source\audio/audio.c **** 	          find++;
+ 663              		.loc 1 155 12 view .LVU175
+ 664 00ba FFF7FEFF 		bl	strcpy
+ 665              	.LVL39:
+ 156:source\audio/audio.c **** 	       }
+ 666              		.loc 1 156 12 is_stmt 1 view .LVU176
+ 156:source\audio/audio.c **** 	       }
+ 667              		.loc 1 156 16 is_stmt 0 view .LVU177
+ 668 00be E4B2     		uxtb	r4, r4
+ 669              	.LVL40:
+ 156:source\audio/audio.c **** 	       }
+ 670              		.loc 1 156 16 view .LVU178
+ 671 00c0 B2E7     		b	.L25
+ 672              	.LVL41:
+ 673              	.L44:
+ 156:source\audio/audio.c **** 	       }
+ 674              		.loc 1 156 16 view .LVU179
+ 675              	.LBE18:
+ 676              	.LBE19:
+ 168:source\audio/audio.c **** #endif
+ 677              		.loc 1 168 7 is_stmt 1 view .LVU180
+ 678 00c2 A869     		ldr	r0, [r5, #24]
+ 679              	.LVL42:
+ 168:source\audio/audio.c **** #endif
+ 680              		.loc 1 168 7 is_stmt 0 view .LVU181
+ 681 00c4 FFF7FEFF 		bl	free
+ 682              	.LVL43:
+ 170:source\audio/audio.c **** }
+ 683              		.loc 1 170 7 is_stmt 1 view .LVU182
+ 170:source\audio/audio.c **** }
+ 684              		.loc 1 170 14 is_stmt 0 view .LVU183
+ 685 00c8 0024     		movs	r4, #0
+ 686 00ca C1E7     		b	.L31
+ 687              	.L46:
+ 688              		.align	2
+ 689              	.L45:
+ 690 00cc 00000000 		.word	fileinfo
+ 691 00d0 00000000 		.word	.LC7
+ 692 00d4 00000000 		.word	dir
+ 693 00d8 07000000 		.word	.LC8
+ 694 00dc 00000000 		.word	display_line
+ 695 00e0 00000000 		.word	display_line_flag
+ 696 00e4 00000000 		.word	audio_file
+ 697 00e8 00000000 		.word	music_extend
+ 698              		.cfi_endproc
+ 699              	.LFE131:
+ 701              		.section	.text.wm8978_volset,"ax",%progbits
+ 702              		.align	1
+ 703              		.global	wm8978_volset
+ 704              		.syntax unified
+ 705              		.thumb
+ 706              		.thumb_func
+ 708              	wm8978_volset:
+ 709              	.LVL44:
+ 710              	.LFB132:
+ 172:source\audio/audio.c **** 
+ 173:source\audio/audio.c **** 
+ 174:source\audio/audio.c **** void wm8978_volset (unsigned char vol)
+ 175:source\audio/audio.c **** {
+ 711              		.loc 1 175 1 is_stmt 1 view -0
+ 712              		.cfi_startproc
+ 713              		@ args = 0, pretend = 0, frame = 0
+ 714              		@ frame_needed = 0, uses_anonymous_args = 0
+ 176:source\audio/audio.c ****       if (vol > 63) vol = 63;
+ 715              		.loc 1 176 7 view .LVU185
+ 175:source\audio/audio.c ****       if (vol > 63) vol = 63;
+ 716              		.loc 1 175 1 is_stmt 0 view .LVU186
+ 717 0000 10B5     		push	{r4, lr}
+ 718              		.cfi_def_cfa_offset 8
+ 719              		.cfi_offset 4, -8
+ 720              		.cfi_offset 14, -4
+ 721              		.loc 1 176 10 view .LVU187
+ 722 0002 3F28     		cmp	r0, #63
+ 177:source\audio/audio.c ****       if (wm8978set.speakersw) WM8978_SPKvol_Set(vol);else WM8978_SPKvol_Set(0);
+ 723              		.loc 1 177 20 view .LVU188
+ 724 0004 074B     		ldr	r3, .L50
+ 176:source\audio/audio.c ****       if (vol > 63) vol = 63;
+ 725              		.loc 1 176 10 view .LVU189
+ 726 0006 28BF     		it	cs
+ 727 0008 3F20     		movcs	r0, #63
+ 728              	.LVL45:
+ 176:source\audio/audio.c ****       if (vol > 63) vol = 63;
+ 729              		.loc 1 176 10 view .LVU190
+ 730 000a 0446     		mov	r4, r0
+ 731              	.LVL46:
+ 732              		.loc 1 177 7 is_stmt 1 view .LVU191
+ 733              		.loc 1 177 10 is_stmt 0 view .LVU192
+ 734 000c 187B     		ldrb	r0, [r3, #12]	@ zero_extendqisi2
+ 735 000e 00B1     		cbz	r0, .L48
+ 736              		.loc 1 177 32 is_stmt 1 discriminator 1 view .LVU193
+ 737 0010 2046     		mov	r0, r4
+ 738              	.L48:
+ 739              		.loc 1 177 60 discriminator 2 view .LVU194
+ 740 0012 FFF7FEFF 		bl	WM8978_SPKvol_Set
+ 741              	.LVL47:
+ 178:source\audio/audio.c ****       WM8978_HPvol_Set(vol,vol);
+ 742              		.loc 1 178 7 discriminator 2 view .LVU195
+ 743 0016 2146     		mov	r1, r4
+ 744 0018 2046     		mov	r0, r4
+ 179:source\audio/audio.c **** }
+ 745              		.loc 1 179 1 is_stmt 0 discriminator 2 view .LVU196
+ 746 001a BDE81040 		pop	{r4, lr}
+ 747              		.cfi_restore 14
+ 748              		.cfi_restore 4
+ 749              		.cfi_def_cfa_offset 0
+ 750              	.LVL48:
+ 178:source\audio/audio.c ****       WM8978_HPvol_Set(vol,vol);
+ 751              		.loc 1 178 7 discriminator 2 view .LVU197
+ 752 001e FFF7FEBF 		b	WM8978_HPvol_Set
+ 753              	.LVL49:
+ 754              	.L51:
+ 178:source\audio/audio.c ****       WM8978_HPvol_Set(vol,vol);
+ 755              		.loc 1 178 7 discriminator 2 view .LVU198
+ 756 0022 00BF     		.align	2
+ 757              	.L50:
+ 758 0024 00000000 		.word	wm8978set
+ 759              		.cfi_endproc
+ 760              	.LFE132:
+ 762              		.section	.text.wm8978_eqset,"ax",%progbits
+ 763              		.align	1
+ 764              		.global	wm8978_eqset
+ 765              		.syntax unified
+ 766              		.thumb
+ 767              		.thumb_func
+ 769              	wm8978_eqset:
+ 770              	.LVL50:
+ 771              	.LFB133:
+ 180:source\audio/audio.c **** 
+ 181:source\audio/audio.c **** 
+ 182:source\audio/audio.c **** void wm8978_eqset (_wm8978_obj *wmset,unsigned char eqx)
+ 183:source\audio/audio.c **** {
+ 772              		.loc 1 183 1 is_stmt 1 view -0
+ 773              		.cfi_startproc
+ 774              		@ args = 0, pretend = 0, frame = 0
+ 775              		@ frame_needed = 0, uses_anonymous_args = 0
+ 776              		@ link register save eliminated.
+ 184:source\audio/audio.c ****       switch (eqx) {
+ 777              		.loc 1 184 7 view .LVU200
+ 778 0000 0429     		cmp	r1, #4
+ 779 0002 18D8     		bhi	.L52
+ 780 0004 DFE801F0 		tbb	[pc, r1]
+ 781              	.L55:
+ 782 0008 03       		.byte	(.L59-.L55)/2
+ 783 0009 07       		.byte	(.L58-.L55)/2
+ 784 000a 0B       		.byte	(.L57-.L55)/2
+ 785 000b 0F       		.byte	(.L56-.L55)/2
+ 786 000c 13       		.byte	(.L54-.L55)/2
+ 787 000d 00       		.p2align 1
+ 788              	.L59:
+ 185:source\audio/audio.c **** 	 case 0:
+ 186:source\audio/audio.c **** 	   WM8978_EQ1_Set(wmset->cfreq[eqx],wmset->freqval[eqx]);
+ 789              		.loc 1 186 5 view .LVU201
+ 790 000e 8179     		ldrb	r1, [r0, #6]	@ zero_extendqisi2
+ 791              	.LVL51:
+ 792              		.loc 1 186 5 is_stmt 0 view .LVU202
+ 793 0010 4078     		ldrb	r0, [r0, #1]	@ zero_extendqisi2
+ 794              	.LVL52:
+ 795              		.loc 1 186 5 view .LVU203
+ 796 0012 FFF7FEBF 		b	WM8978_EQ1_Set
+ 797              	.LVL53:
+ 798              	.L58:
+ 187:source\audio/audio.c **** 	   break;
+ 188:source\audio/audio.c **** 	 case 1:
+ 189:source\audio/audio.c **** 	   WM8978_EQ2_Set(wmset->cfreq[eqx],wmset->freqval[eqx]);
+ 799              		.loc 1 189 5 is_stmt 1 view .LVU204
+ 800 0016 C179     		ldrb	r1, [r0, #7]	@ zero_extendqisi2
+ 801              	.LVL54:
+ 802              		.loc 1 189 5 is_stmt 0 view .LVU205
+ 803 0018 8078     		ldrb	r0, [r0, #2]	@ zero_extendqisi2
+ 804              	.LVL55:
+ 805              		.loc 1 189 5 view .LVU206
+ 806 001a FFF7FEBF 		b	WM8978_EQ2_Set
+ 807              	.LVL56:
+ 808              	.L57:
+ 190:source\audio/audio.c **** 	   break;
+ 191:source\audio/audio.c **** 	 case 2:
+ 192:source\audio/audio.c **** 	   WM8978_EQ3_Set(wmset->cfreq[eqx],wmset->freqval[eqx]);
+ 809              		.loc 1 192 5 is_stmt 1 view .LVU207
+ 810 001e 017A     		ldrb	r1, [r0, #8]	@ zero_extendqisi2
+ 811              	.LVL57:
+ 812              		.loc 1 192 5 is_stmt 0 view .LVU208
+ 813 0020 C078     		ldrb	r0, [r0, #3]	@ zero_extendqisi2
+ 814              	.LVL58:
+ 815              		.loc 1 192 5 view .LVU209
+ 816 0022 FFF7FEBF 		b	WM8978_EQ3_Set
+ 817              	.LVL59:
+ 818              	.L56:
+ 193:source\audio/audio.c **** 	   break;
+ 194:source\audio/audio.c ****  	 case 3:
+ 195:source\audio/audio.c **** 	   WM8978_EQ4_Set(wmset->cfreq[eqx],wmset->freqval[eqx]);
+ 819              		.loc 1 195 5 is_stmt 1 view .LVU210
+ 820 0026 417A     		ldrb	r1, [r0, #9]	@ zero_extendqisi2
+ 821              	.LVL60:
+ 822              		.loc 1 195 5 is_stmt 0 view .LVU211
+ 823 0028 0079     		ldrb	r0, [r0, #4]	@ zero_extendqisi2
+ 824              	.LVL61:
+ 825              		.loc 1 195 5 view .LVU212
+ 826 002a FFF7FEBF 		b	WM8978_EQ4_Set
+ 827              	.LVL62:
+ 828              	.L54:
+ 196:source\audio/audio.c **** 	   break;
+ 197:source\audio/audio.c ****          case 4:
+ 198:source\audio/audio.c **** 	   WM8978_EQ5_Set(wmset->cfreq[eqx],wmset->freqval[eqx]);
+ 829              		.loc 1 198 5 is_stmt 1 view .LVU213
+ 830 002e 817A     		ldrb	r1, [r0, #10]	@ zero_extendqisi2
+ 831              	.LVL63:
+ 832              		.loc 1 198 5 is_stmt 0 view .LVU214
+ 833 0030 4079     		ldrb	r0, [r0, #5]	@ zero_extendqisi2
+ 834              	.LVL64:
+ 835              		.loc 1 198 5 view .LVU215
+ 836 0032 FFF7FEBF 		b	WM8978_EQ5_Set
+ 837              	.LVL65:
+ 838              	.L52:
+ 199:source\audio/audio.c **** 	   break;
+ 200:source\audio/audio.c ****       }
+ 201:source\audio/audio.c **** }
+ 839              		.loc 1 201 1 view .LVU216
+ 840 0036 7047     		bx	lr
+ 841              		.cfi_endproc
+ 842              	.LFE133:
+ 844              		.section	.text.audio_start,"ax",%progbits
+ 845              		.align	1
+ 846              		.global	audio_start
+ 847              		.syntax unified
+ 848              		.thumb
+ 849              		.thumb_func
+ 851              	audio_start:
+ 852              	.LFB134:
+ 202:source\audio/audio.c **** 
+ 203:source\audio/audio.c **** 
+ 204:source\audio/audio.c **** void audio_start (void)
+ 205:source\audio/audio.c **** {
+ 853              		.loc 1 205 1 is_stmt 1 view -0
+ 854              		.cfi_startproc
+ 855              		@ args = 0, pretend = 0, frame = 0
+ 856              		@ frame_needed = 0, uses_anonymous_args = 0
+ 857              		@ link register save eliminated.
+ 206:source\audio/audio.c ****       audiodev.status |= 1 << 1;
+ 858              		.loc 1 206 7 view .LVU218
+ 859              		.loc 1 206 15 is_stmt 0 view .LVU219
+ 860 0000 054B     		ldr	r3, .L61
+ 861 0002 1A7D     		ldrb	r2, [r3, #20]	@ zero_extendqisi2
+ 862              		.loc 1 206 23 view .LVU220
+ 863 0004 42F00202 		orr	r2, r2, #2
+ 864 0008 1A75     		strb	r2, [r3, #20]
+ 207:source\audio/audio.c ****       audiodev.status |= 1 << 0;
+ 865              		.loc 1 207 7 is_stmt 1 view .LVU221
+ 866              		.loc 1 207 15 is_stmt 0 view .LVU222
+ 867 000a 1A7D     		ldrb	r2, [r3, #20]	@ zero_extendqisi2
+ 868              		.loc 1 207 23 view .LVU223
+ 869 000c 42F00102 		orr	r2, r2, #1
+ 870 0010 1A75     		strb	r2, [r3, #20]
+ 208:source\audio/audio.c ****       I2S_Play_Start();
+ 871              		.loc 1 208 7 is_stmt 1 view .LVU224
+ 872 0012 FFF7FEBF 		b	I2S_Play_Start
+ 873              	.LVL66:
+ 874              	.L62:
+ 875 0016 00BF     		.align	2
+ 876              	.L61:
+ 877 0018 00000000 		.word	audiodev
+ 878              		.cfi_endproc
+ 879              	.LFE134:
+ 881              		.section	.text.audio_stop,"ax",%progbits
+ 882              		.align	1
+ 883              		.global	audio_stop
+ 884              		.syntax unified
+ 885              		.thumb
+ 886              		.thumb_func
+ 888              	audio_stop:
+ 889              	.LFB135:
+ 209:source\audio/audio.c **** }
+ 210:source\audio/audio.c **** 
+ 211:source\audio/audio.c **** 
+ 212:source\audio/audio.c **** void audio_stop (void)
+ 213:source\audio/audio.c **** {
+ 890              		.loc 1 213 1 view -0
+ 891              		.cfi_startproc
+ 892              		@ args = 0, pretend = 0, frame = 0
+ 893              		@ frame_needed = 0, uses_anonymous_args = 0
+ 894              		@ link register save eliminated.
+ 214:source\audio/audio.c ****       audiodev.status &= ~(1 << 0);
+ 895              		.loc 1 214 7 view .LVU226
+ 896              		.loc 1 214 15 is_stmt 0 view .LVU227
+ 897 0000 054B     		ldr	r3, .L64
+ 898 0002 1A7D     		ldrb	r2, [r3, #20]	@ zero_extendqisi2
+ 899              		.loc 1 214 23 view .LVU228
+ 900 0004 02F0FE02 		and	r2, r2, #254
+ 901 0008 1A75     		strb	r2, [r3, #20]
+ 215:source\audio/audio.c ****       audiodev.status &= ~(1 << 1);
+ 902              		.loc 1 215 7 is_stmt 1 view .LVU229
+ 903              		.loc 1 215 15 is_stmt 0 view .LVU230
+ 904 000a 1A7D     		ldrb	r2, [r3, #20]	@ zero_extendqisi2
+ 905              		.loc 1 215 23 view .LVU231
+ 906 000c 02F0FD02 		and	r2, r2, #253
+ 907 0010 1A75     		strb	r2, [r3, #20]
+ 216:source\audio/audio.c ****       I2S_Play_Stop();
+ 908              		.loc 1 216 7 is_stmt 1 view .LVU232
+ 909 0012 FFF7FEBF 		b	I2S_Play_Stop
+ 910              	.LVL67:
+ 911              	.L65:
+ 912 0016 00BF     		.align	2
+ 913              	.L64:
+ 914 0018 00000000 		.word	audiodev
+ 915              		.cfi_endproc
+ 916              	.LFE135:
+ 918              		.section	.rodata.audio_init.str1.1,"aMS",%progbits,1
+ 919              	.LC9:
+ 920 0000 6D703320 		.ascii	"mp3 player\000"
+ 920      706C6179 
+ 920      657200
+ 921              	.LC10:
+ 922 000b 20417564 		.ascii	" Audio Files \000"
+ 922      696F2046 
+ 922      696C6573 
+ 922      2000
+ 923              	.LC11:
+ 924 0019 303A00   		.ascii	"0:\000"
+ 925              		.section	.text.audio_init,"ax",%progbits
+ 926              		.align	1
+ 927              		.global	audio_init
+ 928              		.syntax unified
+ 929              		.thumb
+ 930              		.thumb_func
+ 932              	audio_init:
+ 933              	.LFB136:
+ 217:source\audio/audio.c **** }
+ 218:source\audio/audio.c **** 
+ 219:source\audio/audio.c **** 
+ 220:source\audio/audio.c **** void audio_init (void)
+ 221:source\audio/audio.c **** {
+ 934              		.loc 1 221 1 view -0
+ 935              		.cfi_startproc
+ 936              		@ args = 0, pretend = 0, frame = 0
+ 937              		@ frame_needed = 0, uses_anonymous_args = 0
+ 222:source\audio/audio.c ****       unsigned short idx;
+ 938              		.loc 1 222 7 view .LVU234
+ 223:source\audio/audio.c ****       for (idx=0;idx<_VOLUMES;idx++) {
+ 939              		.loc 1 223 7 view .LVU235
+ 940              	.LVL68:
+ 941              		.loc 1 223 21 view .LVU236
+ 221:source\audio/audio.c ****       unsigned short idx;
+ 942              		.loc 1 221 1 is_stmt 0 view .LVU237
+ 943 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 944              		.cfi_def_cfa_offset 24
+ 945              		.cfi_offset 3, -24
+ 946              		.cfi_offset 4, -20
+ 947              		.cfi_offset 5, -16
+ 948              		.cfi_offset 6, -12
+ 949              		.cfi_offset 7, -8
+ 950              		.cfi_offset 14, -4
+ 951 0002 494D     		ldr	r5, .L79
+ 221:source\audio/audio.c ****       unsigned short idx;
+ 952              		.loc 1 221 1 view .LVU238
+ 953 0004 0324     		movs	r4, #3
+ 954 0006 2E46     		mov	r6, r5
+ 955              	.LVL69:
+ 956              	.L68:
+ 224:source\audio/audio.c ****           fs[idx] = (FATFS *)malloc(sizeof(FATFS));
+ 957              		.loc 1 224 11 is_stmt 1 view .LVU239
+ 958              		.loc 1 224 30 is_stmt 0 view .LVU240
+ 959 0008 4FF40C70 		mov	r0, #560
+ 960 000c FFF7FEFF 		bl	malloc
+ 961              	.LVL70:
+ 962              		.loc 1 224 19 view .LVU241
+ 963 0010 45F8040B 		str	r0, [r5], #4
+ 225:source\audio/audio.c ****           if (!fs[idx]) break;
+ 964              		.loc 1 225 11 is_stmt 1 view .LVU242
+ 965              		.loc 1 225 14 is_stmt 0 view .LVU243
+ 966 0014 18B1     		cbz	r0, .L67
+ 223:source\audio/audio.c ****           fs[idx] = (FATFS *)malloc(sizeof(FATFS));
+ 967              		.loc 1 223 34 is_stmt 1 discriminator 2 view .LVU244
+ 968              	.LVL71:
+ 223:source\audio/audio.c ****           fs[idx] = (FATFS *)malloc(sizeof(FATFS));
+ 969              		.loc 1 223 21 discriminator 2 view .LVU245
+ 970 0016 013C     		subs	r4, r4, #1
+ 971              	.LVL72:
+ 223:source\audio/audio.c ****           fs[idx] = (FATFS *)malloc(sizeof(FATFS));
+ 972              		.loc 1 223 21 is_stmt 0 discriminator 2 view .LVU246
+ 973 0018 A4B2     		uxth	r4, r4
+ 974 001a 002C     		cmp	r4, #0
+ 975 001c F4D1     		bne	.L68
+ 976              	.LVL73:
+ 977              	.L67:
+ 226:source\audio/audio.c ****       }
+ 227:source\audio/audio.c ****       file = (FIL *)malloc(sizeof(FIL));
+ 978              		.loc 1 227 7 is_stmt 1 view .LVU247
+ 979              		.loc 1 227 21 is_stmt 0 view .LVU248
+ 980 001e 4FF40B70 		mov	r0, #556
+ 981 0022 FFF7FEFF 		bl	malloc
+ 982              	.LVL74:
+ 983              		.loc 1 227 12 view .LVU249
+ 984 0026 414B     		ldr	r3, .L79+4
+ 228:source\audio/audio.c ****       ftemp = (FIL *)malloc(sizeof(FIL));
+ 229:source\audio/audio.c ****       fatbuf = (unsigned char *)malloc(512);
+ 230:source\audio/audio.c ****       audio_file = (char *)audio_file_address;
+ 985              		.loc 1 230 18 view .LVU250
+ 986 0028 414C     		ldr	r4, .L79+8
+ 227:source\audio/audio.c ****       ftemp = (FIL *)malloc(sizeof(FIL));
+ 987              		.loc 1 227 12 view .LVU251
+ 988 002a 1860     		str	r0, [r3]
+ 228:source\audio/audio.c ****       ftemp = (FIL *)malloc(sizeof(FIL));
+ 989              		.loc 1 228 7 is_stmt 1 view .LVU252
+ 228:source\audio/audio.c ****       ftemp = (FIL *)malloc(sizeof(FIL));
+ 990              		.loc 1 228 22 is_stmt 0 view .LVU253
+ 991 002c 4FF40B70 		mov	r0, #556
+ 992 0030 FFF7FEFF 		bl	malloc
+ 993              	.LVL75:
+ 228:source\audio/audio.c ****       ftemp = (FIL *)malloc(sizeof(FIL));
+ 994              		.loc 1 228 13 view .LVU254
+ 995 0034 3F4B     		ldr	r3, .L79+12
+ 996 0036 1860     		str	r0, [r3]
+ 229:source\audio/audio.c ****       audio_file = (char *)audio_file_address;
+ 997              		.loc 1 229 7 is_stmt 1 view .LVU255
+ 229:source\audio/audio.c ****       audio_file = (char *)audio_file_address;
+ 998              		.loc 1 229 33 is_stmt 0 view .LVU256
+ 999 0038 4FF40070 		mov	r0, #512
+ 1000 003c FFF7FEFF 		bl	malloc
+ 1001              	.LVL76:
+ 229:source\audio/audio.c ****       audio_file = (char *)audio_file_address;
+ 1002              		.loc 1 229 14 view .LVU257
+ 1003 0040 3D4B     		ldr	r3, .L79+16
+ 1004 0042 1860     		str	r0, [r3]
+ 1005              		.loc 1 230 7 is_stmt 1 view .LVU258
+ 1006              		.loc 1 230 18 is_stmt 0 view .LVU259
+ 1007 0044 4FF0D043 		mov	r3, #1744830464
+ 1008 0048 2360     		str	r3, [r4]
+ 231:source\audio/audio.c ****       rtc_init();
+ 1009              		.loc 1 231 7 is_stmt 1 view .LVU260
+ 1010 004a FFF7FEFF 		bl	rtc_init
+ 1011              	.LVL77:
+ 232:source\audio/audio.c ****       WM8978_Init();
+ 1012              		.loc 1 232 7 view .LVU261
+ 1013 004e FFF7FEFF 		bl	WM8978_Init
+ 1014              	.LVL78:
+ 233:source\audio/audio.c ****       FSMC_SRAM_Init();
+ 1015              		.loc 1 233 7 view .LVU262
+ 1016 0052 FFF7FEFF 		bl	FSMC_SRAM_Init
+ 1017              	.LVL79:
+ 234:source\audio/audio.c ****       memset(audio_file,0,32768);
+ 1018              		.loc 1 234 7 view .LVU263
+ 1019 0056 2068     		ldr	r0, [r4]
+ 235:source\audio/audio.c ****       SD_Init();
+ 236:source\audio/audio.c ****       /* Reload IWDG counter */
+ 237:source\audio/audio.c ****       IWDG_ReloadCounter();
+ 238:source\audio/audio.c ****       wm8978_read_para(&wm8978set);
+ 1020              		.loc 1 238 7 is_stmt 0 view .LVU264
+ 1021 0058 384C     		ldr	r4, .L79+20
+ 234:source\audio/audio.c ****       memset(audio_file,0,32768);
+ 1022              		.loc 1 234 7 view .LVU265
+ 1023 005a 4FF40042 		mov	r2, #32768
+ 1024 005e 0021     		movs	r1, #0
+ 1025 0060 FFF7FEFF 		bl	memset
+ 1026              	.LVL80:
+ 235:source\audio/audio.c ****       SD_Init();
+ 1027              		.loc 1 235 7 is_stmt 1 view .LVU266
+ 1028 0064 FFF7FEFF 		bl	SD_Init
+ 1029              	.LVL81:
+ 237:source\audio/audio.c ****       wm8978_read_para(&wm8978set);
+ 1030              		.loc 1 237 7 view .LVU267
+ 1031 0068 FFF7FEFF 		bl	IWDG_ReloadCounter
+ 1032              	.LVL82:
+ 1033              		.loc 1 238 7 view .LVU268
+ 1034 006c 2046     		mov	r0, r4
+ 1035 006e FFF7FEFF 		bl	wm8978_read_para
+ 1036              	.LVL83:
+ 239:source\audio/audio.c ****       if (wm8978set.saveflag != 0x0A) {
+ 1037              		.loc 1 239 7 view .LVU269
+ 1038              		.loc 1 239 10 is_stmt 0 view .LVU270
+ 1039 0072 637B     		ldrb	r3, [r4, #13]	@ zero_extendqisi2
+ 1040 0074 0A2B     		cmp	r3, #10
+ 1041 0076 14D0     		beq	.L69
+ 240:source\audio/audio.c ****          wm8978set.mvol = 30;
+ 1042              		.loc 1 240 10 is_stmt 1 view .LVU271
+ 1043              		.loc 1 240 25 is_stmt 0 view .LVU272
+ 1044 0078 1E23     		movs	r3, #30
+ 1045 007a 2370     		strb	r3, [r4]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1046              		.loc 1 241 10 is_stmt 1 view .LVU273
+ 1047              	.LVL84:
+ 1048              		.loc 1 241 24 view .LVU274
+ 1049              		.loc 1 241 34 view .LVU275
+ 1050              		.loc 1 241 55 is_stmt 0 view .LVU276
+ 1051 007c 0023     		movs	r3, #0
+ 242:source\audio/audio.c ****          wm8978set.d3 = 0;
+ 243:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.freqval[idx] = 12;
+ 1052              		.loc 1 243 57 view .LVU277
+ 1053 007e 0C22     		movs	r2, #12
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1054              		.loc 1 241 55 view .LVU278
+ 1055 0080 6370     		strb	r3, [r4, #1]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1056              		.loc 1 241 30 is_stmt 1 view .LVU279
+ 1057              	.LVL85:
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1058              		.loc 1 241 24 view .LVU280
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1059              		.loc 1 241 34 view .LVU281
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1060              		.loc 1 241 55 is_stmt 0 view .LVU282
+ 1061 0082 A370     		strb	r3, [r4, #2]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1062              		.loc 1 241 30 is_stmt 1 view .LVU283
+ 1063              	.LVL86:
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1064              		.loc 1 241 24 view .LVU284
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1065              		.loc 1 241 34 view .LVU285
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1066              		.loc 1 241 55 is_stmt 0 view .LVU286
+ 1067 0084 E370     		strb	r3, [r4, #3]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1068              		.loc 1 241 30 is_stmt 1 view .LVU287
+ 1069              	.LVL87:
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1070              		.loc 1 241 24 view .LVU288
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1071              		.loc 1 241 34 view .LVU289
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1072              		.loc 1 241 55 is_stmt 0 view .LVU290
+ 1073 0086 2371     		strb	r3, [r4, #4]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1074              		.loc 1 241 30 is_stmt 1 view .LVU291
+ 1075              	.LVL88:
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1076              		.loc 1 241 24 view .LVU292
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1077              		.loc 1 241 34 view .LVU293
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1078              		.loc 1 241 55 is_stmt 0 view .LVU294
+ 1079 0088 6371     		strb	r3, [r4, #5]
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1080              		.loc 1 241 30 is_stmt 1 view .LVU295
+ 1081              	.LVL89:
+ 241:source\audio/audio.c ****          for (idx=0;idx<5;idx++) wm8978set.cfreq[idx] = 0;
+ 1082              		.loc 1 241 24 view .LVU296
+ 242:source\audio/audio.c ****          wm8978set.d3 = 0;
+ 1083              		.loc 1 242 10 view .LVU297
+ 242:source\audio/audio.c ****          wm8978set.d3 = 0;
+ 1084              		.loc 1 242 23 is_stmt 0 view .LVU298
+ 1085 008a E372     		strb	r3, [r4, #11]
+ 1086              		.loc 1 243 10 is_stmt 1 view .LVU299
+ 1087              	.LVL90:
+ 1088              		.loc 1 243 24 view .LVU300
+ 1089              		.loc 1 243 34 view .LVU301
+ 244:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1090              		.loc 1 244 30 is_stmt 0 view .LVU302
+ 1091 008c 2373     		strb	r3, [r4, #12]
+ 245:source\audio/audio.c ****          wm8978set.saveflag = 0x0A;
+ 246:source\audio/audio.c ****          wm8978_save_para(&wm8978set);
+ 1092              		.loc 1 246 10 view .LVU303
+ 1093 008e 2046     		mov	r0, r4
+ 245:source\audio/audio.c ****          wm8978set.saveflag = 0x0A;
+ 1094              		.loc 1 245 29 view .LVU304
+ 1095 0090 0A23     		movs	r3, #10
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1096              		.loc 1 243 57 view .LVU305
+ 1097 0092 A271     		strb	r2, [r4, #6]
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1098              		.loc 1 243 30 is_stmt 1 view .LVU306
+ 1099              	.LVL91:
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1100              		.loc 1 243 24 view .LVU307
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1101              		.loc 1 243 34 view .LVU308
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1102              		.loc 1 243 57 is_stmt 0 view .LVU309
+ 1103 0094 E271     		strb	r2, [r4, #7]
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1104              		.loc 1 243 30 is_stmt 1 view .LVU310
+ 1105              	.LVL92:
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1106              		.loc 1 243 24 view .LVU311
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1107              		.loc 1 243 34 view .LVU312
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1108              		.loc 1 243 57 is_stmt 0 view .LVU313
+ 1109 0096 2272     		strb	r2, [r4, #8]
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1110              		.loc 1 243 30 is_stmt 1 view .LVU314
+ 1111              	.LVL93:
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1112              		.loc 1 243 24 view .LVU315
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1113              		.loc 1 243 34 view .LVU316
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1114              		.loc 1 243 57 is_stmt 0 view .LVU317
+ 1115 0098 6272     		strb	r2, [r4, #9]
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1116              		.loc 1 243 30 is_stmt 1 view .LVU318
+ 1117              	.LVL94:
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1118              		.loc 1 243 24 view .LVU319
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1119              		.loc 1 243 34 view .LVU320
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1120              		.loc 1 243 57 is_stmt 0 view .LVU321
+ 1121 009a A272     		strb	r2, [r4, #10]
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1122              		.loc 1 243 30 is_stmt 1 view .LVU322
+ 1123              	.LVL95:
+ 243:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1124              		.loc 1 243 24 view .LVU323
+ 244:source\audio/audio.c ****          wm8978set.speakersw = 0;
+ 1125              		.loc 1 244 10 view .LVU324
+ 245:source\audio/audio.c ****          wm8978set.saveflag = 0x0A;
+ 1126              		.loc 1 245 10 view .LVU325
+ 245:source\audio/audio.c ****          wm8978set.saveflag = 0x0A;
+ 1127              		.loc 1 245 29 is_stmt 0 view .LVU326
+ 1128 009c 6373     		strb	r3, [r4, #13]
+ 1129              		.loc 1 246 10 is_stmt 1 view .LVU327
+ 1130 009e FFF7FEFF 		bl	wm8978_save_para
+ 1131              	.LVL96:
+ 1132              	.L69:
+ 247:source\audio/audio.c ****       }
+ 248:source\audio/audio.c ****       wm8978set.speakersw = 0;
+ 1133              		.loc 1 248 7 view .LVU328
+ 249:source\audio/audio.c ****       wm8978_volset(wm8978set.mvol);
+ 1134              		.loc 1 249 7 is_stmt 0 view .LVU329
+ 1135 00a2 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 250:source\audio/audio.c ****       wm8978set.mvol = volume;
+ 251:source\audio/audio.c ****       for (idx=0;idx<5;idx++) {
+ 252:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1136              		.loc 1 252 4 view .LVU330
+ 1137 00a4 254F     		ldr	r7, .L79+20
+ 248:source\audio/audio.c ****       wm8978_volset(wm8978set.mvol);
+ 1138              		.loc 1 248 27 view .LVU331
+ 1139 00a6 0025     		movs	r5, #0
+ 1140 00a8 2573     		strb	r5, [r4, #12]
+ 249:source\audio/audio.c ****       wm8978_volset(wm8978set.mvol);
+ 1141              		.loc 1 249 7 is_stmt 1 view .LVU332
+ 1142 00aa FFF7FEFF 		bl	wm8978_volset
+ 1143              	.LVL97:
+ 250:source\audio/audio.c ****       wm8978set.mvol = volume;
+ 1144              		.loc 1 250 7 view .LVU333
+ 250:source\audio/audio.c ****       wm8978set.mvol = volume;
+ 1145              		.loc 1 250 22 is_stmt 0 view .LVU334
+ 1146 00ae 244B     		ldr	r3, .L79+24
+ 1147 00b0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1148 00b2 2370     		strb	r3, [r4]
+ 251:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1149              		.loc 1 251 7 is_stmt 1 view .LVU335
+ 1150              	.LVL98:
+ 251:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1151              		.loc 1 251 21 view .LVU336
+ 1152              	.L70:
+ 1153              		.loc 1 252 4 discriminator 3 view .LVU337
+ 1154 00b4 E9B2     		uxtb	r1, r5
+ 1155 00b6 3846     		mov	r0, r7
+ 251:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1156              		.loc 1 251 21 is_stmt 0 discriminator 3 view .LVU338
+ 1157 00b8 0135     		adds	r5, r5, #1
+ 1158              	.LVL99:
+ 1159              		.loc 1 252 4 discriminator 3 view .LVU339
+ 1160 00ba FFF7FEFF 		bl	wm8978_eqset
+ 1161              	.LVL100:
+ 251:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1162              		.loc 1 251 27 is_stmt 1 discriminator 3 view .LVU340
+ 251:source\audio/audio.c **** 	  wm8978_eqset(&wm8978set,idx);
+ 1163              		.loc 1 251 21 discriminator 3 view .LVU341
+ 1164 00be 052D     		cmp	r5, #5
+ 1165 00c0 F8D1     		bne	.L70
+ 253:source\audio/audio.c ****       }
+ 254:source\audio/audio.c ****       WM8978_3D_Set(wm8978set.d3);
+ 1166              		.loc 1 254 7 view .LVU342
+ 1167 00c2 E07A     		ldrb	r0, [r4, #11]	@ zero_extendqisi2
+ 1168 00c4 FFF7FEFF 		bl	WM8978_3D_Set
+ 1169              	.LVL101:
+ 255:source\audio/audio.c ****       foreground_color = WHITE;
+ 1170              		.loc 1 255 7 view .LVU343
+ 1171              		.loc 1 255 24 is_stmt 0 view .LVU344
+ 1172 00c8 1E4B     		ldr	r3, .L79+28
+ 1173 00ca 4FF6FF72 		movw	r2, #65535
+ 256:source\audio/audio.c ****       background_color = BLACK;
+ 1174              		.loc 1 256 24 view .LVU345
+ 1175 00ce 0024     		movs	r4, #0
+ 255:source\audio/audio.c ****       foreground_color = WHITE;
+ 1176              		.loc 1 255 24 view .LVU346
+ 1177 00d0 1A80     		strh	r2, [r3]	@ movhi
+ 1178              		.loc 1 256 7 is_stmt 1 view .LVU347
+ 1179              		.loc 1 256 24 is_stmt 0 view .LVU348
+ 1180 00d2 1D4B     		ldr	r3, .L79+32
+ 257:source\audio/audio.c ****       LCD_Clear(background_color);
+ 1181              		.loc 1 257 7 view .LVU349
+ 1182 00d4 2046     		mov	r0, r4
+ 256:source\audio/audio.c ****       background_color = BLACK;
+ 1183              		.loc 1 256 24 view .LVU350
+ 1184 00d6 1C80     		strh	r4, [r3]	@ movhi
+ 1185              		.loc 1 257 7 is_stmt 1 view .LVU351
+ 1186 00d8 FFF7FEFF 		bl	LCD_Clear
+ 1187              	.LVL102:
+ 258:source\audio/audio.c ****       lcd_printf(0,0,"mp3 player");
+ 1188              		.loc 1 258 7 view .LVU352
+ 1189 00dc 2146     		mov	r1, r4
+ 1190 00de 2046     		mov	r0, r4
+ 1191 00e0 1A4A     		ldr	r2, .L79+36
+ 1192 00e2 FFF7FEFF 		bl	lcd_printf
+ 1193              	.LVL103:
+ 259:source\audio/audio.c ****       lcd_printf(0,1," Audio Files ");
+ 1194              		.loc 1 259 7 view .LVU353
+ 1195 00e6 2046     		mov	r0, r4
+ 1196 00e8 194A     		ldr	r2, .L79+40
+ 1197 00ea 0121     		movs	r1, #1
+ 1198 00ec FFF7FEFF 		bl	lcd_printf
+ 1199              	.LVL104:
+ 260:source\audio/audio.c ****       f_mount(fs[0],"0:",1);
+ 1200              		.loc 1 260 7 view .LVU354
+ 1201 00f0 0122     		movs	r2, #1
+ 1202 00f2 1849     		ldr	r1, .L79+44
+ 1203 00f4 3068     		ldr	r0, [r6]
+ 1204 00f6 FFF7FEFF 		bl	f_mount
+ 1205              	.LVL105:
+ 261:source\audio/audio.c ****       fnum = find_music();
+ 1206              		.loc 1 261 7 view .LVU355
+ 1207              		.loc 1 261 14 is_stmt 0 view .LVU356
+ 1208 00fa FFF7FEFF 		bl	find_music
+ 1209              	.LVL106:
+ 1210              		.loc 1 261 12 view .LVU357
+ 1211 00fe 164B     		ldr	r3, .L79+48
+ 1212 0100 1870     		strb	r0, [r3]
+ 262:source\audio/audio.c ****       music_number = 0;
+ 1213              		.loc 1 262 7 is_stmt 1 view .LVU358
+ 1214              		.loc 1 262 20 is_stmt 0 view .LVU359
+ 1215 0102 164B     		ldr	r3, .L79+52
+ 1216 0104 1C70     		strb	r4, [r3]
+ 263:source\audio/audio.c ****       music_play = 0;
+ 1217              		.loc 1 263 7 is_stmt 1 view .LVU360
+ 1218              		.loc 1 263 18 is_stmt 0 view .LVU361
+ 1219 0106 164B     		ldr	r3, .L79+56
+ 264:source\audio/audio.c ****       WM8978_ADDA_Cfg(1,0);
+ 1220              		.loc 1 264 7 view .LVU362
+ 1221 0108 2146     		mov	r1, r4
+ 1222 010a 0120     		movs	r0, #1
+ 263:source\audio/audio.c ****       music_play = 0;
+ 1223              		.loc 1 263 18 view .LVU363
+ 1224 010c 1C70     		strb	r4, [r3]
+ 1225              		.loc 1 264 7 is_stmt 1 view .LVU364
+ 1226 010e FFF7FEFF 		bl	WM8978_ADDA_Cfg
+ 1227              	.LVL107:
+ 265:source\audio/audio.c ****       WM8978_Input_Cfg(0,0,0);
+ 1228              		.loc 1 265 7 view .LVU365
+ 1229 0112 2146     		mov	r1, r4
+ 1230 0114 2046     		mov	r0, r4
+ 1231 0116 2246     		mov	r2, r4
+ 1232 0118 FFF7FEFF 		bl	WM8978_Input_Cfg
+ 1233              	.LVL108:
+ 266:source\audio/audio.c ****       WM8978_Output_Cfg(1,0);
+ 1234              		.loc 1 266 7 view .LVU366
+ 1235 011c 2146     		mov	r1, r4
+ 1236 011e 0120     		movs	r0, #1
+ 267:source\audio/audio.c **** }
+ 1237              		.loc 1 267 1 is_stmt 0 view .LVU367
+ 1238 0120 BDE8F840 		pop	{r3, r4, r5, r6, r7, lr}
+ 1239              		.cfi_restore 14
+ 1240              		.cfi_restore 7
+ 1241              		.cfi_restore 6
+ 1242              		.cfi_restore 5
+ 1243              		.cfi_restore 4
+ 1244              		.cfi_restore 3
+ 1245              		.cfi_def_cfa_offset 0
+ 266:source\audio/audio.c ****       WM8978_Output_Cfg(1,0);
+ 1246              		.loc 1 266 7 view .LVU368
+ 1247 0124 FFF7FEBF 		b	WM8978_Output_Cfg
+ 1248              	.LVL109:
+ 1249              	.L80:
+ 1250              		.align	2
+ 1251              	.L79:
+ 1252 0128 00000000 		.word	fs
+ 1253 012c 00000000 		.word	file
+ 1254 0130 00000000 		.word	audio_file
+ 1255 0134 00000000 		.word	ftemp
+ 1256 0138 00000000 		.word	fatbuf
+ 1257 013c 00000000 		.word	wm8978set
+ 1258 0140 00000000 		.word	volume
+ 1259 0144 00000000 		.word	foreground_color
+ 1260 0148 00000000 		.word	background_color
+ 1261 014c 00000000 		.word	.LC9
+ 1262 0150 0B000000 		.word	.LC10
+ 1263 0154 19000000 		.word	.LC11
+ 1264 0158 00000000 		.word	fnum
+ 1265 015c 00000000 		.word	music_number
+ 1266 0160 00000000 		.word	music_play
+ 1267              		.cfi_endproc
+ 1268              	.LFE136:
+ 1270              		.section	.rodata.music_start.str1.1,"aMS",%progbits,1
+ 1271              	.LC12:
+ 1272 0000 2F617564 		.ascii	"/audio/\000"
+ 1272      696F2F00 
+ 1273              	.LC13:
+ 1274 0008 4D503320 		.ascii	"MP3  file no %d \000"
+ 1274      2066696C 
+ 1274      65206E6F 
+ 1274      20256420 
+ 1274      00
+ 1275              	.LC14:
+ 1276 0019 57415620 		.ascii	"WAV  file no %d \000"
+ 1276      2066696C 
+ 1276      65206E6F 
+ 1276      20256420 
+ 1276      00
+ 1277              	.LC15:
+ 1278 002a 464C4143 		.ascii	"FLAC file no %d \000"
+ 1278      2066696C 
+ 1278      65206E6F 
+ 1278      20256420 
+ 1278      00
+ 1279              	.LC16:
+ 1280 003b 41504520 		.ascii	"APE file no %d \000"
+ 1280      66696C65 
+ 1280      206E6F20 
+ 1280      25642000 
+ 1281              		.section	.text.music_start,"ax",%progbits
+ 1282              		.align	1
+ 1283              		.global	music_start
+ 1284              		.syntax unified
+ 1285              		.thumb
+ 1286              		.thumb_func
+ 1288              	music_start:
+ 1289              	.LVL110:
+ 1290              	.LFB137:
+ 268:source\audio/audio.c **** 
+ 269:source\audio/audio.c **** 
+ 270:source\audio/audio.c **** void music_start (unsigned char flag)
+ 271:source\audio/audio.c **** {
+ 1291              		.loc 1 271 1 is_stmt 1 view -0
+ 1292              		.cfi_startproc
+ 1293              		@ args = 0, pretend = 0, frame = 256
+ 1294              		@ frame_needed = 0, uses_anonymous_args = 0
+ 272:source\audio/audio.c ****       char pname[256];
+ 1295              		.loc 1 272 7 view .LVU370
+ 273:source\audio/audio.c ****       unsigned int index;
+ 1296              		.loc 1 273 7 view .LVU371
+ 274:source\audio/audio.c ****       unsigned char idx;
+ 1297              		.loc 1 274 7 view .LVU372
+ 275:source\audio/audio.c ****       if ((music_number < fnum) && (audio_play_function == NULL)) {
+ 1298              		.loc 1 275 7 view .LVU373
+ 271:source\audio/audio.c ****       char pname[256];
+ 1299              		.loc 1 271 1 is_stmt 0 view .LVU374
+ 1300 0000 2DE9F043 		push	{r4, r5, r6, r7, r8, r9, lr}
+ 1301              		.cfi_def_cfa_offset 28
+ 1302              		.cfi_offset 4, -28
+ 1303              		.cfi_offset 5, -24
+ 1304              		.cfi_offset 6, -20
+ 1305              		.cfi_offset 7, -16
+ 1306              		.cfi_offset 8, -12
+ 1307              		.cfi_offset 9, -8
+ 1308              		.cfi_offset 14, -4
+ 1309              		.loc 1 275 25 view .LVU375
+ 1310 0004 644D     		ldr	r5, .L108
+ 1311 0006 654E     		ldr	r6, .L108+4
+ 1312 0008 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 1313 000a 3178     		ldrb	r1, [r6]	@ zero_extendqisi2
+ 1314              		.loc 1 275 10 view .LVU376
+ 1315 000c 8B42     		cmp	r3, r1
+ 271:source\audio/audio.c ****       char pname[256];
+ 1316              		.loc 1 271 1 view .LVU377
+ 1317 000e C1B0     		sub	sp, sp, #260
+ 1318              		.cfi_def_cfa_offset 288
+ 1319              		.loc 1 275 10 view .LVU378
+ 1320 0010 58D2     		bcs	.L81
+ 1321              		.loc 1 275 57 discriminator 1 view .LVU379
+ 1322 0012 634C     		ldr	r4, .L108+8
+ 1323              		.loc 1 275 33 discriminator 1 view .LVU380
+ 1324 0014 2268     		ldr	r2, [r4]
+ 1325 0016 002A     		cmp	r2, #0
+ 1326 0018 54D1     		bne	.L81
+ 276:source\audio/audio.c ****          if (flag) {
+ 1327              		.loc 1 276 10 is_stmt 1 view .LVU381
+ 1328              		.loc 1 276 13 is_stmt 0 view .LVU382
+ 1329 001a 38B1     		cbz	r0, .L84
+ 277:source\audio/audio.c ****             if (flag == 1) {
+ 1330              		.loc 1 277 13 is_stmt 1 view .LVU383
+ 1331              		.loc 1 277 16 is_stmt 0 view .LVU384
+ 1332 001c 0128     		cmp	r0, #1
+ 1333 001e 54D1     		bne	.L85
+ 278:source\audio/audio.c ****                music_number++;
+ 1334              		.loc 1 278 16 is_stmt 1 view .LVU385
+ 1335              		.loc 1 278 28 is_stmt 0 view .LVU386
+ 1336 0020 0133     		adds	r3, r3, #1
+ 1337 0022 DBB2     		uxtb	r3, r3
+ 279:source\audio/audio.c ****                if (music_number >= fnum) music_number = 0;
+ 1338              		.loc 1 279 16 is_stmt 1 view .LVU387
+ 1339              		.loc 1 279 19 is_stmt 0 view .LVU388
+ 1340 0024 9942     		cmp	r1, r3
+ 278:source\audio/audio.c ****                music_number++;
+ 1341              		.loc 1 278 28 view .LVU389
+ 1342 0026 8CBF     		ite	hi
+ 1343 0028 2B70     		strbhi	r3, [r5]
+ 1344              		.loc 1 279 42 is_stmt 1 view .LVU390
+ 1345              		.loc 1 279 55 is_stmt 0 view .LVU391
+ 1346 002a 2A70     		strbls	r2, [r5]
+ 1347              	.LVL111:
+ 280:source\audio/audio.c ****             } else {
+ 281:source\audio/audio.c ****                if (flag == 2) {
+ 282:source\audio/audio.c ****                   music_number+=rand()%fnum;
+ 283:source\audio/audio.c **** 				  if (music_number >= fnum) music_number = music_number%fnum;
+ 284:source\audio/audio.c ****                }
+ 285:source\audio/audio.c ****             }
+ 286:source\audio/audio.c ****          }
+ 287:source\audio/audio.c ****          for (idx=19;idx<30;idx++) {
+ 1348              		.loc 1 287 25 is_stmt 1 view .LVU392
+ 1349              	.L84:
+ 288:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1350              		.loc 1 288 14 is_stmt 0 view .LVU393
+ 1351 002c 5D4F     		ldr	r7, .L108+12
+ 271:source\audio/audio.c ****       char pname[256];
+ 1352              		.loc 1 271 1 view .LVU394
+ 1353 002e 1326     		movs	r6, #19
+ 1354              	.L89:
+ 1355              	.LVL112:
+ 1356              		.loc 1 288 14 is_stmt 1 discriminator 3 view .LVU395
+ 1357 0030 3146     		mov	r1, r6
+ 287:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1358              		.loc 1 287 25 is_stmt 0 discriminator 3 view .LVU396
+ 1359 0032 0136     		adds	r6, r6, #1
+ 1360              	.LVL113:
+ 1361              		.loc 1 288 14 discriminator 3 view .LVU397
+ 1362 0034 3A46     		mov	r2, r7
+ 1363 0036 0020     		movs	r0, #0
+ 287:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1364              		.loc 1 287 25 discriminator 3 view .LVU398
+ 1365 0038 B6B2     		uxth	r6, r6
+ 1366              		.loc 1 288 14 discriminator 3 view .LVU399
+ 1367 003a FFF7FEFF 		bl	lcd_printf
+ 1368              	.LVL114:
+ 287:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1369              		.loc 1 287 32 is_stmt 1 discriminator 3 view .LVU400
+ 287:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1370              		.loc 1 287 25 discriminator 3 view .LVU401
+ 1371 003e 1E2E     		cmp	r6, #30
+ 1372 0040 F6D1     		bne	.L89
+ 289:source\audio/audio.c ****          } 
+ 290:source\audio/audio.c **** 	 if (audiodev.file->fs) {
+ 1373              		.loc 1 290 3 view .LVU402
+ 1374              		.loc 1 290 15 is_stmt 0 view .LVU403
+ 1375 0042 594E     		ldr	r6, .L108+16
+ 1376 0044 F068     		ldr	r0, [r6, #12]	@ unaligned
+ 1377              		.loc 1 290 6 view .LVU404
+ 1378 0046 D0F80032 		ldr	r3, [r0, #512]
+ 1379 004a 2BB1     		cbz	r3, .L90
+ 291:source\audio/audio.c **** 	    f_close(audiodev.file);
+ 1380              		.loc 1 291 6 is_stmt 1 view .LVU405
+ 1381 004c FFF7FEFF 		bl	f_close
+ 1382              	.LVL115:
+ 292:source\audio/audio.c **** 	    audiodev.file->fs = NULL;
+ 1383              		.loc 1 292 6 view .LVU406
+ 1384              		.loc 1 292 14 is_stmt 0 view .LVU407
+ 1385 0050 F368     		ldr	r3, [r6, #12]	@ unaligned
+ 1386              		.loc 1 292 24 view .LVU408
+ 1387 0052 0022     		movs	r2, #0
+ 1388 0054 C3F80022 		str	r2, [r3, #512]
+ 1389              	.L90:
+ 293:source\audio/audio.c **** 	 }
+ 294:source\audio/audio.c ****          memset(pname,0,256);
+ 1390              		.loc 1 294 10 is_stmt 1 view .LVU409
+ 1391 0058 4FF48072 		mov	r2, #256
+ 1392 005c 0021     		movs	r1, #0
+ 1393 005e 6846     		mov	r0, sp
+ 1394 0060 FFF7FEFF 		bl	memset
+ 1395              	.LVL116:
+ 295:source\audio/audio.c ****          wm8978_volset(volume);
+ 1396              		.loc 1 295 10 view .LVU410
+ 1397 0064 514B     		ldr	r3, .L108+20
+ 296:source\audio/audio.c ****          index = music_number * 128;
+ 297:source\audio/audio.c ****          strcpy(pname,(const TCHAR *)"/audio/");
+ 298:source\audio/audio.c ****          strcat(pname,audio_file + index);
+ 299:source\audio/audio.c ****          idx = strlen(pname);
+ 300:source\audio/audio.c ****          if (strcasecmp(&pname[idx - 3],music_extend[0]) == 0) {	// MP3
+ 1398              		.loc 1 300 14 is_stmt 0 view .LVU411
+ 1399 0066 DFF89491 		ldr	r9, .L108+100
+ 295:source\audio/audio.c ****          wm8978_volset(volume);
+ 1400              		.loc 1 295 10 view .LVU412
+ 1401 006a 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 1402 006c FFF7FEFF 		bl	wm8978_volset
+ 1403              	.LVL117:
+ 296:source\audio/audio.c ****          index = music_number * 128;
+ 1404              		.loc 1 296 10 is_stmt 1 view .LVU413
+ 297:source\audio/audio.c ****          strcat(pname,audio_file + index);
+ 1405              		.loc 1 297 10 is_stmt 0 view .LVU414
+ 1406 0070 4F49     		ldr	r1, .L108+24
+ 296:source\audio/audio.c ****          index = music_number * 128;
+ 1407              		.loc 1 296 31 view .LVU415
+ 1408 0072 2F78     		ldrb	r7, [r5]	@ zero_extendqisi2
+ 1409              	.LVL118:
+ 297:source\audio/audio.c ****          strcat(pname,audio_file + index);
+ 1410              		.loc 1 297 10 is_stmt 1 view .LVU416
+ 1411 0074 4F4D     		ldr	r5, .L108+28
+ 1412 0076 6846     		mov	r0, sp
+ 1413 0078 FFF7FEFF 		bl	strcpy
+ 1414              	.LVL119:
+ 298:source\audio/audio.c ****          idx = strlen(pname);
+ 1415              		.loc 1 298 10 view .LVU417
+ 298:source\audio/audio.c ****          idx = strlen(pname);
+ 1416              		.loc 1 298 34 is_stmt 0 view .LVU418
+ 1417 007c 4E4B     		ldr	r3, .L108+32
+ 1418 007e 1968     		ldr	r1, [r3]
+ 298:source\audio/audio.c ****          idx = strlen(pname);
+ 1419              		.loc 1 298 10 view .LVU419
+ 1420 0080 6846     		mov	r0, sp
+ 1421 0082 01EBC711 		add	r1, r1, r7, lsl #7
+ 1422 0086 FFF7FEFF 		bl	strcat
+ 1423              	.LVL120:
+ 299:source\audio/audio.c ****          if (strcasecmp(&pname[idx - 3],music_extend[0]) == 0) {	// MP3
+ 1424              		.loc 1 299 10 is_stmt 1 view .LVU420
+ 299:source\audio/audio.c ****          if (strcasecmp(&pname[idx - 3],music_extend[0]) == 0) {	// MP3
+ 1425              		.loc 1 299 16 is_stmt 0 view .LVU421
+ 1426 008a 6846     		mov	r0, sp
+ 1427 008c FFF7FEFF 		bl	strlen
+ 1428              	.LVL121:
+ 1429              		.loc 1 300 36 view .LVU422
+ 1430 0090 A0F10308 		sub	r8, r0, #3
+ 1431              		.loc 1 300 25 view .LVU423
+ 1432 0094 E844     		add	r8, r8, sp
+ 1433              		.loc 1 300 14 view .LVU424
+ 1434 0096 D9F80010 		ldr	r1, [r9]
+ 299:source\audio/audio.c ****          if (strcasecmp(&pname[idx - 3],music_extend[0]) == 0) {	// MP3
+ 1435              		.loc 1 299 16 view .LVU425
+ 1436 009a 0646     		mov	r6, r0
+ 1437              	.LVL122:
+ 1438              		.loc 1 300 10 is_stmt 1 view .LVU426
+ 1439              		.loc 1 300 14 is_stmt 0 view .LVU427
+ 1440 009c 4046     		mov	r0, r8
+ 1441              	.LVL123:
+ 1442              		.loc 1 300 14 view .LVU428
+ 1443 009e FFF7FEFF 		bl	strcasecmp
+ 1444              	.LVL124:
+ 1445              		.loc 1 300 13 view .LVU429
+ 1446 00a2 30BB     		cbnz	r0, .L91
+ 301:source\audio/audio.c **** 	    lcd_printf(0,19,"MP3  file no %d ",music_number + 1);
+ 1447              		.loc 1 301 6 is_stmt 1 view .LVU430
+ 1448 00a4 7B1C     		adds	r3, r7, #1
+ 1449 00a6 454A     		ldr	r2, .L108+36
+ 1450 00a8 1321     		movs	r1, #19
+ 1451 00aa FFF7FEFF 		bl	lcd_printf
+ 1452              	.LVL125:
+ 302:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = mp3_play;
+ 1453              		.loc 1 302 13 view .LVU431
+ 1454              		.loc 1 302 16 is_stmt 0 view .LVU432
+ 1455 00ae 2368     		ldr	r3, [r4]
+ 1456 00b0 0BB9     		cbnz	r3, .L92
+ 1457              		.loc 1 302 46 is_stmt 1 discriminator 1 view .LVU433
+ 1458              		.loc 1 302 66 is_stmt 0 discriminator 1 view .LVU434
+ 1459 00b2 434B     		ldr	r3, .L108+40
+ 1460 00b4 2360     		str	r3, [r4]
+ 1461              	.L92:
+ 303:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = mp3_stop;
+ 1462              		.loc 1 303 13 is_stmt 1 view .LVU435
+ 1463              		.loc 1 303 16 is_stmt 0 view .LVU436
+ 1464 00b6 2B68     		ldr	r3, [r5]
+ 1465 00b8 0BB9     		cbnz	r3, .L93
+ 1466              		.loc 1 303 46 is_stmt 1 discriminator 1 view .LVU437
+ 1467              		.loc 1 303 66 is_stmt 0 discriminator 1 view .LVU438
+ 1468 00ba 424B     		ldr	r3, .L108+44
+ 1469 00bc 2B60     		str	r3, [r5]
+ 1470              	.L93:
+ 304:source\audio/audio.c **** 	    mp3_play_song((unsigned char *)pname);
+ 1471              		.loc 1 304 6 is_stmt 1 view .LVU439
+ 1472 00be 6846     		mov	r0, sp
+ 1473 00c0 FFF7FEFF 		bl	mp3_play_song
+ 1474              	.LVL126:
+ 1475              	.L81:
+ 305:source\audio/audio.c **** 	 } else if (strcasecmp(&pname[idx - 3],music_extend[2]) == 0) { // WAV
+ 306:source\audio/audio.c ****             lcd_printf(0,19,"WAV  file no %d ",music_number + 1);
+ 307:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = wave_play;
+ 308:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = wave_stop;
+ 309:source\audio/audio.c **** 	    wav_play_song((unsigned char *)pname);
+ 310:source\audio/audio.c **** 	 } else if (strcasecmp(&pname[idx - 4],music_extend[3]) == 0) { // FLAC
+ 311:source\audio/audio.c **** 	    lcd_printf(0,19,"FLAC file no %d ",music_number + 1);
+ 312:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = flac_play;
+ 313:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = flac_stop;
+ 314:source\audio/audio.c **** 	    flac_play_song((unsigned char *)pname);	 	
+ 315:source\audio/audio.c **** 	 } else if (strcasecmp(&pname[idx - 3],music_extend[1]) == 0) { // APE
+ 316:source\audio/audio.c **** 	    lcd_printf(0,19,"APE file no %d ",music_number + 1);
+ 317:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = ape_play;
+ 318:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = ape_stop;	 	
+ 319:source\audio/audio.c **** 	    ape_play_song((unsigned char *)pname);
+ 320:source\audio/audio.c **** 	    return;	    
+ 321:source\audio/audio.c **** 	 } else {
+ 322:source\audio/audio.c ****             audio_run = 0;
+ 323:source\audio/audio.c ****             audio_read_flag = 0;
+ 324:source\audio/audio.c ****             audio_pause = 0;
+ 325:source\audio/audio.c ****             audio_play_function = NULL;
+ 326:source\audio/audio.c ****             audio_stop_function = NULL;
+ 327:source\audio/audio.c ****             music_play = 1;	 	
+ 328:source\audio/audio.c **** 	    return;		 	
+ 329:source\audio/audio.c **** 	 }
+ 330:source\audio/audio.c ****       }
+ 331:source\audio/audio.c **** }
+ 1476              		.loc 1 331 1 is_stmt 0 view .LVU440
+ 1477 00c4 41B0     		add	sp, sp, #260
+ 1478              		.cfi_remember_state
+ 1479              		.cfi_def_cfa_offset 28
+ 1480              		@ sp needed
+ 1481 00c6 BDE8F083 		pop	{r4, r5, r6, r7, r8, r9, pc}
+ 1482              	.LVL127:
+ 1483              	.L85:
+ 1484              		.cfi_restore_state
+ 281:source\audio/audio.c ****                   music_number+=rand()%fnum;
+ 1485              		.loc 1 281 16 is_stmt 1 view .LVU441
+ 281:source\audio/audio.c ****                   music_number+=rand()%fnum;
+ 1486              		.loc 1 281 19 is_stmt 0 view .LVU442
+ 1487 00ca 0228     		cmp	r0, #2
+ 1488 00cc AED1     		bne	.L84
+ 282:source\audio/audio.c **** 				  if (music_number >= fnum) music_number = music_number%fnum;
+ 1489              		.loc 1 282 19 is_stmt 1 view .LVU443
+ 282:source\audio/audio.c **** 				  if (music_number >= fnum) music_number = music_number%fnum;
+ 1490              		.loc 1 282 33 is_stmt 0 view .LVU444
+ 1491 00ce FFF7FEFF 		bl	rand
+ 1492              	.LVL128:
+ 282:source\audio/audio.c **** 				  if (music_number >= fnum) music_number = music_number%fnum;
+ 1493              		.loc 1 282 39 view .LVU445
+ 1494 00d2 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 1495 00d4 90FBF3F2 		sdiv	r2, r0, r3
+ 1496 00d8 02FB1300 		mls	r0, r2, r3, r0
+ 282:source\audio/audio.c **** 				  if (music_number >= fnum) music_number = music_number%fnum;
+ 1497              		.loc 1 282 31 view .LVU446
+ 1498 00dc 2A78     		ldrb	r2, [r5]	@ zero_extendqisi2
+ 1499 00de 1044     		add	r0, r0, r2
+ 1500 00e0 C0B2     		uxtb	r0, r0
+ 283:source\audio/audio.c ****                }
+ 1501              		.loc 1 283 7 is_stmt 1 view .LVU447
+ 283:source\audio/audio.c ****                }
+ 1502              		.loc 1 283 10 is_stmt 0 view .LVU448
+ 1503 00e2 8342     		cmp	r3, r0
+ 283:source\audio/audio.c ****                }
+ 1504              		.loc 1 283 33 is_stmt 1 view .LVU449
+ 283:source\audio/audio.c ****                }
+ 1505              		.loc 1 283 46 is_stmt 0 view .LVU450
+ 1506 00e4 9CBF     		itt	ls
+ 1507 00e6 B0FBF3F2 		udivls	r2, r0, r3
+ 1508 00ea 03FB1200 		mlsls	r0, r3, r2, r0
+ 1509 00ee 2870     		strb	r0, [r5]
+ 1510              	.LVL129:
+ 287:source\audio/audio.c ****              lcd_printf(0,idx,"                                        ");
+ 1511              		.loc 1 287 25 is_stmt 1 view .LVU451
+ 1512 00f0 9CE7     		b	.L84
+ 1513              	.LVL130:
+ 1514              	.L91:
+ 305:source\audio/audio.c ****             lcd_printf(0,19,"WAV  file no %d ",music_number + 1);
+ 1515              		.loc 1 305 10 view .LVU452
+ 305:source\audio/audio.c ****             lcd_printf(0,19,"WAV  file no %d ",music_number + 1);
+ 1516              		.loc 1 305 14 is_stmt 0 view .LVU453
+ 1517 00f2 D9F80810 		ldr	r1, [r9, #8]
+ 1518 00f6 4046     		mov	r0, r8
+ 1519 00f8 FFF7FEFF 		bl	strcasecmp
+ 1520              	.LVL131:
+ 305:source\audio/audio.c ****             lcd_printf(0,19,"WAV  file no %d ",music_number + 1);
+ 1521              		.loc 1 305 13 view .LVU454
+ 1522 00fc 80B9     		cbnz	r0, .L94
+ 306:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = wave_play;
+ 1523              		.loc 1 306 13 is_stmt 1 view .LVU455
+ 1524 00fe 7B1C     		adds	r3, r7, #1
+ 1525 0100 314A     		ldr	r2, .L108+48
+ 1526 0102 1321     		movs	r1, #19
+ 1527 0104 FFF7FEFF 		bl	lcd_printf
+ 1528              	.LVL132:
+ 307:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = wave_stop;
+ 1529              		.loc 1 307 13 view .LVU456
+ 307:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = wave_stop;
+ 1530              		.loc 1 307 16 is_stmt 0 view .LVU457
+ 1531 0108 2368     		ldr	r3, [r4]
+ 1532 010a 0BB9     		cbnz	r3, .L95
+ 307:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = wave_stop;
+ 1533              		.loc 1 307 46 is_stmt 1 discriminator 1 view .LVU458
+ 307:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = wave_stop;
+ 1534              		.loc 1 307 66 is_stmt 0 discriminator 1 view .LVU459
+ 1535 010c 2F4B     		ldr	r3, .L108+52
+ 1536 010e 2360     		str	r3, [r4]
+ 1537              	.L95:
+ 308:source\audio/audio.c **** 	    wav_play_song((unsigned char *)pname);
+ 1538              		.loc 1 308 13 is_stmt 1 view .LVU460
+ 308:source\audio/audio.c **** 	    wav_play_song((unsigned char *)pname);
+ 1539              		.loc 1 308 16 is_stmt 0 view .LVU461
+ 1540 0110 2B68     		ldr	r3, [r5]
+ 1541 0112 0BB9     		cbnz	r3, .L96
+ 308:source\audio/audio.c **** 	    wav_play_song((unsigned char *)pname);
+ 1542              		.loc 1 308 46 is_stmt 1 discriminator 1 view .LVU462
+ 308:source\audio/audio.c **** 	    wav_play_song((unsigned char *)pname);
+ 1543              		.loc 1 308 66 is_stmt 0 discriminator 1 view .LVU463
+ 1544 0114 2E4B     		ldr	r3, .L108+56
+ 1545 0116 2B60     		str	r3, [r5]
+ 1546              	.L96:
+ 309:source\audio/audio.c **** 	 } else if (strcasecmp(&pname[idx - 4],music_extend[3]) == 0) { // FLAC
+ 1547              		.loc 1 309 6 is_stmt 1 view .LVU464
+ 1548 0118 6846     		mov	r0, sp
+ 1549 011a FFF7FEFF 		bl	wav_play_song
+ 1550              	.LVL133:
+ 1551 011e D1E7     		b	.L81
+ 1552              	.L94:
+ 310:source\audio/audio.c **** 	    lcd_printf(0,19,"FLAC file no %d ",music_number + 1);
+ 1553              		.loc 1 310 10 view .LVU465
+ 310:source\audio/audio.c **** 	    lcd_printf(0,19,"FLAC file no %d ",music_number + 1);
+ 1554              		.loc 1 310 36 is_stmt 0 view .LVU466
+ 1555 0120 301F     		subs	r0, r6, #4
+ 310:source\audio/audio.c **** 	    lcd_printf(0,19,"FLAC file no %d ",music_number + 1);
+ 1556              		.loc 1 310 14 view .LVU467
+ 1557 0122 D9F80C10 		ldr	r1, [r9, #12]
+ 1558 0126 6844     		add	r0, r0, sp
+ 1559 0128 FFF7FEFF 		bl	strcasecmp
+ 1560              	.LVL134:
+ 310:source\audio/audio.c **** 	    lcd_printf(0,19,"FLAC file no %d ",music_number + 1);
+ 1561              		.loc 1 310 13 view .LVU468
+ 1562 012c 80B9     		cbnz	r0, .L97
+ 311:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = flac_play;
+ 1563              		.loc 1 311 6 is_stmt 1 view .LVU469
+ 1564 012e 7B1C     		adds	r3, r7, #1
+ 1565 0130 284A     		ldr	r2, .L108+60
+ 1566 0132 1321     		movs	r1, #19
+ 1567 0134 FFF7FEFF 		bl	lcd_printf
+ 1568              	.LVL135:
+ 312:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = flac_stop;
+ 1569              		.loc 1 312 13 view .LVU470
+ 312:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = flac_stop;
+ 1570              		.loc 1 312 16 is_stmt 0 view .LVU471
+ 1571 0138 2368     		ldr	r3, [r4]
+ 1572 013a 0BB9     		cbnz	r3, .L98
+ 312:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = flac_stop;
+ 1573              		.loc 1 312 46 is_stmt 1 discriminator 1 view .LVU472
+ 312:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = flac_stop;
+ 1574              		.loc 1 312 66 is_stmt 0 discriminator 1 view .LVU473
+ 1575 013c 264B     		ldr	r3, .L108+64
+ 1576 013e 2360     		str	r3, [r4]
+ 1577              	.L98:
+ 313:source\audio/audio.c **** 	    flac_play_song((unsigned char *)pname);	 	
+ 1578              		.loc 1 313 13 is_stmt 1 view .LVU474
+ 313:source\audio/audio.c **** 	    flac_play_song((unsigned char *)pname);	 	
+ 1579              		.loc 1 313 16 is_stmt 0 view .LVU475
+ 1580 0140 2B68     		ldr	r3, [r5]
+ 1581 0142 0BB9     		cbnz	r3, .L99
+ 313:source\audio/audio.c **** 	    flac_play_song((unsigned char *)pname);	 	
+ 1582              		.loc 1 313 46 is_stmt 1 discriminator 1 view .LVU476
+ 313:source\audio/audio.c **** 	    flac_play_song((unsigned char *)pname);	 	
+ 1583              		.loc 1 313 66 is_stmt 0 discriminator 1 view .LVU477
+ 1584 0144 254B     		ldr	r3, .L108+68
+ 1585 0146 2B60     		str	r3, [r5]
+ 1586              	.L99:
+ 314:source\audio/audio.c **** 	 } else if (strcasecmp(&pname[idx - 3],music_extend[1]) == 0) { // APE
+ 1587              		.loc 1 314 6 is_stmt 1 view .LVU478
+ 1588 0148 6846     		mov	r0, sp
+ 1589 014a FFF7FEFF 		bl	flac_play_song
+ 1590              	.LVL136:
+ 1591 014e B9E7     		b	.L81
+ 1592              	.L97:
+ 315:source\audio/audio.c **** 	    lcd_printf(0,19,"APE file no %d ",music_number + 1);
+ 1593              		.loc 1 315 10 view .LVU479
+ 315:source\audio/audio.c **** 	    lcd_printf(0,19,"APE file no %d ",music_number + 1);
+ 1594              		.loc 1 315 14 is_stmt 0 view .LVU480
+ 1595 0150 D9F80410 		ldr	r1, [r9, #4]
+ 1596 0154 4046     		mov	r0, r8
+ 1597 0156 FFF7FEFF 		bl	strcasecmp
+ 1598              	.LVL137:
+ 315:source\audio/audio.c **** 	    lcd_printf(0,19,"APE file no %d ",music_number + 1);
+ 1599              		.loc 1 315 13 view .LVU481
+ 1600 015a 80B9     		cbnz	r0, .L100
+ 316:source\audio/audio.c ****             if (audio_play_function == NULL) audio_play_function = ape_play;
+ 1601              		.loc 1 316 6 is_stmt 1 view .LVU482
+ 1602 015c 7B1C     		adds	r3, r7, #1
+ 1603 015e 204A     		ldr	r2, .L108+72
+ 1604 0160 1321     		movs	r1, #19
+ 1605 0162 FFF7FEFF 		bl	lcd_printf
+ 1606              	.LVL138:
+ 317:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = ape_stop;	 	
+ 1607              		.loc 1 317 13 view .LVU483
+ 317:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = ape_stop;	 	
+ 1608              		.loc 1 317 16 is_stmt 0 view .LVU484
+ 1609 0166 2368     		ldr	r3, [r4]
+ 1610 0168 0BB9     		cbnz	r3, .L101
+ 317:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = ape_stop;	 	
+ 1611              		.loc 1 317 46 is_stmt 1 discriminator 1 view .LVU485
+ 317:source\audio/audio.c ****             if (audio_stop_function == NULL) audio_stop_function = ape_stop;	 	
+ 1612              		.loc 1 317 66 is_stmt 0 discriminator 1 view .LVU486
+ 1613 016a 1E4B     		ldr	r3, .L108+76
+ 1614 016c 2360     		str	r3, [r4]
+ 1615              	.L101:
+ 318:source\audio/audio.c **** 	    ape_play_song((unsigned char *)pname);
+ 1616              		.loc 1 318 13 is_stmt 1 view .LVU487
+ 318:source\audio/audio.c **** 	    ape_play_song((unsigned char *)pname);
+ 1617              		.loc 1 318 16 is_stmt 0 view .LVU488
+ 1618 016e 2B68     		ldr	r3, [r5]
+ 1619 0170 0BB9     		cbnz	r3, .L102
+ 318:source\audio/audio.c **** 	    ape_play_song((unsigned char *)pname);
+ 1620              		.loc 1 318 46 is_stmt 1 discriminator 1 view .LVU489
+ 318:source\audio/audio.c **** 	    ape_play_song((unsigned char *)pname);
+ 1621              		.loc 1 318 66 is_stmt 0 discriminator 1 view .LVU490
+ 1622 0172 1D4B     		ldr	r3, .L108+80
+ 1623 0174 2B60     		str	r3, [r5]
+ 1624              	.L102:
+ 319:source\audio/audio.c **** 	    return;	    
+ 1625              		.loc 1 319 6 is_stmt 1 view .LVU491
+ 1626 0176 6846     		mov	r0, sp
+ 1627 0178 FFF7FEFF 		bl	ape_play_song
+ 1628              	.LVL139:
+ 320:source\audio/audio.c **** 	 } else {
+ 1629              		.loc 1 320 6 view .LVU492
+ 1630 017c A2E7     		b	.L81
+ 1631              	.L100:
+ 322:source\audio/audio.c ****             audio_read_flag = 0;
+ 1632              		.loc 1 322 13 view .LVU493
+ 322:source\audio/audio.c ****             audio_read_flag = 0;
+ 1633              		.loc 1 322 23 is_stmt 0 view .LVU494
+ 1634 017e 1B4A     		ldr	r2, .L108+84
+ 1635 0180 0023     		movs	r3, #0
+ 1636 0182 1370     		strb	r3, [r2]
+ 323:source\audio/audio.c ****             audio_pause = 0;
+ 1637              		.loc 1 323 13 is_stmt 1 view .LVU495
+ 323:source\audio/audio.c ****             audio_pause = 0;
+ 1638              		.loc 1 323 29 is_stmt 0 view .LVU496
+ 1639 0184 1A4A     		ldr	r2, .L108+88
+ 325:source\audio/audio.c ****             audio_stop_function = NULL;
+ 1640              		.loc 1 325 33 view .LVU497
+ 1641 0186 2360     		str	r3, [r4]
+ 323:source\audio/audio.c ****             audio_pause = 0;
+ 1642              		.loc 1 323 29 view .LVU498
+ 1643 0188 1370     		strb	r3, [r2]
+ 324:source\audio/audio.c ****             audio_play_function = NULL;
+ 1644              		.loc 1 324 13 is_stmt 1 view .LVU499
+ 324:source\audio/audio.c ****             audio_play_function = NULL;
+ 1645              		.loc 1 324 25 is_stmt 0 view .LVU500
+ 1646 018a 1A4A     		ldr	r2, .L108+92
+ 326:source\audio/audio.c ****             music_play = 1;	 	
+ 1647              		.loc 1 326 33 view .LVU501
+ 1648 018c 2B60     		str	r3, [r5]
+ 324:source\audio/audio.c ****             audio_play_function = NULL;
+ 1649              		.loc 1 324 25 view .LVU502
+ 1650 018e 1370     		strb	r3, [r2]
+ 325:source\audio/audio.c ****             audio_stop_function = NULL;
+ 1651              		.loc 1 325 13 is_stmt 1 view .LVU503
+ 326:source\audio/audio.c ****             music_play = 1;	 	
+ 1652              		.loc 1 326 13 view .LVU504
+ 327:source\audio/audio.c **** 	    return;		 	
+ 1653              		.loc 1 327 13 view .LVU505
+ 327:source\audio/audio.c **** 	    return;		 	
+ 1654              		.loc 1 327 24 is_stmt 0 view .LVU506
+ 1655 0190 194B     		ldr	r3, .L108+96
+ 1656 0192 0122     		movs	r2, #1
+ 1657 0194 1A70     		strb	r2, [r3]
+ 328:source\audio/audio.c **** 	 }
+ 1658              		.loc 1 328 6 is_stmt 1 view .LVU507
+ 1659 0196 95E7     		b	.L81
+ 1660              	.L109:
+ 1661              		.align	2
+ 1662              	.L108:
+ 1663 0198 00000000 		.word	music_number
+ 1664 019c 00000000 		.word	fnum
+ 1665 01a0 00000000 		.word	audio_play_function
+ 1666 01a4 00000000 		.word	.LC2
+ 1667 01a8 00000000 		.word	audiodev
+ 1668 01ac 00000000 		.word	volume
+ 1669 01b0 00000000 		.word	.LC12
+ 1670 01b4 00000000 		.word	audio_stop_function
+ 1671 01b8 00000000 		.word	audio_file
+ 1672 01bc 08000000 		.word	.LC13
+ 1673 01c0 00000000 		.word	mp3_play
+ 1674 01c4 00000000 		.word	mp3_stop
+ 1675 01c8 19000000 		.word	.LC14
+ 1676 01cc 00000000 		.word	wave_play
+ 1677 01d0 00000000 		.word	wave_stop
+ 1678 01d4 2A000000 		.word	.LC15
+ 1679 01d8 00000000 		.word	flac_play
+ 1680 01dc 00000000 		.word	flac_stop
+ 1681 01e0 3B000000 		.word	.LC16
+ 1682 01e4 00000000 		.word	ape_play
+ 1683 01e8 00000000 		.word	ape_stop
+ 1684 01ec 00000000 		.word	audio_run
+ 1685 01f0 00000000 		.word	audio_read_flag
+ 1686 01f4 00000000 		.word	audio_pause
+ 1687 01f8 00000000 		.word	music_play
+ 1688 01fc 00000000 		.word	music_extend
+ 1689              		.cfi_endproc
+ 1690              	.LFE137:
+ 1692              		.section	.rodata.audio_process.str1.1,"aMS",%progbits,1
+ 1693              	.LC17:
+ 1694 0000 53656C65 		.ascii	"Select file no %d  %s \000"
+ 1694      63742066 
+ 1694      696C6520 
+ 1694      6E6F2025 
+ 1694      64202025 
+ 1695              	.LC18:
+ 1696 0017 566F6C75 		.ascii	"Volume: %2d \000"
+ 1696      6D653A20 
+ 1696      25326420 
+ 1696      00
+ 1697              	.LC19:
+ 1698 0024 20202020 		.ascii	"            \000"
+ 1698      20202020 
+ 1698      20202020 
+ 1698      00
+ 1699              	.LC20:
+ 1700 0031 72657065 		.ascii	"repeat      \000"
+ 1700      61742020 
+ 1700      20202020 
+ 1700      00
+ 1701              	.LC21:
+ 1702 003e 20202020 		.ascii	"              \000"
+ 1702      20202020 
+ 1702      20202020 
+ 1702      202000
+ 1703              	.LC22:
+ 1704 004d 72616E64 		.ascii	"random      \000"
+ 1704      6F6D2020 
+ 1704      20202020 
+ 1704      00
+ 1705              		.section	.text.audio_process,"ax",%progbits
+ 1706              		.align	1
+ 1707              		.global	audio_process
+ 1708              		.syntax unified
+ 1709              		.thumb
+ 1710              		.thumb_func
+ 1712              	audio_process:
+ 1713              	.LFB138:
+ 332:source\audio/audio.c **** 
+ 333:source\audio/audio.c **** 
+ 334:source\audio/audio.c **** 
+ 335:source\audio/audio.c **** void audio_process (void)
+ 336:source\audio/audio.c **** {
+ 1714              		.loc 1 336 1 view -0
+ 1715              		.cfi_startproc
+ 1716              		@ args = 0, pretend = 0, frame = 0
+ 1717              		@ frame_needed = 0, uses_anonymous_args = 0
+ 337:source\audio/audio.c ****       if (play_key) play_key_count++;
+ 1718              		.loc 1 337 7 view .LVU509
+ 336:source\audio/audio.c ****       if (play_key) play_key_count++;
+ 1719              		.loc 1 336 1 is_stmt 0 view .LVU510
+ 1720 0000 F7B5     		push	{r0, r1, r2, r4, r5, r6, r7, lr}
+ 1721              		.cfi_def_cfa_offset 32
+ 1722              		.cfi_offset 4, -20
+ 1723              		.cfi_offset 5, -16
+ 1724              		.cfi_offset 6, -12
+ 1725              		.cfi_offset 7, -8
+ 1726              		.cfi_offset 14, -4
+ 1727              		.loc 1 337 11 view .LVU511
+ 1728 0002 9D4C     		ldr	r4, .L199
+ 1729 0004 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1730              		.loc 1 337 10 view .LVU512
+ 1731 0006 23B1     		cbz	r3, .L111
+ 1732              		.loc 1 337 21 is_stmt 1 discriminator 1 view .LVU513
+ 1733              		.loc 1 337 35 is_stmt 0 discriminator 1 view .LVU514
+ 1734 0008 9C4A     		ldr	r2, .L199+4
+ 1735 000a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1736 000c 0133     		adds	r3, r3, #1
+ 1737 000e DBB2     		uxtb	r3, r3
+ 1738 0010 1370     		strb	r3, [r2]
+ 1739              	.L111:
+ 338:source\audio/audio.c ****       if ((play_key) && (play_key_count >= 50)) {
+ 1740              		.loc 1 338 7 is_stmt 1 view .LVU515
+ 1741              		.loc 1 338 11 is_stmt 0 view .LVU516
+ 1742 0012 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1743 0014 9A4D     		ldr	r5, .L199+8
+ 1744 0016 9B4E     		ldr	r6, .L199+12
+ 1745              		.loc 1 338 10 view .LVU517
+ 1746 0018 002B     		cmp	r3, #0
+ 1747 001a 00F0CE80 		beq	.L113
+ 1748              		.loc 1 338 41 discriminator 1 view .LVU518
+ 1749 001e 974B     		ldr	r3, .L199+4
+ 1750 0020 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1751              		.loc 1 338 22 discriminator 1 view .LVU519
+ 1752 0022 312A     		cmp	r2, #49
+ 1753 0024 40F2C980 		bls	.L113
+ 339:source\audio/audio.c ****          play_key_count = 0;
+ 1754              		.loc 1 339 10 is_stmt 1 view .LVU520
+ 1755              		.loc 1 339 25 is_stmt 0 view .LVU521
+ 1756 0028 0022     		movs	r2, #0
+ 1757 002a 1A70     		strb	r2, [r3]
+ 340:source\audio/audio.c ****       	 if (play_key & 0x01) {		// PLAY/PAUSE
+ 1758              		.loc 1 340 9 is_stmt 1 view .LVU522
+ 1759              		.loc 1 340 22 is_stmt 0 view .LVU523
+ 1760 002c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1761              		.loc 1 340 12 view .LVU524
+ 1762 002e D907     		lsls	r1, r3, #31
+ 1763 0030 14D5     		bpl	.L115
+ 341:source\audio/audio.c ****       	    if (audio_run == 0) {
+ 1764              		.loc 1 341 12 is_stmt 1 view .LVU525
+ 1765              		.loc 1 341 26 is_stmt 0 view .LVU526
+ 1766 0032 954B     		ldr	r3, .L199+16
+ 1767 0034 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1768              		.loc 1 341 15 view .LVU527
+ 1769 0036 002B     		cmp	r3, #0
+ 1770 0038 40F0F380 		bne	.L116
+ 342:source\audio/audio.c ****       	       if (play_audio == 0) {
+ 1771              		.loc 1 342 15 is_stmt 1 view .LVU528
+ 1772              		.loc 1 342 30 is_stmt 0 view .LVU529
+ 1773 003c 934B     		ldr	r3, .L199+20
+ 1774 003e 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1775              		.loc 1 342 18 view .LVU530
+ 1776 0040 02F0FF00 		and	r0, r2, #255
+ 1777 0044 002A     		cmp	r2, #0
+ 1778 0046 40F0DC80 		bne	.L117
+ 343:source\audio/audio.c ****       	          play_audio = 1;
+ 1779              		.loc 1 343 18 is_stmt 1 view .LVU531
+ 1780              		.loc 1 343 29 is_stmt 0 view .LVU532
+ 1781 004a 0122     		movs	r2, #1
+ 1782 004c 1A70     		strb	r2, [r3]
+ 344:source\audio/audio.c **** 		  music_play = 0;
+ 1783              		.loc 1 344 5 is_stmt 1 view .LVU533
+ 1784              		.loc 1 344 16 is_stmt 0 view .LVU534
+ 1785 004e 2870     		strb	r0, [r5]
+ 345:source\audio/audio.c ****       	          music_start(0);
+ 1786              		.loc 1 345 18 is_stmt 1 view .LVU535
+ 1787 0050 FFF7FEFF 		bl	music_start
+ 1788              	.LVL140:
+ 1789              	.L118:
+ 346:source\audio/audio.c ****       	       } else {
+ 347:source\audio/audio.c ****       	       	  if (music_play == 0) {
+ 348:source\audio/audio.c ****       	       	     if (music_number) music_number--;else music_number = fnum - 1;
+ 349:source\audio/audio.c ****       	       	     music_play = 1;
+ 350:source\audio/audio.c ****       	       	  }
+ 351:source\audio/audio.c ****       	       }
+ 352:source\audio/audio.c ****       	    } else {
+ 353:source\audio/audio.c ****       	       if (audio_pause) {
+ 354:source\audio/audio.c ****       	       	  audio_pause = 0;
+ 355:source\audio/audio.c ****       	       	  audio_start();
+ 356:source\audio/audio.c ****       	       } else {
+ 357:source\audio/audio.c ****       	       	  audio_pause = 1;
+ 358:source\audio/audio.c ****       	       	  audio_stop();
+ 359:source\audio/audio.c ****       	       }
+ 360:source\audio/audio.c ****             }
+ 361:source\audio/audio.c ****       	    play_key &= ~(0x01);
+ 1790              		.loc 1 361 12 view .LVU536
+ 1791              		.loc 1 361 21 is_stmt 0 view .LVU537
+ 1792 0054 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1793 0056 03F0FE03 		and	r3, r3, #254
+ 1794 005a 2370     		strb	r3, [r4]
+ 1795              	.L115:
+ 362:source\audio/audio.c ****       	 }
+ 363:source\audio/audio.c ****       	 if (play_key & 0x02) {
+ 1796              		.loc 1 363 9 is_stmt 1 view .LVU538
+ 1797              		.loc 1 363 22 is_stmt 0 view .LVU539
+ 1798 005c 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1799              		.loc 1 363 12 view .LVU540
+ 1800 005e 9A07     		lsls	r2, r3, #30
+ 1801 0060 26D5     		bpl	.L122
+ 364:source\audio/audio.c ****       	    if (play_audio == 0) {
+ 1802              		.loc 1 364 12 is_stmt 1 view .LVU541
+ 1803              		.loc 1 364 27 is_stmt 0 view .LVU542
+ 1804 0062 8A4B     		ldr	r3, .L199+20
+ 1805 0064 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1806              		.loc 1 364 15 view .LVU543
+ 1807 0066 03F0FF02 		and	r2, r3, #255
+ 1808 006a 002B     		cmp	r3, #0
+ 1809 006c 40F0E580 		bne	.L123
+ 365:source\audio/audio.c ****                music_number++;
+ 1810              		.loc 1 365 16 is_stmt 1 view .LVU544
+ 1811              		.loc 1 365 28 is_stmt 0 view .LVU545
+ 1812 0070 874F     		ldr	r7, .L199+24
+ 366:source\audio/audio.c ****                if (music_number >= fnum) music_number = 0;
+ 1813              		.loc 1 366 33 view .LVU546
+ 1814 0072 8849     		ldr	r1, .L199+28
+ 365:source\audio/audio.c ****                music_number++;
+ 1815              		.loc 1 365 28 view .LVU547
+ 1816 0074 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1817              		.loc 1 366 19 view .LVU548
+ 1818 0076 0978     		ldrb	r1, [r1]	@ zero_extendqisi2
+ 365:source\audio/audio.c ****                music_number++;
+ 1819              		.loc 1 365 28 view .LVU549
+ 1820 0078 0133     		adds	r3, r3, #1
+ 1821 007a DBB2     		uxtb	r3, r3
+ 1822              		.loc 1 366 19 view .LVU550
+ 1823 007c 9942     		cmp	r1, r3
+ 365:source\audio/audio.c ****                music_number++;
+ 1824              		.loc 1 365 28 view .LVU551
+ 1825 007e 3B70     		strb	r3, [r7]
+ 1826              		.loc 1 366 16 is_stmt 1 view .LVU552
+ 1827              		.loc 1 366 42 view .LVU553
+ 367:source\audio/audio.c ****       	       lcd_printf(0,20,"                                        ");
+ 1828              		.loc 1 367 15 is_stmt 0 view .LVU554
+ 1829 0080 4FF01401 		mov	r1, #20
+ 366:source\audio/audio.c ****                if (music_number >= fnum) music_number = 0;
+ 1830              		.loc 1 366 55 view .LVU555
+ 1831 0084 98BF     		it	ls
+ 1832 0086 3A70     		strbls	r2, [r7]
+ 1833              		.loc 1 367 15 is_stmt 1 view .LVU556
+ 1834 0088 0020     		movs	r0, #0
+ 1835 008a 834A     		ldr	r2, .L199+32
+ 1836 008c FFF7FEFF 		bl	lcd_printf
+ 1837              	.LVL141:
+ 368:source\audio/audio.c ****       	       lcd_printf(0,19,"Select file no %d  %s ",music_number + 1,audio_file + (music_number 
+ 1838              		.loc 1 368 15 view .LVU557
+ 1839 0090 824A     		ldr	r2, .L199+36
+ 1840 0092 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1841 0094 1268     		ldr	r2, [r2]
+ 1842 0096 02EBC312 		add	r2, r2, r3, lsl #7
+ 1843 009a 0092     		str	r2, [sp]
+ 1844 009c 0133     		adds	r3, r3, #1
+ 1845 009e 804A     		ldr	r2, .L199+40
+ 1846 00a0 1321     		movs	r1, #19
+ 1847 00a2 0020     		movs	r0, #0
+ 1848 00a4 FFF7FEFF 		bl	lcd_printf
+ 1849              	.LVL142:
+ 1850              	.L125:
+ 369:source\audio/audio.c ****       	    } else {
+ 370:source\audio/audio.c ****       	       if (audio_stop_function) audio_stop_function();
+ 371:source\audio/audio.c ****       	    }
+ 372:source\audio/audio.c ****       	    play_key &= ~(0x02);
+ 1851              		.loc 1 372 12 view .LVU558
+ 1852              		.loc 1 372 21 is_stmt 0 view .LVU559
+ 1853 00a8 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1854 00aa 03F0FD03 		and	r3, r3, #253
+ 1855 00ae 2370     		strb	r3, [r4]
+ 1856              	.L122:
+ 373:source\audio/audio.c ****          }
+ 374:source\audio/audio.c ****       	 if (play_key & 0x04) {
+ 1857              		.loc 1 374 9 is_stmt 1 view .LVU560
+ 1858              		.loc 1 374 22 is_stmt 0 view .LVU561
+ 1859 00b0 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1860              		.loc 1 374 12 view .LVU562
+ 1861 00b2 5B07     		lsls	r3, r3, #29
+ 1862 00b4 21D5     		bpl	.L126
+ 375:source\audio/audio.c ****       	    if (play_audio == 0) {
+ 1863              		.loc 1 375 12 is_stmt 1 view .LVU563
+ 1864              		.loc 1 375 27 is_stmt 0 view .LVU564
+ 1865 00b6 754B     		ldr	r3, .L199+20
+ 1866 00b8 754F     		ldr	r7, .L199+24
+ 1867 00ba 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1868              		.loc 1 375 15 view .LVU565
+ 1869 00bc 002B     		cmp	r3, #0
+ 1870 00be 40F0C680 		bne	.L127
+ 376:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 1871              		.loc 1 376 15 is_stmt 1 view .LVU566
+ 1872              		.loc 1 376 19 is_stmt 0 view .LVU567
+ 1873 00c2 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1874              		.loc 1 376 18 view .LVU568
+ 1875 00c4 002B     		cmp	r3, #0
+ 1876 00c6 00F0BF80 		beq	.L128
+ 1877              	.L193:
+ 1878              		.loc 1 376 73 discriminator 2 view .LVU569
+ 1879 00ca 013B     		subs	r3, r3, #1
+ 1880 00cc DBB2     		uxtb	r3, r3
+ 377:source\audio/audio.c ****       	       lcd_printf(0,20,"                                        ");
+ 1881              		.loc 1 377 15 discriminator 2 view .LVU570
+ 1882 00ce 724A     		ldr	r2, .L199+32
+ 1883 00d0 3B70     		strb	r3, [r7]
+ 1884              		.loc 1 377 15 is_stmt 1 discriminator 2 view .LVU571
+ 1885 00d2 1421     		movs	r1, #20
+ 1886 00d4 0020     		movs	r0, #0
+ 1887 00d6 FFF7FEFF 		bl	lcd_printf
+ 1888              	.LVL143:
+ 378:source\audio/audio.c ****       	       lcd_printf(0,19,"Select file no %d  %s ",music_number + 1,audio_file + (music_number 
+ 1889              		.loc 1 378 15 discriminator 2 view .LVU572
+ 1890 00da 704A     		ldr	r2, .L199+36
+ 1891 00dc 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1892 00de 1268     		ldr	r2, [r2]
+ 1893 00e0 02EBC312 		add	r2, r2, r3, lsl #7
+ 1894 00e4 0092     		str	r2, [sp]
+ 1895 00e6 0133     		adds	r3, r3, #1
+ 1896 00e8 6D4A     		ldr	r2, .L199+40
+ 1897 00ea 1321     		movs	r1, #19
+ 1898 00ec 0020     		movs	r0, #0
+ 1899 00ee FFF7FEFF 		bl	lcd_printf
+ 1900              	.LVL144:
+ 1901              	.L130:
+ 379:source\audio/audio.c ****       	    } else {
+ 380:source\audio/audio.c ****       	       if (audio_stop_function) audio_stop_function();
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 382:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 383:source\audio/audio.c ****       	    }
+ 384:source\audio/audio.c ****       	    play_key &= ~(0x04);
+ 1902              		.loc 1 384 12 view .LVU573
+ 1903              		.loc 1 384 21 is_stmt 0 view .LVU574
+ 1904 00f2 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1905 00f4 03F0FB03 		and	r3, r3, #251
+ 1906 00f8 2370     		strb	r3, [r4]
+ 1907              	.L126:
+ 385:source\audio/audio.c ****          }
+ 386:source\audio/audio.c ****       	 if (play_key & 0x08) {
+ 1908              		.loc 1 386 9 is_stmt 1 view .LVU575
+ 1909              		.loc 1 386 22 is_stmt 0 view .LVU576
+ 1910 00fa 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1911              		.loc 1 386 12 view .LVU577
+ 1912 00fc 1F07     		lsls	r7, r3, #28
+ 1913 00fe 16D5     		bpl	.L135
+ 387:source\audio/audio.c ****       	    if (volume) volume--;else volume = 0;
+ 1914              		.loc 1 387 12 is_stmt 1 view .LVU578
+ 1915              		.loc 1 387 16 is_stmt 0 view .LVU579
+ 1916 0100 684B     		ldr	r3, .L199+44
+ 1917 0102 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1918              		.loc 1 387 15 view .LVU580
+ 1919 0104 02F0FF01 		and	r1, r2, #255
+ 1920 0108 002A     		cmp	r2, #0
+ 1921 010a 00F0B280 		beq	.L136
+ 1922              		.loc 1 387 24 is_stmt 1 discriminator 1 view .LVU581
+ 1923              		.loc 1 387 30 is_stmt 0 discriminator 1 view .LVU582
+ 1924 010e 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1925 0110 013A     		subs	r2, r2, #1
+ 1926 0112 D2B2     		uxtb	r2, r2
+ 1927 0114 1A70     		strb	r2, [r3]
+ 1928              	.L137:
+ 388:source\audio/audio.c ****       	    volume_flag = 1;
+ 1929              		.loc 1 388 12 is_stmt 1 view .LVU583
+ 1930              		.loc 1 388 24 is_stmt 0 view .LVU584
+ 1931 0116 0122     		movs	r2, #1
+ 1932 0118 3270     		strb	r2, [r6]
+ 389:source\audio/audio.c ****       	    lcd_printf(20,28,"Volume: %2d ",volume);
+ 1933              		.loc 1 389 12 is_stmt 1 view .LVU585
+ 1934 011a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1935 011c 624A     		ldr	r2, .L199+48
+ 1936 011e 1C21     		movs	r1, #28
+ 1937 0120 1420     		movs	r0, #20
+ 1938 0122 FFF7FEFF 		bl	lcd_printf
+ 1939              	.LVL145:
+ 390:source\audio/audio.c ****       	    play_key &= ~(0x08);
+ 1940              		.loc 1 390 12 view .LVU586
+ 1941              		.loc 1 390 21 is_stmt 0 view .LVU587
+ 1942 0126 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1943 0128 03F0F703 		and	r3, r3, #247
+ 1944 012c 2370     		strb	r3, [r4]
+ 1945              	.L135:
+ 391:source\audio/audio.c ****       	 }
+ 392:source\audio/audio.c ****       	 if (play_key & 0x10) {
+ 1946              		.loc 1 392 9 is_stmt 1 view .LVU588
+ 1947              		.loc 1 392 22 is_stmt 0 view .LVU589
+ 1948 012e 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1949              		.loc 1 392 12 view .LVU590
+ 1950 0130 D806     		lsls	r0, r3, #27
+ 1951 0132 15D5     		bpl	.L138
+ 393:source\audio/audio.c ****       	    volume++;
+ 1952              		.loc 1 393 12 is_stmt 1 view .LVU591
+ 1953              		.loc 1 393 18 is_stmt 0 view .LVU592
+ 1954 0134 5B4B     		ldr	r3, .L199+44
+ 1955 0136 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1956 0138 0132     		adds	r2, r2, #1
+ 1957 013a D2B2     		uxtb	r2, r2
+ 1958 013c 1A70     		strb	r2, [r3]
+ 394:source\audio/audio.c ****       	    if (volume >= 63) volume = 63;
+ 1959              		.loc 1 394 12 is_stmt 1 view .LVU593
+ 1960              		.loc 1 394 23 is_stmt 0 view .LVU594
+ 1961 013e 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1962              		.loc 1 394 15 view .LVU595
+ 1963 0140 3E2A     		cmp	r2, #62
+ 1964              		.loc 1 394 30 is_stmt 1 view .LVU596
+ 1965              		.loc 1 394 37 is_stmt 0 view .LVU597
+ 1966 0142 84BF     		itt	hi
+ 1967 0144 3F22     		movhi	r2, #63
+ 1968 0146 1A70     		strbhi	r2, [r3]
+ 395:source\audio/audio.c ****       	    volume_flag = 1;
+ 1969              		.loc 1 395 12 is_stmt 1 view .LVU598
+ 1970              		.loc 1 395 24 is_stmt 0 view .LVU599
+ 1971 0148 0122     		movs	r2, #1
+ 1972 014a 3270     		strb	r2, [r6]
+ 396:source\audio/audio.c ****       	    lcd_printf(20,28,"Volume: %2d ",volume);
+ 1973              		.loc 1 396 12 is_stmt 1 view .LVU600
+ 1974 014c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1975 014e 564A     		ldr	r2, .L199+48
+ 1976 0150 1C21     		movs	r1, #28
+ 1977 0152 1420     		movs	r0, #20
+ 1978 0154 FFF7FEFF 		bl	lcd_printf
+ 1979              	.LVL146:
+ 397:source\audio/audio.c ****       	    play_key &= ~(0x10);
+ 1980              		.loc 1 397 12 view .LVU601
+ 1981              		.loc 1 397 21 is_stmt 0 view .LVU602
+ 1982 0158 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1983 015a 03F0EF03 		and	r3, r3, #239
+ 1984 015e 2370     		strb	r3, [r4]
+ 1985              	.L138:
+ 398:source\audio/audio.c ****          }
+ 399:source\audio/audio.c ****       	 if (play_key & 0x20) {
+ 1986              		.loc 1 399 9 is_stmt 1 view .LVU603
+ 1987              		.loc 1 399 22 is_stmt 0 view .LVU604
+ 1988 0160 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 1989              		.loc 1 399 12 view .LVU605
+ 1990 0162 9906     		lsls	r1, r3, #26
+ 400:source\audio/audio.c **** 		 /*
+ 401:source\audio/audio.c ****       	    if (dp_page) {
+ 402:source\audio/audio.c ****       	       dp_page--;
+ 403:source\audio/audio.c ****                display_line = 0;
+ 404:source\audio/audio.c ****                display_line_flag = 1;
+ 405:source\audio/audio.c ****             }
+ 406:source\audio/audio.c **** 			*/
+ 407:source\audio/audio.c ****       	    play_key &= ~(0x20);
+ 1991              		.loc 1 407 12 is_stmt 1 view .LVU606
+ 1992              		.loc 1 407 21 is_stmt 0 view .LVU607
+ 1993 0164 42BF     		ittt	mi
+ 1994 0166 2378     		ldrbmi	r3, [r4]	@ zero_extendqisi2
+ 1995 0168 03F0DF03 		andmi	r3, r3, #223
+ 1996 016c 2370     		strbmi	r3, [r4]
+ 408:source\audio/audio.c ****          }
+ 409:source\audio/audio.c ****       	 if (play_key & 0x40) {
+ 1997              		.loc 1 409 9 is_stmt 1 view .LVU608
+ 1998              		.loc 1 409 22 is_stmt 0 view .LVU609
+ 1999 016e 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 2000              		.loc 1 409 12 view .LVU610
+ 2001 0170 5A06     		lsls	r2, r3, #25
+ 2002 0172 10D5     		bpl	.L141
+ 410:source\audio/audio.c ****       	    /*if (dp_page) {
+ 411:source\audio/audio.c ****       	       dp_page = 0;
+ 412:source\audio/audio.c ****                display_line = 0;
+ 413:source\audio/audio.c ****                display_line_flag = 1;
+ 414:source\audio/audio.c ****             }*/
+ 415:source\audio/audio.c **** 			if(audio_repeat){
+ 2003              		.loc 1 415 4 is_stmt 1 view .LVU611
+ 2004              		.loc 1 415 7 is_stmt 0 view .LVU612
+ 2005 0174 4D4B     		ldr	r3, .L199+52
+ 2006 0176 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 2007              		.loc 1 415 6 view .LVU613
+ 2008 0178 02F0FF00 		and	r0, r2, #255
+ 2009 017c 002A     		cmp	r2, #0
+ 2010 017e 00F0A580 		beq	.L142
+ 416:source\audio/audio.c **** 				audio_repeat=0;
+ 2011              		.loc 1 416 5 is_stmt 1 view .LVU614
+ 2012              		.loc 1 416 17 is_stmt 0 view .LVU615
+ 2013 0182 0020     		movs	r0, #0
+ 417:source\audio/audio.c **** 				lcd_printf(0,1,"            ");
+ 2014              		.loc 1 417 5 view .LVU616
+ 2015 0184 4A4A     		ldr	r2, .L199+56
+ 416:source\audio/audio.c **** 				audio_repeat=0;
+ 2016              		.loc 1 416 17 view .LVU617
+ 2017 0186 1870     		strb	r0, [r3]
+ 2018              		.loc 1 417 5 is_stmt 1 view .LVU618
+ 2019 0188 0121     		movs	r1, #1
+ 2020              	.L196:
+ 418:source\audio/audio.c **** 				} 
+ 419:source\audio/audio.c **** 			else {
+ 420:source\audio/audio.c **** 				audio_repeat=1;
+ 421:source\audio/audio.c **** 				lcd_printf(0,1,"repeat      ");
+ 2021              		.loc 1 421 5 is_stmt 0 view .LVU619
+ 2022 018a FFF7FEFF 		bl	lcd_printf
+ 2023              	.LVL147:
+ 422:source\audio/audio.c **** 			}
+ 423:source\audio/audio.c ****       	    play_key &= ~(0x40);
+ 2024              		.loc 1 423 12 is_stmt 1 view .LVU620
+ 2025              		.loc 1 423 21 is_stmt 0 view .LVU621
+ 2026 018e 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 2027 0190 03F0BF03 		and	r3, r3, #191
+ 2028 0194 2370     		strb	r3, [r4]
+ 2029              	.L141:
+ 424:source\audio/audio.c ****          }
+ 425:source\audio/audio.c ****       	 if (play_key & 0x80) {
+ 2030              		.loc 1 425 9 is_stmt 1 view .LVU622
+ 2031              		.loc 1 425 13 is_stmt 0 view .LVU623
+ 2032 0196 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 2033              		.loc 1 425 12 view .LVU624
+ 2034 0198 1B06     		lsls	r3, r3, #24
+ 2035 019a 0ED5     		bpl	.L113
+ 426:source\audio/audio.c ****       	    /*if ((dp_page + 15) < (fnum)) {
+ 427:source\audio/audio.c ****       	       dp_page++;
+ 428:source\audio/audio.c ****                display_line = 0;
+ 429:source\audio/audio.c ****                display_line_flag = 1;
+ 430:source\audio/audio.c ****             }*/
+ 431:source\audio/audio.c **** 			
+ 432:source\audio/audio.c **** 			if(rflag){
+ 2036              		.loc 1 432 4 is_stmt 1 view .LVU625
+ 2037              		.loc 1 432 7 is_stmt 0 view .LVU626
+ 2038 019c 454B     		ldr	r3, .L199+60
+ 2039              		.loc 1 432 6 view .LVU627
+ 2040 019e 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 2041 01a0 0028     		cmp	r0, #0
+ 2042 01a2 00F09780 		beq	.L144
+ 433:source\audio/audio.c **** 				rflag=0;	
+ 2043              		.loc 1 433 5 is_stmt 1 view .LVU628
+ 2044              		.loc 1 433 10 is_stmt 0 view .LVU629
+ 2045 01a6 0020     		movs	r0, #0
+ 434:source\audio/audio.c **** 				lcd_printf(0,1,"              ");
+ 2046              		.loc 1 434 5 view .LVU630
+ 2047 01a8 434A     		ldr	r2, .L199+64
+ 433:source\audio/audio.c **** 				rflag=0;	
+ 2048              		.loc 1 433 10 view .LVU631
+ 2049 01aa 1870     		strb	r0, [r3]
+ 2050              		.loc 1 434 5 is_stmt 1 view .LVU632
+ 2051 01ac 0121     		movs	r1, #1
+ 2052              	.L197:
+ 435:source\audio/audio.c **** 			}
+ 436:source\audio/audio.c **** 			else {
+ 437:source\audio/audio.c **** 				rflag=1;
+ 438:source\audio/audio.c **** 				lcd_printf(0,1,"random      ");
+ 2053              		.loc 1 438 5 is_stmt 0 view .LVU633
+ 2054 01ae FFF7FEFF 		bl	lcd_printf
+ 2055              	.LVL148:
+ 439:source\audio/audio.c **** 			}
+ 440:source\audio/audio.c ****       	    play_key &= ~(0x80);
+ 2056              		.loc 1 440 12 is_stmt 1 view .LVU634
+ 2057              		.loc 1 440 21 is_stmt 0 view .LVU635
+ 2058 01b2 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 2059 01b4 03F07F03 		and	r3, r3, #127
+ 2060 01b8 2370     		strb	r3, [r4]
+ 2061              	.L113:
+ 441:source\audio/audio.c ****          }
+ 442:source\audio/audio.c ****       }
+ 443:source\audio/audio.c ****       if (volume_flag) {
+ 2062              		.loc 1 443 7 is_stmt 1 view .LVU636
+ 2063              		.loc 1 443 11 is_stmt 0 view .LVU637
+ 2064 01ba 3378     		ldrb	r3, [r6]	@ zero_extendqisi2
+ 2065              		.loc 1 443 10 view .LVU638
+ 2066 01bc 6BB1     		cbz	r3, .L147
+ 444:source\audio/audio.c ****          volume_flag = 0;
+ 2067              		.loc 1 444 10 is_stmt 1 view .LVU639
+ 2068              		.loc 1 444 22 is_stmt 0 view .LVU640
+ 2069 01be 0023     		movs	r3, #0
+ 2070 01c0 3370     		strb	r3, [r6]
+ 445:source\audio/audio.c ****          if (volume != old_volume) {
+ 2071              		.loc 1 445 10 is_stmt 1 view .LVU641
+ 2072              		.loc 1 445 21 is_stmt 0 view .LVU642
+ 2073 01c2 3E49     		ldr	r1, .L199+68
+ 2074 01c4 374B     		ldr	r3, .L199+44
+ 2075 01c6 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 2076 01c8 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 2077              		.loc 1 445 13 view .LVU643
+ 2078 01ca 9042     		cmp	r0, r2
+ 2079 01cc 05D0     		beq	.L147
+ 446:source\audio/audio.c ****             old_volume = volume;
+ 2080              		.loc 1 446 13 is_stmt 1 view .LVU644
+ 2081              		.loc 1 446 24 is_stmt 0 view .LVU645
+ 2082 01ce 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 2083 01d0 D2B2     		uxtb	r2, r2
+ 2084 01d2 0A70     		strb	r2, [r1]
+ 447:source\audio/audio.c ****             wm8978_volset(volume);
+ 2085              		.loc 1 447 13 is_stmt 1 view .LVU646
+ 2086 01d4 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 2087 01d6 FFF7FEFF 		bl	wm8978_volset
+ 2088              	.LVL149:
+ 2089              	.L147:
+ 448:source\audio/audio.c ****          }
+ 449:source\audio/audio.c ****       }      
+ 450:source\audio/audio.c ****       if ((music_play) && (play_audio) && (audio_run == 0)) {
+ 2090              		.loc 1 450 7 view .LVU647
+ 2091              		.loc 1 450 10 is_stmt 0 view .LVU648
+ 2092 01da 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 2093 01dc 7BB1     		cbz	r3, .L110
+ 2094              		.loc 1 450 24 discriminator 1 view .LVU649
+ 2095 01de 2B4B     		ldr	r3, .L199+20
+ 2096 01e0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2097 01e2 63B1     		cbz	r3, .L110
+ 2098              		.loc 1 450 54 discriminator 2 view .LVU650
+ 2099 01e4 284B     		ldr	r3, .L199+16
+ 2100 01e6 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2101              		.loc 1 450 40 discriminator 2 view .LVU651
+ 2102 01e8 03F0FF01 		and	r1, r3, #255
+ 2103 01ec 3BB9     		cbnz	r3, .L110
+ 451:source\audio/audio.c ****       	 wait_count++;
+ 2104              		.loc 1 451 9 is_stmt 1 view .LVU652
+ 2105              		.loc 1 451 19 is_stmt 0 view .LVU653
+ 2106 01ee 344A     		ldr	r2, .L199+72
+ 2107 01f0 1388     		ldrh	r3, [r2]
+ 2108 01f2 0133     		adds	r3, r3, #1
+ 2109 01f4 9BB2     		uxth	r3, r3
+ 452:source\audio/audio.c ****       	 if (wait_count >= 500) {
+ 2110              		.loc 1 452 9 is_stmt 1 view .LVU654
+ 2111              		.loc 1 452 12 is_stmt 0 view .LVU655
+ 2112 01f6 B3F5FA7F 		cmp	r3, #500
+ 2113 01fa 6FD2     		bcs	.L152
+ 451:source\audio/audio.c ****       	 wait_count++;
+ 2114              		.loc 1 451 19 view .LVU656
+ 2115 01fc 1380     		strh	r3, [r2]	@ movhi
+ 2116              	.L110:
+ 453:source\audio/audio.c ****       	    wait_count = 0;
+ 454:source\audio/audio.c **** 			if (rflag) music_start(2);
+ 455:source\audio/audio.c ****             if (audio_repeat) music_start(0);else music_start(1);
+ 456:source\audio/audio.c ****             music_play = 0;
+ 457:source\audio/audio.c ****          }
+ 458:source\audio/audio.c ****       }
+ 459:source\audio/audio.c **** }
+ 2117              		.loc 1 459 1 view .LVU657
+ 2118 01fe 03B0     		add	sp, sp, #12
+ 2119              		.cfi_remember_state
+ 2120              		.cfi_def_cfa_offset 20
+ 2121              		@ sp needed
+ 2122 0200 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 2123              	.L117:
+ 2124              		.cfi_restore_state
+ 347:source\audio/audio.c ****       	       	     if (music_number) music_number--;else music_number = fnum - 1;
+ 2125              		.loc 1 347 18 is_stmt 1 view .LVU658
+ 347:source\audio/audio.c ****       	       	     if (music_number) music_number--;else music_number = fnum - 1;
+ 2126              		.loc 1 347 21 is_stmt 0 view .LVU659
+ 2127 0202 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 2128 0204 002B     		cmp	r3, #0
+ 2129 0206 7FF425AF 		bne	.L118
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2130              		.loc 1 348 21 is_stmt 1 view .LVU660
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2131              		.loc 1 348 25 is_stmt 0 view .LVU661
+ 2132 020a 214A     		ldr	r2, .L199+24
+ 2133 020c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2134              		.loc 1 348 24 view .LVU662
+ 2135 020e 2BB1     		cbz	r3, .L119
+ 2136              	.L192:
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2137              		.loc 1 348 79 discriminator 2 view .LVU663
+ 2138 0210 013B     		subs	r3, r3, #1
+ 2139 0212 DBB2     		uxtb	r3, r3
+ 2140 0214 1370     		strb	r3, [r2]
+ 349:source\audio/audio.c ****       	       	  }
+ 2141              		.loc 1 349 21 is_stmt 1 discriminator 2 view .LVU664
+ 349:source\audio/audio.c ****       	       	  }
+ 2142              		.loc 1 349 32 is_stmt 0 discriminator 2 view .LVU665
+ 2143 0216 0123     		movs	r3, #1
+ 2144 0218 2B70     		strb	r3, [r5]
+ 2145 021a 1BE7     		b	.L118
+ 2146              	.L119:
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2147              		.loc 1 348 59 is_stmt 1 discriminator 2 view .LVU666
+ 348:source\audio/audio.c ****       	       	     music_play = 1;
+ 2148              		.loc 1 348 79 is_stmt 0 discriminator 2 view .LVU667
+ 2149 021c 1D4B     		ldr	r3, .L199+28
+ 2150 021e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2151 0220 F6E7     		b	.L192
+ 2152              	.L116:
+ 353:source\audio/audio.c ****       	       	  audio_pause = 0;
+ 2153              		.loc 1 353 15 is_stmt 1 view .LVU668
+ 353:source\audio/audio.c ****       	       	  audio_pause = 0;
+ 2154              		.loc 1 353 19 is_stmt 0 view .LVU669
+ 2155 0222 284B     		ldr	r3, .L199+76
+ 2156 0224 1978     		ldrb	r1, [r3]	@ zero_extendqisi2
+ 353:source\audio/audio.c ****       	       	  audio_pause = 0;
+ 2157              		.loc 1 353 18 view .LVU670
+ 2158 0226 19B1     		cbz	r1, .L121
+ 354:source\audio/audio.c ****       	       	  audio_start();
+ 2159              		.loc 1 354 18 is_stmt 1 view .LVU671
+ 354:source\audio/audio.c ****       	       	  audio_start();
+ 2160              		.loc 1 354 30 is_stmt 0 view .LVU672
+ 2161 0228 1A70     		strb	r2, [r3]
+ 355:source\audio/audio.c ****       	       } else {
+ 2162              		.loc 1 355 18 is_stmt 1 view .LVU673
+ 2163 022a FFF7FEFF 		bl	audio_start
+ 2164              	.LVL150:
+ 2165 022e 11E7     		b	.L118
+ 2166              	.L121:
+ 357:source\audio/audio.c ****       	       	  audio_stop();
+ 2167              		.loc 1 357 18 view .LVU674
+ 357:source\audio/audio.c ****       	       	  audio_stop();
+ 2168              		.loc 1 357 30 is_stmt 0 view .LVU675
+ 2169 0230 0122     		movs	r2, #1
+ 2170 0232 1A70     		strb	r2, [r3]
+ 358:source\audio/audio.c ****       	       }
+ 2171              		.loc 1 358 18 is_stmt 1 view .LVU676
+ 2172 0234 FFF7FEFF 		bl	audio_stop
+ 2173              	.LVL151:
+ 2174 0238 0CE7     		b	.L118
+ 2175              	.L123:
+ 370:source\audio/audio.c ****       	    }
+ 2176              		.loc 1 370 15 view .LVU677
+ 370:source\audio/audio.c ****       	    }
+ 2177              		.loc 1 370 19 is_stmt 0 view .LVU678
+ 2178 023a 234B     		ldr	r3, .L199+80
+ 2179 023c 1B68     		ldr	r3, [r3]
+ 370:source\audio/audio.c ****       	    }
+ 2180              		.loc 1 370 18 view .LVU679
+ 2181 023e 002B     		cmp	r3, #0
+ 2182 0240 3FF432AF 		beq	.L125
+ 370:source\audio/audio.c ****       	    }
+ 2183              		.loc 1 370 40 is_stmt 1 discriminator 1 view .LVU680
+ 2184 0244 9847     		blx	r3
+ 2185              	.LVL152:
+ 2186 0246 2FE7     		b	.L125
+ 2187              	.L128:
+ 376:source\audio/audio.c ****       	       lcd_printf(0,20,"                                        ");
+ 2188              		.loc 1 376 53 discriminator 2 view .LVU681
+ 376:source\audio/audio.c ****       	       lcd_printf(0,20,"                                        ");
+ 2189              		.loc 1 376 73 is_stmt 0 discriminator 2 view .LVU682
+ 2190 0248 124B     		ldr	r3, .L199+28
+ 2191 024a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2192 024c 3DE7     		b	.L193
+ 2193              	.L127:
+ 380:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2194              		.loc 1 380 15 is_stmt 1 view .LVU683
+ 380:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2195              		.loc 1 380 19 is_stmt 0 view .LVU684
+ 2196 024e 1E4B     		ldr	r3, .L199+80
+ 2197 0250 1B68     		ldr	r3, [r3]
+ 380:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2198              		.loc 1 380 18 view .LVU685
+ 2199 0252 03B1     		cbz	r3, .L131
+ 380:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2200              		.loc 1 380 40 is_stmt 1 discriminator 1 view .LVU686
+ 2201 0254 9847     		blx	r3
+ 2202              	.LVL153:
+ 2203              	.L131:
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2204              		.loc 1 381 15 view .LVU687
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2205              		.loc 1 381 19 is_stmt 0 view .LVU688
+ 2206 0256 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2207              		.loc 1 381 18 view .LVU689
+ 2208 0258 2BB1     		cbz	r3, .L132
+ 2209              	.L194:
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2210              		.loc 1 381 73 discriminator 2 view .LVU690
+ 2211 025a 013B     		subs	r3, r3, #1
+ 2212 025c DBB2     		uxtb	r3, r3
+ 382:source\audio/audio.c ****       	    }
+ 2213              		.loc 1 382 15 is_stmt 1 discriminator 2 view .LVU691
+ 382:source\audio/audio.c ****       	    }
+ 2214              		.loc 1 382 18 is_stmt 0 discriminator 2 view .LVU692
+ 2215 025e 2BB1     		cbz	r3, .L134
+ 2216              	.L195:
+ 382:source\audio/audio.c ****       	    }
+ 2217              		.loc 1 382 73 discriminator 2 view .LVU693
+ 2218 0260 013B     		subs	r3, r3, #1
+ 382:source\audio/audio.c ****       	    }
+ 2219              		.loc 1 382 66 discriminator 2 view .LVU694
+ 2220 0262 3B70     		strb	r3, [r7]
+ 2221 0264 45E7     		b	.L130
+ 2222              	.L132:
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2223              		.loc 1 381 53 is_stmt 1 discriminator 2 view .LVU695
+ 381:source\audio/audio.c ****       	       if (music_number) music_number--;else music_number = fnum - 1;
+ 2224              		.loc 1 381 73 is_stmt 0 discriminator 2 view .LVU696
+ 2225 0266 0B4B     		ldr	r3, .L199+28
+ 2226 0268 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2227 026a F6E7     		b	.L194
+ 2228              	.L134:
+ 382:source\audio/audio.c ****       	    }
+ 2229              		.loc 1 382 53 is_stmt 1 discriminator 2 view .LVU697
+ 382:source\audio/audio.c ****       	    }
+ 2230              		.loc 1 382 73 is_stmt 0 discriminator 2 view .LVU698
+ 2231 026c 094B     		ldr	r3, .L199+28
+ 2232 026e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2233 0270 F6E7     		b	.L195
+ 2234              	.L136:
+ 387:source\audio/audio.c ****       	    volume_flag = 1;
+ 2235              		.loc 1 387 38 is_stmt 1 discriminator 2 view .LVU699
+ 387:source\audio/audio.c ****       	    volume_flag = 1;
+ 2236              		.loc 1 387 45 is_stmt 0 discriminator 2 view .LVU700
+ 2237 0272 1970     		strb	r1, [r3]
+ 2238 0274 4FE7     		b	.L137
+ 2239              	.L200:
+ 2240 0276 00BF     		.align	2
+ 2241              	.L199:
+ 2242 0278 00000000 		.word	play_key
+ 2243 027c 00000000 		.word	play_key_count
+ 2244 0280 00000000 		.word	music_play
+ 2245 0284 00000000 		.word	volume_flag
+ 2246 0288 00000000 		.word	audio_run
+ 2247 028c 00000000 		.word	play_audio
+ 2248 0290 00000000 		.word	music_number
+ 2249 0294 00000000 		.word	fnum
+ 2250 0298 00000000 		.word	.LC2
+ 2251 029c 00000000 		.word	audio_file
+ 2252 02a0 00000000 		.word	.LC17
+ 2253 02a4 00000000 		.word	volume
+ 2254 02a8 17000000 		.word	.LC18
+ 2255 02ac 00000000 		.word	audio_repeat
+ 2256 02b0 24000000 		.word	.LC19
+ 2257 02b4 00000000 		.word	rflag
+ 2258 02b8 3E000000 		.word	.LC21
+ 2259 02bc 00000000 		.word	old_volume
+ 2260 02c0 00000000 		.word	wait_count
+ 2261 02c4 00000000 		.word	audio_pause
+ 2262 02c8 00000000 		.word	audio_stop_function
+ 2263              	.L142:
+ 420:source\audio/audio.c **** 				lcd_printf(0,1,"repeat      ");
+ 2264              		.loc 1 420 5 is_stmt 1 view .LVU701
+ 420:source\audio/audio.c **** 				lcd_printf(0,1,"repeat      ");
+ 2265              		.loc 1 420 17 is_stmt 0 view .LVU702
+ 2266 02cc 0121     		movs	r1, #1
+ 421:source\audio/audio.c **** 			}
+ 2267              		.loc 1 421 5 view .LVU703
+ 2268 02ce 0C4A     		ldr	r2, .L201
+ 420:source\audio/audio.c **** 				lcd_printf(0,1,"repeat      ");
+ 2269              		.loc 1 420 17 view .LVU704
+ 2270 02d0 1970     		strb	r1, [r3]
+ 421:source\audio/audio.c **** 			}
+ 2271              		.loc 1 421 5 is_stmt 1 view .LVU705
+ 2272 02d2 5AE7     		b	.L196
+ 2273              	.L144:
+ 437:source\audio/audio.c **** 				lcd_printf(0,1,"random      ");
+ 2274              		.loc 1 437 5 view .LVU706
+ 437:source\audio/audio.c **** 				lcd_printf(0,1,"random      ");
+ 2275              		.loc 1 437 10 is_stmt 0 view .LVU707
+ 2276 02d4 0121     		movs	r1, #1
+ 438:source\audio/audio.c **** 			}
+ 2277              		.loc 1 438 5 view .LVU708
+ 2278 02d6 0B4A     		ldr	r2, .L201+4
+ 437:source\audio/audio.c **** 				lcd_printf(0,1,"random      ");
+ 2279              		.loc 1 437 10 view .LVU709
+ 2280 02d8 1970     		strb	r1, [r3]
+ 438:source\audio/audio.c **** 			}
+ 2281              		.loc 1 438 5 is_stmt 1 view .LVU710
+ 2282 02da 68E7     		b	.L197
+ 2283              	.L152:
+ 453:source\audio/audio.c **** 			if (rflag) music_start(2);
+ 2284              		.loc 1 453 12 view .LVU711
+ 454:source\audio/audio.c ****             if (audio_repeat) music_start(0);else music_start(1);
+ 2285              		.loc 1 454 8 is_stmt 0 view .LVU712
+ 2286 02dc 0A4B     		ldr	r3, .L201+8
+ 453:source\audio/audio.c **** 			if (rflag) music_start(2);
+ 2287              		.loc 1 453 23 view .LVU713
+ 2288 02de 1180     		strh	r1, [r2]	@ movhi
+ 454:source\audio/audio.c ****             if (audio_repeat) music_start(0);else music_start(1);
+ 2289              		.loc 1 454 4 is_stmt 1 view .LVU714
+ 454:source\audio/audio.c ****             if (audio_repeat) music_start(0);else music_start(1);
+ 2290              		.loc 1 454 7 is_stmt 0 view .LVU715
+ 2291 02e0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2292 02e2 13B1     		cbz	r3, .L153
+ 454:source\audio/audio.c ****             if (audio_repeat) music_start(0);else music_start(1);
+ 2293              		.loc 1 454 15 is_stmt 1 discriminator 1 view .LVU716
+ 2294 02e4 0220     		movs	r0, #2
+ 2295 02e6 FFF7FEFF 		bl	music_start
+ 2296              	.LVL154:
+ 2297              	.L153:
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2298              		.loc 1 455 13 view .LVU717
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2299              		.loc 1 455 17 is_stmt 0 view .LVU718
+ 2300 02ea 084B     		ldr	r3, .L201+12
+ 2301 02ec 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2302              		.loc 1 455 16 view .LVU719
+ 2303 02ee 2BB1     		cbz	r3, .L154
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2304              		.loc 1 455 31 is_stmt 1 discriminator 1 view .LVU720
+ 2305 02f0 0020     		movs	r0, #0
+ 2306              	.L198:
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2307              		.loc 1 455 51 is_stmt 0 discriminator 2 view .LVU721
+ 2308 02f2 FFF7FEFF 		bl	music_start
+ 2309              	.LVL155:
+ 456:source\audio/audio.c ****          }
+ 2310              		.loc 1 456 13 is_stmt 1 discriminator 2 view .LVU722
+ 456:source\audio/audio.c ****          }
+ 2311              		.loc 1 456 24 is_stmt 0 discriminator 2 view .LVU723
+ 2312 02f6 0023     		movs	r3, #0
+ 2313 02f8 2B70     		strb	r3, [r5]
+ 2314              		.loc 1 459 1 discriminator 2 view .LVU724
+ 2315 02fa 80E7     		b	.L110
+ 2316              	.L154:
+ 455:source\audio/audio.c ****             music_play = 0;
+ 2317              		.loc 1 455 51 is_stmt 1 discriminator 2 view .LVU725
+ 2318 02fc 0120     		movs	r0, #1
+ 2319 02fe F8E7     		b	.L198
+ 2320              	.L202:
+ 2321              		.align	2
+ 2322              	.L201:
+ 2323 0300 31000000 		.word	.LC20
+ 2324 0304 4D000000 		.word	.LC22
+ 2325 0308 00000000 		.word	rflag
+ 2326 030c 00000000 		.word	audio_repeat
+ 2327              		.cfi_endproc
+ 2328              	.LFE138:
+ 2330              		.global	audio_br
+ 2331              		.section	.bss.audio_br,"aw",%nobits
+ 2332              		.align	2
+ 2335              	audio_br:
+ 2336 0000 00000000 		.space	4
+ 2337              		.global	audio_old_sec
+ 2338              		.section	.bss.audio_old_sec,"aw",%nobits
+ 2339              		.align	2
+ 2342              	audio_old_sec:
+ 2343 0000 00000000 		.space	4
+ 2344              		.global	old_volume
+ 2345              		.section	.bss.old_volume,"aw",%nobits
+ 2348              	old_volume:
+ 2349 0000 00       		.space	1
+ 2350              		.global	audio_repeat
+ 2351              		.section	.bss.audio_repeat,"aw",%nobits
+ 2354              	audio_repeat:
+ 2355 0000 00       		.space	1
+ 2356              		.global	audio_pause
+ 2357              		.section	.bss.audio_pause,"aw",%nobits
+ 2360              	audio_pause:
+ 2361 0000 00       		.space	1
+ 2362              		.global	audio_run
+ 2363              		.section	.bss.audio_run,"aw",%nobits
+ 2366              	audio_run:
+ 2367 0000 00       		.space	1
+ 2368              		.global	audio_read_flag
+ 2369              		.section	.bss.audio_read_flag,"aw",%nobits
+ 2372              	audio_read_flag:
+ 2373 0000 00       		.space	1
+ 2374              		.global	audio_decode_flag
+ 2375              		.section	.bss.audio_decode_flag,"aw",%nobits
+ 2378              	audio_decode_flag:
+ 2379 0000 00       		.space	1
+ 2380              		.global	audio_delay
+ 2381              		.section	.bss.audio_delay,"aw",%nobits
+ 2384              	audio_delay:
+ 2385 0000 00       		.space	1
+ 2386              		.global	play_key_count
+ 2387              		.section	.bss.play_key_count,"aw",%nobits
+ 2390              	play_key_count:
+ 2391 0000 00       		.space	1
+ 2392              		.global	play_audio
+ 2393              		.section	.bss.play_audio,"aw",%nobits
+ 2396              	play_audio:
+ 2397 0000 00       		.space	1
+ 2398              		.global	play_key
+ 2399              		.section	.bss.play_key,"aw",%nobits
+ 2402              	play_key:
+ 2403 0000 00       		.space	1
+ 2404              		.section	.bss.heap_end,"aw",%nobits
+ 2405              		.align	2
+ 2408              	heap_end:
+ 2409 0000 00000000 		.space	4
+ 2410              		.global	fatbuf
+ 2411              		.section	.bss.fatbuf,"aw",%nobits
+ 2412              		.align	2
+ 2415              	fatbuf:
+ 2416 0000 00000000 		.space	4
+ 2417              		.global	dir
+ 2418              		.section	.bss.dir,"aw",%nobits
+ 2419              		.align	2
+ 2422              	dir:
+ 2423 0000 00000000 		.space	552
+ 2423      00000000 
+ 2423      00000000 
+ 2423      00000000 
+ 2423      00000000 
+ 2424              		.global	fileinfo
+ 2425              		.section	.bss.fileinfo,"aw",%nobits
+ 2426              		.align	2
+ 2429              	fileinfo:
+ 2430 0000 00000000 		.space	32
+ 2430      00000000 
+ 2430      00000000 
+ 2430      00000000 
+ 2430      00000000 
+ 2431              		.global	bw
+ 2432              		.section	.bss.bw,"aw",%nobits
+ 2433              		.align	2
+ 2436              	bw:
+ 2437 0000 00000000 		.space	4
+ 2438              		.global	br
+ 2439              		.section	.bss.br,"aw",%nobits
+ 2440              		.align	2
+ 2443              	br:
+ 2444 0000 00000000 		.space	4
+ 2445              		.global	ftemp
+ 2446              		.section	.bss.ftemp,"aw",%nobits
+ 2447              		.align	2
+ 2450              	ftemp:
+ 2451 0000 00000000 		.space	4
+ 2452              		.global	file
+ 2453              		.section	.bss.file,"aw",%nobits
+ 2454              		.align	2
+ 2457              	file:
+ 2458 0000 00000000 		.space	4
+ 2459              		.global	fs
+ 2460              		.section	.bss.fs,"aw",%nobits
+ 2461              		.align	2
+ 2464              	fs:
+ 2465 0000 00000000 		.space	12
+ 2465      00000000 
+ 2465      00000000 
+ 2466              		.global	wait_count
+ 2467              		.section	.bss.wait_count,"aw",%nobits
+ 2468              		.align	1
+ 2471              	wait_count:
+ 2472 0000 0000     		.space	2
+ 2473              		.global	audiodev
+ 2474              		.section	.bss.audiodev,"aw",%nobits
+ 2477              	audiodev:
+ 2478 0000 00000000 		.space	60
+ 2478      00000000 
+ 2478      00000000 
+ 2478      00000000 
+ 2478      00000000 
+ 2479              		.global	rflag
+ 2480              		.section	.bss.rflag,"aw",%nobits
+ 2483              	rflag:
+ 2484 0000 00       		.space	1
+ 2485              		.global	display_line_flag
+ 2486              		.section	.bss.display_line_flag,"aw",%nobits
+ 2489              	display_line_flag:
+ 2490 0000 00       		.space	1
+ 2491              		.global	display_line
+ 2492              		.section	.bss.display_line,"aw",%nobits
+ 2495              	display_line:
+ 2496 0000 00       		.space	1
+ 2497              		.global	dp_page
+ 2498              		.section	.bss.dp_page,"aw",%nobits
+ 2501              	dp_page:
+ 2502 0000 00       		.space	1
+ 2503              		.global	music_play
+ 2504              		.section	.bss.music_play,"aw",%nobits
+ 2507              	music_play:
+ 2508 0000 00       		.space	1
+ 2509              		.global	fnum
+ 2510              		.section	.bss.fnum,"aw",%nobits
+ 2513              	fnum:
+ 2514 0000 00       		.space	1
+ 2515              		.global	music_number
+ 2516              		.section	.bss.music_number,"aw",%nobits
+ 2519              	music_number:
+ 2520 0000 00       		.space	1
+ 2521              		.global	music_extend
+ 2522              		.section	.rodata.str1.1,"aMS",%progbits,1
+ 2523              	.LC23:
+ 2524 0000 4D503300 		.ascii	"MP3\000"
+ 2525              	.LC24:
+ 2526 0004 41504500 		.ascii	"APE\000"
+ 2527              	.LC25:
+ 2528 0008 57415600 		.ascii	"WAV\000"
+ 2529              	.LC26:
+ 2530 000c 464C4143 		.ascii	"FLAC\000"
+ 2530      00
+ 2531              		.section	.data.music_extend,"aw"
+ 2532              		.align	2
+ 2535              	music_extend:
+ 2536 0000 00000000 		.word	.LC23
+ 2537 0004 04000000 		.word	.LC24
+ 2538 0008 08000000 		.word	.LC25
+ 2539 000c 0C000000 		.word	.LC26
+ 2540              		.global	audio_file
+ 2541              		.section	.bss.audio_file,"aw",%nobits
+ 2542              		.align	2
+ 2545              	audio_file:
+ 2546 0000 00000000 		.space	4
+ 2547              		.global	audio_stop_function
+ 2548              		.section	.bss.audio_stop_function,"aw",%nobits
+ 2549              		.align	2
+ 2552              	audio_stop_function:
+ 2553 0000 00000000 		.space	4
+ 2554              		.global	audio_play_function
+ 2555              		.section	.bss.audio_play_function,"aw",%nobits
+ 2556              		.align	2
+ 2559              	audio_play_function:
+ 2560 0000 00000000 		.space	4
+ 2561              		.text
+ 2562              	.Letext0:
+ 2563              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 2564              		.file 4 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 2565              		.file 5 "source\\audio\\../fatfs/integer.h"
+ 2566              		.file 6 "source\\audio\\../fatfs/ff.h"
+ 2567              		.file 7 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\lib\\gcc\\ar
+ 2568              		.file 8 "source\\audio\\../prototype.h"
+ 2569              		.file 9 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 2570              		.file 10 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_iwdg.h"
+ 2571              		.file 11 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 2572              		.file 12 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 2573              		.file 13 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 2574              		.file 14 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 audio.c
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:21     .text.get_heap_end:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:27     .text.get_heap_end:00000000 get_heap_end
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:42     .text.get_heap_end:00000008 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2408   .bss.heap_end:00000000 heap_end
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:47     .text.get_stack_top:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:53     .text.get_stack_top:00000000 get_stack_top
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:86     .text._kill:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:92     .text._kill:00000000 _kill
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:124    .text._exit:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:130    .text._exit:00000000 _exit
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:163    .text._exit:00000010 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:168    .text._getpid:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:174    .text._getpid:00000000 _getpid
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:192    .text._sbrk:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:198    .text._sbrk:00000000 _sbrk
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:282    .text._sbrk:0000002c $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:289    .text.char_upper:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:295    .text.char_upper:00000000 char_upper
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:331    .text.audio_file_list:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:337    .text.audio_file_list:00000000 audio_file_list
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:466    .text.audio_file_list:00000084 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2495   .bss.display_line:00000000 display_line
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2489   .bss.display_line_flag:00000000 display_line_flag
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2501   .bss.dp_page:00000000 dp_page
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2545   .bss.audio_file:00000000 audio_file
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:485    .text.find_music:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:491    .text.find_music:00000000 find_music
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:690    .text.find_music:000000cc $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2429   .bss.fileinfo:00000000 fileinfo
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2422   .bss.dir:00000000 dir
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2535   .data.music_extend:00000000 music_extend
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:702    .text.wm8978_volset:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:708    .text.wm8978_volset:00000000 wm8978_volset
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:758    .text.wm8978_volset:00000024 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:763    .text.wm8978_eqset:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:769    .text.wm8978_eqset:00000000 wm8978_eqset
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:782    .text.wm8978_eqset:00000008 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:845    .text.audio_start:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:851    .text.audio_start:00000000 audio_start
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:877    .text.audio_start:00000018 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2477   .bss.audiodev:00000000 audiodev
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:882    .text.audio_stop:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:888    .text.audio_stop:00000000 audio_stop
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:914    .text.audio_stop:00000018 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:926    .text.audio_init:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:932    .text.audio_init:00000000 audio_init
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1252   .text.audio_init:00000128 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2464   .bss.fs:00000000 fs
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2457   .bss.file:00000000 file
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2450   .bss.ftemp:00000000 ftemp
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2415   .bss.fatbuf:00000000 fatbuf
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2513   .bss.fnum:00000000 fnum
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2519   .bss.music_number:00000000 music_number
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2507   .bss.music_play:00000000 music_play
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1282   .text.music_start:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1288   .text.music_start:00000000 music_start
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1663   .text.music_start:00000198 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2559   .bss.audio_play_function:00000000 audio_play_function
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2552   .bss.audio_stop_function:00000000 audio_stop_function
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2366   .bss.audio_run:00000000 audio_run
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2372   .bss.audio_read_flag:00000000 audio_read_flag
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2360   .bss.audio_pause:00000000 audio_pause
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1706   .text.audio_process:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:1712   .text.audio_process:00000000 audio_process
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2242   .text.audio_process:00000278 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2402   .bss.play_key:00000000 play_key
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2390   .bss.play_key_count:00000000 play_key_count
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2396   .bss.play_audio:00000000 play_audio
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2354   .bss.audio_repeat:00000000 audio_repeat
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2483   .bss.rflag:00000000 rflag
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2348   .bss.old_volume:00000000 old_volume
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2471   .bss.wait_count:00000000 wait_count
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2266   .text.audio_process:000002cc $t
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2323   .text.audio_process:00000300 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2335   .bss.audio_br:00000000 audio_br
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2332   .bss.audio_br:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2342   .bss.audio_old_sec:00000000 audio_old_sec
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2339   .bss.audio_old_sec:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2349   .bss.old_volume:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2355   .bss.audio_repeat:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2361   .bss.audio_pause:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2367   .bss.audio_run:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2373   .bss.audio_read_flag:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2378   .bss.audio_decode_flag:00000000 audio_decode_flag
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2379   .bss.audio_decode_flag:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2384   .bss.audio_delay:00000000 audio_delay
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2385   .bss.audio_delay:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2391   .bss.play_key_count:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2397   .bss.play_audio:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2403   .bss.play_key:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2405   .bss.heap_end:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2412   .bss.fatbuf:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2419   .bss.dir:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2426   .bss.fileinfo:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2436   .bss.bw:00000000 bw
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2433   .bss.bw:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2443   .bss.br:00000000 br
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2440   .bss.br:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2447   .bss.ftemp:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2454   .bss.file:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2461   .bss.fs:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2468   .bss.wait_count:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2478   .bss.audiodev:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2484   .bss.rflag:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2490   .bss.display_line_flag:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2496   .bss.display_line:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2502   .bss.dp_page:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2508   .bss.music_play:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2514   .bss.fnum:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2520   .bss.music_number:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2532   .data.music_extend:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2542   .bss.audio_file:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2549   .bss.audio_stop_function:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:2556   .bss.audio_play_function:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:787    .text.wm8978_eqset:0000000d $d
+C:\Users\37593\AppData\Local\Temp\ccD25JIv.s:787    .text.wm8978_eqset:0000000e $t
+
+UNDEFINED SYMBOLS
+__errno
+lcd_printf
+abort
+_end
+foreground_color
+malloc
+f_opendir
+f_readdir
+free
+strlen
+strcasecmp
+strcpy
+WM8978_SPKvol_Set
+WM8978_HPvol_Set
+wm8978set
+WM8978_EQ1_Set
+WM8978_EQ2_Set
+WM8978_EQ3_Set
+WM8978_EQ4_Set
+WM8978_EQ5_Set
+I2S_Play_Start
+I2S_Play_Stop
+rtc_init
+WM8978_Init
+FSMC_SRAM_Init
+memset
+SD_Init
+IWDG_ReloadCounter
+wm8978_read_para
+wm8978_save_para
+WM8978_3D_Set
+LCD_Clear
+f_mount
+WM8978_ADDA_Cfg
+WM8978_Input_Cfg
+WM8978_Output_Cfg
+volume
+background_color
+f_close
+strcat
+mp3_play_song
+rand
+wav_play_song
+flac_play_song
+ape_play_song
+mp3_play
+mp3_stop
+wave_play
+wave_stop
+flac_play
+flac_stop
+ape_play
+ape_stop
+volume_flag

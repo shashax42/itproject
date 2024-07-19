@@ -1,0 +1,871 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"ext_sram.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\ext_sram\\ext_sram.c"
+  20              		.section	.text.FSMC_SRAM_Init,"ax",%progbits
+  21              		.align	1
+  22              		.global	FSMC_SRAM_Init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	FSMC_SRAM_Init:
+  28              	.LFB123:
+   1:source\ext_sram/ext_sram.c **** /********************************************************************************/
+   2:source\ext_sram/ext_sram.c **** /* ext_sram.c                                                                   */
+   3:source\ext_sram/ext_sram.c **** /* STM32F407ZGT6                                                                */
+   4:source\ext_sram/ext_sram.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\ext_sram/ext_sram.c **** /* stm32f4x_test								*/
+   6:source\ext_sram/ext_sram.c **** /********************************************************************************/
+   7:source\ext_sram/ext_sram.c **** #include "../../hwdefs.h"
+   8:source\ext_sram/ext_sram.c **** #include "../prototype.h"
+   9:source\ext_sram/ext_sram.c **** 
+  10:source\ext_sram/ext_sram.c **** 
+  11:source\ext_sram/ext_sram.c **** #define Bank1_SRAM3_ADDR		((unsigned int)(0x68000000))
+  12:source\ext_sram/ext_sram.c **** 
+  13:source\ext_sram/ext_sram.c **** 
+  14:source\ext_sram/ext_sram.c **** void FSMC_SRAM_Init (void)
+  15:source\ext_sram/ext_sram.c **** {
+  29              		.loc 1 15 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 96
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  16:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitTypeDef FSMC_NORSRAMInitStructure;
+  33              		.loc 1 16 7 view .LVU1
+  17:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMTimingInitTypeDef readWriteTiming;
+  34              		.loc 1 17 7 view .LVU2
+  18:source\ext_sram/ext_sram.c ****       GPIO_InitTypeDef GPIO_InitStructure;
+  35              		.loc 1 18 7 view .LVU3
+  19:source\ext_sram/ext_sram.c ****       RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE | R
+  36              		.loc 1 19 7 view .LVU4
+  15:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitTypeDef FSMC_NORSRAMInitStructure;
+  37              		.loc 1 15 1 is_stmt 0 view .LVU5
+  38 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+  39              		.cfi_def_cfa_offset 20
+  40              		.cfi_offset 4, -20
+  41              		.cfi_offset 5, -16
+  42              		.cfi_offset 6, -12
+  43              		.cfi_offset 7, -8
+  44              		.cfi_offset 14, -4
+  45              		.loc 1 19 7 view .LVU6
+  46 0002 0121     		movs	r1, #1
+  15:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitTypeDef FSMC_NORSRAMInitStructure;
+  47              		.loc 1 15 1 view .LVU7
+  48 0004 99B0     		sub	sp, sp, #100
+  49              		.cfi_def_cfa_offset 120
+  50              		.loc 1 19 7 view .LVU8
+  51 0006 7A20     		movs	r0, #122
+  52 0008 FFF7FEFF 		bl	RCC_AHB1PeriphClockCmd
+  53              	.LVL0:
+  20:source\ext_sram/ext_sram.c ****       RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FSMC,ENABLE);
+  54              		.loc 1 20 7 is_stmt 1 view .LVU9
+  55 000c 0121     		movs	r1, #1
+  56 000e 0846     		mov	r0, r1
+  21:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
+  22:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  23:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  24:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  25:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  26:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOB, &GPIO_InitStructure);
+  27:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (3 << 4) | (0xFF << 8);
+  28:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  29:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  30:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  31:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  32:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOD, &GPIO_InitStructure);
+  57              		.loc 1 32 7 is_stmt 0 view .LVU10
+  58 0010 8E4C     		ldr	r4, .L2
+  33:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (0x1FF << 7);
+  34:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  35:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  36:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  37:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  38:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOE, &GPIO_InitStructure);
+  59              		.loc 1 38 7 view .LVU11
+  60 0012 8F4D     		ldr	r5, .L2+4
+  28:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  61              		.loc 1 28 36 view .LVU12
+  62 0014 8F4F     		ldr	r7, .L2+8
+  39:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (0x3F << 0) | (0xF << 12);
+  40:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  41:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  42:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  43:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  44:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOF, &GPIO_InitStructure);
+  63              		.loc 1 44 7 view .LVU13
+  64 0016 904E     		ldr	r6, .L2+12
+  20:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
+  65              		.loc 1 20 7 view .LVU14
+  66 0018 FFF7FEFF 		bl	RCC_AHB3PeriphClockCmd
+  67              	.LVL1:
+  21:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  68              		.loc 1 21 7 is_stmt 1 view .LVU15
+  22:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  69              		.loc 1 22 7 view .LVU16
+  23:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  70              		.loc 1 23 7 view .LVU17
+  24:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  71              		.loc 1 24 7 view .LVU18
+  25:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOB, &GPIO_InitStructure);
+  72              		.loc 1 25 7 view .LVU19
+  22:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  73              		.loc 1 22 36 is_stmt 0 view .LVU20
+  74 001c 8F4B     		ldr	r3, .L2+16
+  26:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (3 << 4) | (0xFF << 8);
+  75              		.loc 1 26 7 view .LVU21
+  76 001e 9048     		ldr	r0, .L2+20
+  22:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  77              		.loc 1 22 36 view .LVU22
+  78 0020 4FF40042 		mov	r2, #32768
+  26:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (3 << 4) | (0xFF << 8);
+  79              		.loc 1 26 7 view .LVU23
+  80 0024 6946     		mov	r1, sp
+  22:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  81              		.loc 1 22 36 view .LVU24
+  82 0026 CDE90023 		strd	r2, r3, [sp]
+  26:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (3 << 4) | (0xFF << 8);
+  83              		.loc 1 26 7 is_stmt 1 view .LVU25
+  84 002a FFF7FEFF 		bl	GPIO_Init
+  85              	.LVL2:
+  27:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  86              		.loc 1 27 7 view .LVU26
+  28:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  87              		.loc 1 28 7 view .LVU27
+  29:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  88              		.loc 1 29 7 view .LVU28
+  30:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  89              		.loc 1 30 7 view .LVU29
+  31:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOD, &GPIO_InitStructure);
+  90              		.loc 1 31 7 view .LVU30
+  28:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  91              		.loc 1 28 36 is_stmt 0 view .LVU31
+  92 002e 4FF63373 		movw	r3, #65331
+  32:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (0x1FF << 7);
+  93              		.loc 1 32 7 view .LVU32
+  94 0032 6946     		mov	r1, sp
+  95 0034 2046     		mov	r0, r4
+  28:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  96              		.loc 1 28 36 view .LVU33
+  97 0036 CDE90037 		strd	r3, r7, [sp]
+  32:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (3 << 0) | (0x1FF << 7);
+  98              		.loc 1 32 7 is_stmt 1 view .LVU34
+  99 003a FFF7FEFF 		bl	GPIO_Init
+ 100              	.LVL3:
+  33:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 101              		.loc 1 33 7 view .LVU35
+  34:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 102              		.loc 1 34 7 view .LVU36
+  35:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+ 103              		.loc 1 35 7 view .LVU37
+  36:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+ 104              		.loc 1 36 7 view .LVU38
+  37:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOE, &GPIO_InitStructure);
+ 105              		.loc 1 37 7 view .LVU39
+  33:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 106              		.loc 1 33 35 is_stmt 0 view .LVU40
+ 107 003e 4FF68373 		movw	r3, #65411
+  38:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (0x3F << 0) | (0xF << 12);
+ 108              		.loc 1 38 7 view .LVU41
+ 109 0042 6946     		mov	r1, sp
+ 110 0044 2846     		mov	r0, r5
+  34:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 111              		.loc 1 34 36 view .LVU42
+ 112 0046 CDE90037 		strd	r3, r7, [sp]
+  38:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin = (0x3F << 0) | (0xF << 12);
+ 113              		.loc 1 38 7 is_stmt 1 view .LVU43
+ 114 004a FFF7FEFF 		bl	GPIO_Init
+ 115              	.LVL4:
+  39:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 116              		.loc 1 39 7 view .LVU44
+  40:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 117              		.loc 1 40 7 view .LVU45
+  41:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+ 118              		.loc 1 41 7 view .LVU46
+  42:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+ 119              		.loc 1 42 7 view .LVU47
+  43:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOF, &GPIO_InitStructure);
+ 120              		.loc 1 43 7 view .LVU48
+  39:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 121              		.loc 1 39 35 is_stmt 0 view .LVU49
+ 122 004e 4FF23F03 		movw	r3, #61503
+ 123              		.loc 1 44 7 view .LVU50
+ 124 0052 6946     		mov	r1, sp
+ 125 0054 3046     		mov	r0, r6
+  40:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 126              		.loc 1 40 36 view .LVU51
+ 127 0056 CDE90037 		strd	r3, r7, [sp]
+ 128              		.loc 1 44 7 is_stmt 1 view .LVU52
+ 129 005a FFF7FEFF 		bl	GPIO_Init
+ 130              	.LVL5:
+  45:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Pin =(0x3F << 0) | GPIO_Pin_10;
+ 131              		.loc 1 45 7 view .LVU53
+  46:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 132              		.loc 1 46 7 view .LVU54
+  47:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 133              		.loc 1 47 7 view .LVU55
+  48:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+ 134              		.loc 1 48 7 view .LVU56
+  49:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+ 135              		.loc 1 49 7 view .LVU57
+  45:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+ 136              		.loc 1 45 35 is_stmt 0 view .LVU58
+ 137 005e 40F23F43 		movw	r3, #1087
+  46:source\ext_sram/ext_sram.c ****       GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+ 138              		.loc 1 46 36 view .LVU59
+ 139 0062 CDE90037 		strd	r3, r7, [sp]
+  50:source\ext_sram/ext_sram.c ****       GPIO_Init(GPIOG, &GPIO_InitStructure);
+ 140              		.loc 1 50 7 is_stmt 1 view .LVU60
+ 141 0066 7F4F     		ldr	r7, .L2+24
+ 142 0068 6946     		mov	r1, sp
+ 143 006a 3846     		mov	r0, r7
+ 144 006c FFF7FEFF 		bl	GPIO_Init
+ 145              	.LVL6:
+  51:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource0,GPIO_AF_FSMC);
+ 146              		.loc 1 51 7 view .LVU61
+ 147 0070 2046     		mov	r0, r4
+ 148 0072 0C22     		movs	r2, #12
+ 149 0074 0021     		movs	r1, #0
+ 150 0076 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 151              	.LVL7:
+  52:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource1,GPIO_AF_FSMC);
+ 152              		.loc 1 52 7 view .LVU62
+ 153 007a 2046     		mov	r0, r4
+ 154 007c 0C22     		movs	r2, #12
+ 155 007e 0121     		movs	r1, #1
+ 156 0080 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 157              	.LVL8:
+  53:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource4,GPIO_AF_FSMC);
+ 158              		.loc 1 53 7 view .LVU63
+ 159 0084 2046     		mov	r0, r4
+ 160 0086 0C22     		movs	r2, #12
+ 161 0088 0421     		movs	r1, #4
+ 162 008a FFF7FEFF 		bl	GPIO_PinAFConfig
+ 163              	.LVL9:
+  54:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource5,GPIO_AF_FSMC);
+ 164              		.loc 1 54 7 view .LVU64
+ 165 008e 2046     		mov	r0, r4
+ 166 0090 0C22     		movs	r2, #12
+ 167 0092 0521     		movs	r1, #5
+ 168 0094 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 169              	.LVL10:
+  55:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource8,GPIO_AF_FSMC);
+ 170              		.loc 1 55 7 view .LVU65
+ 171 0098 2046     		mov	r0, r4
+ 172 009a 0C22     		movs	r2, #12
+ 173 009c 0821     		movs	r1, #8
+ 174 009e FFF7FEFF 		bl	GPIO_PinAFConfig
+ 175              	.LVL11:
+  56:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource9,GPIO_AF_FSMC);
+ 176              		.loc 1 56 7 view .LVU66
+ 177 00a2 2046     		mov	r0, r4
+ 178 00a4 0C22     		movs	r2, #12
+ 179 00a6 0921     		movs	r1, #9
+ 180 00a8 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 181              	.LVL12:
+  57:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource10,GPIO_AF_FSMC);
+ 182              		.loc 1 57 7 view .LVU67
+ 183 00ac 2046     		mov	r0, r4
+ 184 00ae 0C22     		movs	r2, #12
+ 185 00b0 0A21     		movs	r1, #10
+ 186 00b2 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 187              	.LVL13:
+  58:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource11,GPIO_AF_FSMC);
+ 188              		.loc 1 58 7 view .LVU68
+ 189 00b6 2046     		mov	r0, r4
+ 190 00b8 0C22     		movs	r2, #12
+ 191 00ba 0B21     		movs	r1, #11
+ 192 00bc FFF7FEFF 		bl	GPIO_PinAFConfig
+ 193              	.LVL14:
+  59:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource12,GPIO_AF_FSMC);
+ 194              		.loc 1 59 7 view .LVU69
+ 195 00c0 0C22     		movs	r2, #12
+ 196 00c2 1146     		mov	r1, r2
+ 197 00c4 2046     		mov	r0, r4
+ 198 00c6 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 199              	.LVL15:
+  60:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource13,GPIO_AF_FSMC);
+ 200              		.loc 1 60 7 view .LVU70
+ 201 00ca 2046     		mov	r0, r4
+ 202 00cc 0C22     		movs	r2, #12
+ 203 00ce 0D21     		movs	r1, #13
+ 204 00d0 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 205              	.LVL16:
+  61:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource14,GPIO_AF_FSMC);
+ 206              		.loc 1 61 7 view .LVU71
+ 207 00d4 2046     		mov	r0, r4
+ 208 00d6 0C22     		movs	r2, #12
+ 209 00d8 0E21     		movs	r1, #14
+ 210 00da FFF7FEFF 		bl	GPIO_PinAFConfig
+ 211              	.LVL17:
+  62:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOD,GPIO_PinSource15,GPIO_AF_FSMC);
+ 212              		.loc 1 62 7 view .LVU72
+ 213 00de 2046     		mov	r0, r4
+ 214 00e0 0C22     		movs	r2, #12
+ 215 00e2 0F21     		movs	r1, #15
+ 216 00e4 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 217              	.LVL18:
+  63:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource0,GPIO_AF_FSMC);
+ 218              		.loc 1 63 7 view .LVU73
+ 219 00e8 2846     		mov	r0, r5
+ 220 00ea 0C22     		movs	r2, #12
+ 221 00ec 0021     		movs	r1, #0
+ 222 00ee FFF7FEFF 		bl	GPIO_PinAFConfig
+ 223              	.LVL19:
+  64:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource1,GPIO_AF_FSMC);
+ 224              		.loc 1 64 7 view .LVU74
+ 225 00f2 2846     		mov	r0, r5
+ 226 00f4 0C22     		movs	r2, #12
+ 227 00f6 0121     		movs	r1, #1
+ 228 00f8 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 229              	.LVL20:
+  65:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource7,GPIO_AF_FSMC);
+ 230              		.loc 1 65 7 view .LVU75
+ 231 00fc 2846     		mov	r0, r5
+ 232 00fe 0C22     		movs	r2, #12
+ 233 0100 0721     		movs	r1, #7
+ 234 0102 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 235              	.LVL21:
+  66:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource8,GPIO_AF_FSMC);
+ 236              		.loc 1 66 7 view .LVU76
+ 237 0106 2846     		mov	r0, r5
+ 238 0108 0C22     		movs	r2, #12
+ 239 010a 0821     		movs	r1, #8
+ 240 010c FFF7FEFF 		bl	GPIO_PinAFConfig
+ 241              	.LVL22:
+  67:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource9,GPIO_AF_FSMC);
+ 242              		.loc 1 67 7 view .LVU77
+ 243 0110 2846     		mov	r0, r5
+ 244 0112 0C22     		movs	r2, #12
+ 245 0114 0921     		movs	r1, #9
+ 246 0116 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 247              	.LVL23:
+  68:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource10,GPIO_AF_FSMC);
+ 248              		.loc 1 68 7 view .LVU78
+ 249 011a 2846     		mov	r0, r5
+ 250 011c 0C22     		movs	r2, #12
+ 251 011e 0A21     		movs	r1, #10
+ 252 0120 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 253              	.LVL24:
+  69:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource11,GPIO_AF_FSMC);
+ 254              		.loc 1 69 7 view .LVU79
+ 255 0124 2846     		mov	r0, r5
+ 256 0126 0C22     		movs	r2, #12
+ 257 0128 0B21     		movs	r1, #11
+ 258 012a FFF7FEFF 		bl	GPIO_PinAFConfig
+ 259              	.LVL25:
+  70:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource12,GPIO_AF_FSMC);
+ 260              		.loc 1 70 7 view .LVU80
+ 261 012e 0C22     		movs	r2, #12
+ 262 0130 1146     		mov	r1, r2
+ 263 0132 2846     		mov	r0, r5
+ 264 0134 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 265              	.LVL26:
+  71:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource13,GPIO_AF_FSMC);
+ 266              		.loc 1 71 7 view .LVU81
+ 267 0138 2846     		mov	r0, r5
+ 268 013a 0C22     		movs	r2, #12
+ 269 013c 0D21     		movs	r1, #13
+ 270 013e FFF7FEFF 		bl	GPIO_PinAFConfig
+ 271              	.LVL27:
+  72:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource14,GPIO_AF_FSMC);
+ 272              		.loc 1 72 7 view .LVU82
+ 273 0142 2846     		mov	r0, r5
+ 274 0144 0C22     		movs	r2, #12
+ 275 0146 0E21     		movs	r1, #14
+ 276 0148 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 277              	.LVL28:
+  73:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOE,GPIO_PinSource15,GPIO_AF_FSMC);
+ 278              		.loc 1 73 7 view .LVU83
+ 279 014c 2846     		mov	r0, r5
+ 280 014e 0C22     		movs	r2, #12
+ 281 0150 0F21     		movs	r1, #15
+ 282 0152 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 283              	.LVL29:
+  74:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource0,GPIO_AF_FSMC);
+ 284              		.loc 1 74 7 view .LVU84
+ 285 0156 3046     		mov	r0, r6
+ 286 0158 0C22     		movs	r2, #12
+ 287 015a 0021     		movs	r1, #0
+ 288 015c FFF7FEFF 		bl	GPIO_PinAFConfig
+ 289              	.LVL30:
+  75:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource1,GPIO_AF_FSMC);
+ 290              		.loc 1 75 7 view .LVU85
+ 291 0160 3046     		mov	r0, r6
+ 292 0162 0C22     		movs	r2, #12
+ 293 0164 0121     		movs	r1, #1
+ 294 0166 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 295              	.LVL31:
+  76:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource2,GPIO_AF_FSMC);
+ 296              		.loc 1 76 7 view .LVU86
+ 297 016a 3046     		mov	r0, r6
+ 298 016c 0C22     		movs	r2, #12
+ 299 016e 0221     		movs	r1, #2
+ 300 0170 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 301              	.LVL32:
+  77:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource3,GPIO_AF_FSMC);
+ 302              		.loc 1 77 7 view .LVU87
+ 303 0174 3046     		mov	r0, r6
+ 304 0176 0C22     		movs	r2, #12
+ 305 0178 0321     		movs	r1, #3
+ 306 017a FFF7FEFF 		bl	GPIO_PinAFConfig
+ 307              	.LVL33:
+  78:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource4,GPIO_AF_FSMC);
+ 308              		.loc 1 78 7 view .LVU88
+ 309 017e 3046     		mov	r0, r6
+ 310 0180 0C22     		movs	r2, #12
+ 311 0182 0421     		movs	r1, #4
+ 312 0184 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 313              	.LVL34:
+  79:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource5,GPIO_AF_FSMC);
+ 314              		.loc 1 79 7 view .LVU89
+ 315 0188 3046     		mov	r0, r6
+ 316 018a 0C22     		movs	r2, #12
+ 317 018c 0521     		movs	r1, #5
+ 318 018e FFF7FEFF 		bl	GPIO_PinAFConfig
+ 319              	.LVL35:
+  80:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource12,GPIO_AF_FSMC);
+ 320              		.loc 1 80 7 view .LVU90
+ 321 0192 0C22     		movs	r2, #12
+ 322 0194 1146     		mov	r1, r2
+ 323 0196 3046     		mov	r0, r6
+ 324 0198 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 325              	.LVL36:
+  81:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource13,GPIO_AF_FSMC);
+ 326              		.loc 1 81 7 view .LVU91
+ 327 019c 3046     		mov	r0, r6
+ 328 019e 0C22     		movs	r2, #12
+ 329 01a0 0D21     		movs	r1, #13
+ 330 01a2 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 331              	.LVL37:
+  82:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource14,GPIO_AF_FSMC);
+ 332              		.loc 1 82 7 view .LVU92
+ 333 01a6 3046     		mov	r0, r6
+ 334 01a8 0C22     		movs	r2, #12
+ 335 01aa 0E21     		movs	r1, #14
+ 336 01ac FFF7FEFF 		bl	GPIO_PinAFConfig
+ 337              	.LVL38:
+  83:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOF,GPIO_PinSource15,GPIO_AF_FSMC);
+ 338              		.loc 1 83 7 view .LVU93
+ 339 01b0 3046     		mov	r0, r6
+ 340 01b2 0C22     		movs	r2, #12
+ 341 01b4 0F21     		movs	r1, #15
+ 342 01b6 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 343              	.LVL39:
+  84:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource0,GPIO_AF_FSMC);
+ 344              		.loc 1 84 7 view .LVU94
+ 345 01ba 3846     		mov	r0, r7
+ 346 01bc 0C22     		movs	r2, #12
+ 347 01be 0021     		movs	r1, #0
+ 348 01c0 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 349              	.LVL40:
+  85:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource1,GPIO_AF_FSMC);
+ 350              		.loc 1 85 7 view .LVU95
+ 351 01c4 3846     		mov	r0, r7
+ 352 01c6 0C22     		movs	r2, #12
+ 353 01c8 0121     		movs	r1, #1
+ 354 01ca FFF7FEFF 		bl	GPIO_PinAFConfig
+ 355              	.LVL41:
+  86:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource2,GPIO_AF_FSMC);
+ 356              		.loc 1 86 7 view .LVU96
+ 357 01ce 3846     		mov	r0, r7
+ 358 01d0 0C22     		movs	r2, #12
+ 359 01d2 0221     		movs	r1, #2
+ 360 01d4 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 361              	.LVL42:
+  87:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource3,GPIO_AF_FSMC);
+ 362              		.loc 1 87 7 view .LVU97
+ 363 01d8 3846     		mov	r0, r7
+ 364 01da 0C22     		movs	r2, #12
+ 365 01dc 0321     		movs	r1, #3
+ 366 01de FFF7FEFF 		bl	GPIO_PinAFConfig
+ 367              	.LVL43:
+  88:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource4,GPIO_AF_FSMC);
+ 368              		.loc 1 88 7 view .LVU98
+ 369 01e2 3846     		mov	r0, r7
+ 370 01e4 0C22     		movs	r2, #12
+ 371 01e6 0421     		movs	r1, #4
+ 372 01e8 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 373              	.LVL44:
+  89:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource5,GPIO_AF_FSMC);
+ 374              		.loc 1 89 7 view .LVU99
+ 375 01ec 3846     		mov	r0, r7
+ 376 01ee 0C22     		movs	r2, #12
+ 377 01f0 0521     		movs	r1, #5
+ 378 01f2 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 379              	.LVL45:
+  90:source\ext_sram/ext_sram.c ****       GPIO_PinAFConfig(GPIOG,GPIO_PinSource10,GPIO_AF_FSMC);
+ 380              		.loc 1 90 7 view .LVU100
+ 381 01f6 0A21     		movs	r1, #10
+ 382 01f8 3846     		mov	r0, r7
+ 383 01fa 0C22     		movs	r2, #12
+ 384 01fc FFF7FEFF 		bl	GPIO_PinAFConfig
+ 385              	.LVL46:
+  91:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_AddressSetupTime = 0x00;
+ 386              		.loc 1 91 7 view .LVU101
+ 387              		.loc 1 91 45 is_stmt 0 view .LVU102
+ 388 0200 0023     		movs	r3, #0
+  92:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_AddressHoldTime = 0x00;
+  93:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_DataSetupTime = 0x08;
+ 389              		.loc 1 93 42 view .LVU103
+ 390 0202 0822     		movs	r2, #8
+  94:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_BusTurnAroundDuration = 0x00;
+ 391              		.loc 1 94 50 view .LVU104
+ 392 0204 CDE90423 		strd	r2, r3, [sp, #16]
+  95:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_CLKDivision = 0x00;
+  96:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_DataLatency = 0x00;
+  97:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_AccessMode = FSMC_AccessMode_A;
+  98:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM3;
+  99:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
+ 100:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_MemoryType =FSMC_MemoryType_SRAM;
+ 101:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
+ 393              		.loc 1 101 54 view .LVU105
+ 394 0208 1022     		movs	r2, #16
+ 102:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode =FSMC_BurstAccessMode_Disable;
+ 395              		.loc 1 102 54 view .LVU106
+ 396 020a CDE90C23 		strd	r2, r3, [sp, #48]
+  98:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
+ 397              		.loc 1 98 43 view .LVU107
+ 398 020e 0424     		movs	r4, #4
+ 103:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;
+ 104:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait=FSMC_AsynchronousWait_Disable;
+ 105:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
+ 106:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
+ 107:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
+ 399              		.loc 1 107 53 view .LVU108
+ 400 0210 4FF48052 		mov	r2, #4096
+ 108:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
+ 401              		.loc 1 108 49 view .LVU109
+ 402 0214 CDE91223 		strd	r2, r3, [sp, #72]
+  92:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_DataSetupTime = 0x08;
+ 403              		.loc 1 92 44 view .LVU110
+ 404 0218 CDE90233 		strd	r3, r3, [sp, #8]
+  93:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_BusTurnAroundDuration = 0x00;
+ 405              		.loc 1 93 7 is_stmt 1 view .LVU111
+  95:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_DataLatency = 0x00;
+ 406              		.loc 1 95 7 view .LVU112
+  96:source\ext_sram/ext_sram.c ****       readWriteTiming.FSMC_AccessMode = FSMC_AccessMode_A;
+ 407              		.loc 1 96 40 is_stmt 0 view .LVU113
+ 408 021c CDE90633 		strd	r3, r3, [sp, #24]
+  97:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM3;
+ 409              		.loc 1 97 7 is_stmt 1 view .LVU114
+  99:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_MemoryType =FSMC_MemoryType_SRAM;
+ 410              		.loc 1 99 53 is_stmt 0 view .LVU115
+ 411 0220 CDE90943 		strd	r4, r3, [sp, #36]
+ 104:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
+ 412              		.loc 1 104 54 view .LVU116
+ 413 0224 CDE90E33 		strd	r3, r3, [sp, #56]
+ 106:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
+ 414              		.loc 1 106 55 view .LVU117
+ 415 0228 CDE91033 		strd	r3, r3, [sp, #64]
+ 109:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
+ 110:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
+ 416              		.loc 1 110 49 view .LVU118
+ 417 022c CDE91433 		strd	r3, r3, [sp, #80]
+  97:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM3;
+ 418              		.loc 1 97 39 view .LVU119
+ 419 0230 0893     		str	r3, [sp, #32]
+  98:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
+ 420              		.loc 1 98 7 is_stmt 1 view .LVU120
+ 100:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
+ 421              		.loc 1 100 7 view .LVU121
+ 100:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
+ 422              		.loc 1 100 49 is_stmt 0 view .LVU122
+ 423 0232 0B93     		str	r3, [sp, #44]
+ 101:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode =FSMC_BurstAccessMode_Disable;
+ 424              		.loc 1 101 7 is_stmt 1 view .LVU123
+ 103:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait=FSMC_AsynchronousWait_Disable;
+ 425              		.loc 1 103 7 view .LVU124
+ 105:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
+ 426              		.loc 1 105 7 view .LVU125
+ 107:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
+ 427              		.loc 1 107 7 view .LVU126
+ 109:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
+ 428              		.loc 1 109 7 view .LVU127
+ 111:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &readWriteTiming;
+ 429              		.loc 1 111 7 view .LVU128
+ 112:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &readWriteTiming;
+ 113:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInit(&FSMC_NORSRAMInitStructure);
+ 430              		.loc 1 113 7 is_stmt 0 view .LVU129
+ 431 0234 09A8     		add	r0, sp, #36
+ 111:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &readWriteTiming;
+ 432              		.loc 1 111 60 view .LVU130
+ 433 0236 02AB     		add	r3, sp, #8
+ 112:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &readWriteTiming;
+ 434              		.loc 1 112 56 view .LVU131
+ 435 0238 CDE91633 		strd	r3, r3, [sp, #88]
+ 436              		.loc 1 113 7 is_stmt 1 view .LVU132
+ 437 023c FFF7FEFF 		bl	FSMC_NORSRAMInit
+ 438              	.LVL47:
+ 114:source\ext_sram/ext_sram.c ****       FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM3, ENABLE);
+ 439              		.loc 1 114 7 view .LVU133
+ 440 0240 0121     		movs	r1, #1
+ 441 0242 2046     		mov	r0, r4
+ 442 0244 FFF7FEFF 		bl	FSMC_NORSRAMCmd
+ 443              	.LVL48:
+ 115:source\ext_sram/ext_sram.c **** }
+ 444              		.loc 1 115 1 is_stmt 0 view .LVU134
+ 445 0248 19B0     		add	sp, sp, #100
+ 446              		.cfi_def_cfa_offset 20
+ 447              		@ sp needed
+ 448 024a F0BD     		pop	{r4, r5, r6, r7, pc}
+ 449              	.L3:
+ 450              		.align	2
+ 451              	.L2:
+ 452 024c 000C0240 		.word	1073875968
+ 453 0250 00100240 		.word	1073876992
+ 454 0254 02030001 		.word	16777986
+ 455 0258 00140240 		.word	1073878016
+ 456 025c 01020001 		.word	16777729
+ 457 0260 00040240 		.word	1073873920
+ 458 0264 00180240 		.word	1073879040
+ 459              		.cfi_endproc
+ 460              	.LFE123:
+ 462              		.section	.text.FSMC_SRAM_WriteBuffer,"ax",%progbits
+ 463              		.align	1
+ 464              		.global	FSMC_SRAM_WriteBuffer
+ 465              		.syntax unified
+ 466              		.thumb
+ 467              		.thumb_func
+ 469              	FSMC_SRAM_WriteBuffer:
+ 470              	.LVL49:
+ 471              	.LFB124:
+ 116:source\ext_sram/ext_sram.c **** 
+ 117:source\ext_sram/ext_sram.c **** 
+ 118:source\ext_sram/ext_sram.c **** void FSMC_SRAM_WriteBuffer (unsigned char *pBuffer,unsigned int WriteAddr,unsigned int n)
+ 119:source\ext_sram/ext_sram.c **** {
+ 472              		.loc 1 119 1 is_stmt 1 view -0
+ 473              		.cfi_startproc
+ 474              		@ args = 0, pretend = 0, frame = 0
+ 475              		@ frame_needed = 0, uses_anonymous_args = 0
+ 476              		@ link register save eliminated.
+ 120:source\ext_sram/ext_sram.c ****       for (;n!=0;n--) {
+ 477              		.loc 1 120 7 view .LVU136
+ 478 0000 01F1D041 		add	r1, r1, #1744830464
+ 479              	.LVL50:
+ 480              		.loc 1 120 7 is_stmt 0 view .LVU137
+ 481 0004 0244     		add	r2, r2, r0
+ 482              	.LVL51:
+ 483              	.L5:
+ 484              		.loc 1 120 14 is_stmt 1 discriminator 1 view .LVU138
+ 485 0006 9042     		cmp	r0, r2
+ 486 0008 00D1     		bne	.L6
+ 121:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 122:source\ext_sram/ext_sram.c **** 	  WriteAddr++;
+ 123:source\ext_sram/ext_sram.c **** 	  pBuffer++;
+ 124:source\ext_sram/ext_sram.c ****       }
+ 125:source\ext_sram/ext_sram.c **** }
+ 487              		.loc 1 125 1 is_stmt 0 view .LVU139
+ 488 000a 7047     		bx	lr
+ 489              	.L6:
+ 121:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 490              		.loc 1 121 4 is_stmt 1 discriminator 2 view .LVU140
+ 121:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 491              		.loc 1 121 61 is_stmt 0 discriminator 2 view .LVU141
+ 492 000c 10F8013B 		ldrb	r3, [r0], #1	@ zero_extendqisi2
+ 493              	.LVL52:
+ 121:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 494              		.loc 1 121 59 discriminator 2 view .LVU142
+ 495 0010 01F8013B 		strb	r3, [r1], #1
+ 122:source\ext_sram/ext_sram.c **** 	  pBuffer++;
+ 496              		.loc 1 122 4 is_stmt 1 discriminator 2 view .LVU143
+ 497              	.LVL53:
+ 123:source\ext_sram/ext_sram.c ****       }
+ 498              		.loc 1 123 4 discriminator 2 view .LVU144
+ 120:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 499              		.loc 1 120 19 discriminator 2 view .LVU145
+ 120:source\ext_sram/ext_sram.c **** 	  *(volatile unsigned char*)(Bank1_SRAM3_ADDR+WriteAddr) = *pBuffer;
+ 500              		.loc 1 120 19 is_stmt 0 discriminator 2 view .LVU146
+ 501 0014 F7E7     		b	.L5
+ 502              		.cfi_endproc
+ 503              	.LFE124:
+ 505              		.section	.text.FSMC_SRAM_ReadBuffer,"ax",%progbits
+ 506              		.align	1
+ 507              		.global	FSMC_SRAM_ReadBuffer
+ 508              		.syntax unified
+ 509              		.thumb
+ 510              		.thumb_func
+ 512              	FSMC_SRAM_ReadBuffer:
+ 513              	.LVL54:
+ 514              	.LFB125:
+ 126:source\ext_sram/ext_sram.c **** 
+ 127:source\ext_sram/ext_sram.c **** 
+ 128:source\ext_sram/ext_sram.c **** void FSMC_SRAM_ReadBuffer (unsigned char *pBuffer,unsigned int ReadAddr,unsigned int n)
+ 129:source\ext_sram/ext_sram.c **** {
+ 515              		.loc 1 129 1 is_stmt 1 view -0
+ 516              		.cfi_startproc
+ 517              		@ args = 0, pretend = 0, frame = 0
+ 518              		@ frame_needed = 0, uses_anonymous_args = 0
+ 519              		@ link register save eliminated.
+ 130:source\ext_sram/ext_sram.c ****       for (;n!=0;n--) {
+ 520              		.loc 1 130 7 view .LVU148
+ 521 0000 01F1D041 		add	r1, r1, #1744830464
+ 522              	.LVL55:
+ 523              		.loc 1 130 7 is_stmt 0 view .LVU149
+ 524 0004 0244     		add	r2, r2, r0
+ 525              	.LVL56:
+ 526              	.L8:
+ 527              		.loc 1 130 14 is_stmt 1 discriminator 1 view .LVU150
+ 528 0006 9042     		cmp	r0, r2
+ 529 0008 00D1     		bne	.L9
+ 131:source\ext_sram/ext_sram.c **** 	  *pBuffer++ = *(volatile unsigned char*)(Bank1_SRAM3_ADDR + ReadAddr);
+ 132:source\ext_sram/ext_sram.c **** 	  ReadAddr++;
+ 133:source\ext_sram/ext_sram.c ****       }
+ 134:source\ext_sram/ext_sram.c **** }
+ 530              		.loc 1 134 1 is_stmt 0 view .LVU151
+ 531 000a 7047     		bx	lr
+ 532              	.L9:
+ 131:source\ext_sram/ext_sram.c **** 	  *pBuffer++ = *(volatile unsigned char*)(Bank1_SRAM3_ADDR + ReadAddr);
+ 533              		.loc 1 131 4 is_stmt 1 discriminator 2 view .LVU152
+ 534              	.LVL57:
+ 131:source\ext_sram/ext_sram.c **** 	  *pBuffer++ = *(volatile unsigned char*)(Bank1_SRAM3_ADDR + ReadAddr);
+ 535              		.loc 1 131 17 is_stmt 0 discriminator 2 view .LVU153
+ 536 000c 11F8013B 		ldrb	r3, [r1], #1	@ zero_extendqisi2
+ 131:source\ext_sram/ext_sram.c **** 	  *pBuffer++ = *(volatile unsigned char*)(Bank1_SRAM3_ADDR + ReadAddr);
+ 537              		.loc 1 131 15 discriminator 2 view .LVU154
+ 538 0010 00F8013B 		strb	r3, [r0], #1
+ 539              	.LVL58:
+ 132:source\ext_sram/ext_sram.c ****       }
+ 540              		.loc 1 132 4 is_stmt 1 discriminator 2 view .LVU155
+ 130:source\ext_sram/ext_sram.c ****       for (;n!=0;n--) {
+ 541              		.loc 1 130 19 discriminator 2 view .LVU156
+ 130:source\ext_sram/ext_sram.c ****       for (;n!=0;n--) {
+ 542              		.loc 1 130 19 is_stmt 0 discriminator 2 view .LVU157
+ 543 0014 F7E7     		b	.L8
+ 544              		.cfi_endproc
+ 545              	.LFE125:
+ 547              		.section	.text.fsmc_sram_test_write,"ax",%progbits
+ 548              		.align	1
+ 549              		.global	fsmc_sram_test_write
+ 550              		.syntax unified
+ 551              		.thumb
+ 552              		.thumb_func
+ 554              	fsmc_sram_test_write:
+ 555              	.LVL59:
+ 556              	.LFB126:
+ 135:source\ext_sram/ext_sram.c **** 
+ 136:source\ext_sram/ext_sram.c **** 
+ 137:source\ext_sram/ext_sram.c **** void fsmc_sram_test_write (unsigned int addr,unsigned char data)
+ 138:source\ext_sram/ext_sram.c **** {
+ 557              		.loc 1 138 1 is_stmt 1 view -0
+ 558              		.cfi_startproc
+ 559              		@ args = 0, pretend = 0, frame = 8
+ 560              		@ frame_needed = 0, uses_anonymous_args = 0
+ 139:source\ext_sram/ext_sram.c ****       FSMC_SRAM_WriteBuffer(&data,addr,1);
+ 561              		.loc 1 139 7 view .LVU159
+ 138:source\ext_sram/ext_sram.c ****       FSMC_SRAM_WriteBuffer(&data,addr,1);
+ 562              		.loc 1 138 1 is_stmt 0 view .LVU160
+ 563 0000 07B5     		push	{r0, r1, r2, lr}
+ 564              		.cfi_def_cfa_offset 16
+ 565              		.cfi_offset 14, -4
+ 566              		.loc 1 139 7 view .LVU161
+ 567 0002 0122     		movs	r2, #1
+ 138:source\ext_sram/ext_sram.c ****       FSMC_SRAM_WriteBuffer(&data,addr,1);
+ 568              		.loc 1 138 1 view .LVU162
+ 569 0004 8DF80710 		strb	r1, [sp, #7]
+ 570              		.loc 1 139 7 view .LVU163
+ 571 0008 0146     		mov	r1, r0
+ 572              	.LVL60:
+ 573              		.loc 1 139 7 view .LVU164
+ 574 000a 0DF10700 		add	r0, sp, #7
+ 575              	.LVL61:
+ 576              		.loc 1 139 7 view .LVU165
+ 577 000e FFF7FEFF 		bl	FSMC_SRAM_WriteBuffer
+ 578              	.LVL62:
+ 140:source\ext_sram/ext_sram.c **** }
+ 579              		.loc 1 140 1 view .LVU166
+ 580 0012 03B0     		add	sp, sp, #12
+ 581              		.cfi_def_cfa_offset 4
+ 582              		@ sp needed
+ 583 0014 5DF804FB 		ldr	pc, [sp], #4
+ 584              		.cfi_endproc
+ 585              	.LFE126:
+ 587              		.section	.text.fsmc_sram_test_read,"ax",%progbits
+ 588              		.align	1
+ 589              		.global	fsmc_sram_test_read
+ 590              		.syntax unified
+ 591              		.thumb
+ 592              		.thumb_func
+ 594              	fsmc_sram_test_read:
+ 595              	.LVL63:
+ 596              	.LFB127:
+ 141:source\ext_sram/ext_sram.c **** 
+ 142:source\ext_sram/ext_sram.c **** 
+ 143:source\ext_sram/ext_sram.c **** unsigned char fsmc_sram_test_read (unsigned int addr)
+ 144:source\ext_sram/ext_sram.c **** {
+ 597              		.loc 1 144 1 is_stmt 1 view -0
+ 598              		.cfi_startproc
+ 599              		@ args = 0, pretend = 0, frame = 8
+ 600              		@ frame_needed = 0, uses_anonymous_args = 0
+ 145:source\ext_sram/ext_sram.c ****       unsigned char data;
+ 601              		.loc 1 145 7 view .LVU168
+ 146:source\ext_sram/ext_sram.c ****       FSMC_SRAM_ReadBuffer(&data,addr,1);
+ 602              		.loc 1 146 7 view .LVU169
+ 144:source\ext_sram/ext_sram.c ****       unsigned char data;
+ 603              		.loc 1 144 1 is_stmt 0 view .LVU170
+ 604 0000 07B5     		push	{r0, r1, r2, lr}
+ 605              		.cfi_def_cfa_offset 16
+ 606              		.cfi_offset 14, -4
+ 144:source\ext_sram/ext_sram.c ****       unsigned char data;
+ 607              		.loc 1 144 1 view .LVU171
+ 608 0002 0146     		mov	r1, r0
+ 609              		.loc 1 146 7 view .LVU172
+ 610 0004 0122     		movs	r2, #1
+ 611 0006 0DF10700 		add	r0, sp, #7
+ 612              	.LVL64:
+ 613              		.loc 1 146 7 view .LVU173
+ 614 000a FFF7FEFF 		bl	FSMC_SRAM_ReadBuffer
+ 615              	.LVL65:
+ 147:source\ext_sram/ext_sram.c ****       return data;
+ 616              		.loc 1 147 7 is_stmt 1 view .LVU174
+ 148:source\ext_sram/ext_sram.c **** }
+ 617              		.loc 1 148 1 is_stmt 0 view .LVU175
+ 618 000e 9DF80700 		ldrb	r0, [sp, #7]	@ zero_extendqisi2
+ 619 0012 03B0     		add	sp, sp, #12
+ 620              		.cfi_def_cfa_offset 4
+ 621              		@ sp needed
+ 622 0014 5DF804FB 		ldr	pc, [sp], #4
+ 623              		.cfi_endproc
+ 624              	.LFE127:
+ 626              		.text
+ 627              	.Letext0:
+ 628              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 629              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 630              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 631              		.file 5 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_fsmc.h"
+ 632              		.file 6 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_gpio.h"
+ 633              		.file 7 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_rcc.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 ext_sram.c
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:21     .text.FSMC_SRAM_Init:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:27     .text.FSMC_SRAM_Init:00000000 FSMC_SRAM_Init
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:452    .text.FSMC_SRAM_Init:0000024c $d
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:463    .text.FSMC_SRAM_WriteBuffer:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:469    .text.FSMC_SRAM_WriteBuffer:00000000 FSMC_SRAM_WriteBuffer
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:506    .text.FSMC_SRAM_ReadBuffer:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:512    .text.FSMC_SRAM_ReadBuffer:00000000 FSMC_SRAM_ReadBuffer
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:548    .text.fsmc_sram_test_write:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:554    .text.fsmc_sram_test_write:00000000 fsmc_sram_test_write
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:588    .text.fsmc_sram_test_read:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccQR1BPE.s:594    .text.fsmc_sram_test_read:00000000 fsmc_sram_test_read
+
+UNDEFINED SYMBOLS
+RCC_AHB1PeriphClockCmd
+RCC_AHB3PeriphClockCmd
+GPIO_Init
+GPIO_PinAFConfig
+FSMC_NORSRAMInit
+FSMC_NORSRAMCmd

@@ -1,0 +1,1088 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"diskio.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\fatfs\\diskio.c"
+  20              		.section	.text.disk_initialize,"ax",%progbits
+  21              		.align	1
+  22              		.global	disk_initialize
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	disk_initialize:
+  28              	.LVL0:
+  29              	.LFB123:
+   1:source\fatfs/diskio.c **** /*-----------------------------------------------------------------------*/
+   2:source\fatfs/diskio.c **** /* Low level disk I/O module skeleton for FatFs     (C)ChaN, 2013        */
+   3:source\fatfs/diskio.c **** /*-----------------------------------------------------------------------*/
+   4:source\fatfs/diskio.c **** /* If a working storage control module is available, it should be        */
+   5:source\fatfs/diskio.c **** /* attached to the FatFs via a glue function rather than modifying it.   */
+   6:source\fatfs/diskio.c **** /* This is an example of glue functions to attach various exsisting      */
+   7:source\fatfs/diskio.c **** /* storage control module to the FatFs module with a defined API.        */
+   8:source\fatfs/diskio.c **** /*-----------------------------------------------------------------------*/
+   9:source\fatfs/diskio.c **** #include "../../hwdefs.h" 
+  10:source\fatfs/diskio.c **** #include "../prototype.h" 
+  11:source\fatfs/diskio.c **** 
+  12:source\fatfs/diskio.c **** #include "diskio.h"		/* FatFs lower layer API */
+  13:source\fatfs/diskio.c **** #include "ff.h"
+  14:source\fatfs/diskio.c **** 
+  15:source\fatfs/diskio.c **** #define SD_CARD				0
+  16:source\fatfs/diskio.c **** #define EX_FLASH			1
+  17:source\fatfs/diskio.c **** #define USB_DISK			2
+  18:source\fatfs/diskio.c **** 
+  19:source\fatfs/diskio.c **** #define FLASH_SECTOR_SIZE		512		
+  20:source\fatfs/diskio.c **** #define FLASH_SECTOR_NUM		(2048 * 12)
+  21:source\fatfs/diskio.c **** 
+  22:source\fatfs/diskio.c **** u16 FLASH_SECTOR_COUNT;			
+  23:source\fatfs/diskio.c **** #define FLASH_BLOCK_SIZE   		8  	
+  24:source\fatfs/diskio.c **** 
+  25:source\fatfs/diskio.c **** 
+  26:source\fatfs/diskio.c **** DSTATUS disk_initialize (
+  27:source\fatfs/diskio.c **** 	BYTE pdrv				/* Physical drive nmuber (0..) */
+  28:source\fatfs/diskio.c **** )
+  29:source\fatfs/diskio.c **** {
+  30              		.loc 1 29 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  30:source\fatfs/diskio.c **** 	u8 res=0;
+  34              		.loc 1 30 2 view .LVU1
+  31:source\fatfs/diskio.c ****  	switch(pdrv)
+  35              		.loc 1 31 3 view .LVU2
+  29:source\fatfs/diskio.c **** 	u8 res=0;
+  36              		.loc 1 29 1 is_stmt 0 view .LVU3
+  37 0000 08B5     		push	{r3, lr}
+  38              		.cfi_def_cfa_offset 8
+  39              		.cfi_offset 3, -8
+  40              		.cfi_offset 14, -4
+  41              		.loc 1 31 3 view .LVU4
+  42 0002 28B1     		cbz	r0, .L2
+  43 0004 0138     		subs	r0, r0, #1
+  44              	.LVL1:
+  45              		.loc 1 31 3 view .LVU5
+  46 0006 0128     		cmp	r0, #1
+  47 0008 94BF     		ite	ls
+  48 000a 0020     		movls	r0, #0
+  49 000c 0120     		movhi	r0, #1
+  50              	.LVL2:
+  51              	.L3:
+  32:source\fatfs/diskio.c **** 	{
+  33:source\fatfs/diskio.c **** 		case SD_CARD:		//SD
+  34:source\fatfs/diskio.c **** 			res=SD_Init();	//SD_Init()
+  35:source\fatfs/diskio.c ****   			break;
+  36:source\fatfs/diskio.c **** 		case EX_FLASH:		
+  37:source\fatfs/diskio.c **** 			//W25QXX_Init();
+  38:source\fatfs/diskio.c **** 			//FLASH_SECTOR_COUNT=FLASH_SECTOR_NUM;
+  39:source\fatfs/diskio.c ****  			break;
+  40:source\fatfs/diskio.c **** 		case USB_DISK:		
+  41:source\fatfs/diskio.c **** 	  		//res=!USBH_UDISK_Status();
+  42:source\fatfs/diskio.c **** 			break;
+  43:source\fatfs/diskio.c **** 		default:
+  44:source\fatfs/diskio.c **** 			res=1;
+  45:source\fatfs/diskio.c **** 	}
+  46:source\fatfs/diskio.c **** 	if(res)return  STA_NOINIT;
+  47:source\fatfs/diskio.c **** 	else return 0; 
+  48:source\fatfs/diskio.c **** }
+  52              		.loc 1 48 1 view .LVU6
+  53 000e 08BD     		pop	{r3, pc}
+  54              	.LVL3:
+  55              	.L2:
+  34:source\fatfs/diskio.c ****   			break;
+  56              		.loc 1 34 4 is_stmt 1 view .LVU7
+  34:source\fatfs/diskio.c ****   			break;
+  57              		.loc 1 34 8 is_stmt 0 view .LVU8
+  58 0010 FFF7FEFF 		bl	SD_Init
+  59              	.LVL4:
+  35:source\fatfs/diskio.c **** 		case EX_FLASH:		
+  60              		.loc 1 35 6 is_stmt 1 view .LVU9
+  46:source\fatfs/diskio.c **** 	else return 0; 
+  61              		.loc 1 46 2 view .LVU10
+  46:source\fatfs/diskio.c **** 	else return 0; 
+  62              		.loc 1 46 4 is_stmt 0 view .LVU11
+  63 0014 0038     		subs	r0, r0, #0
+  64              	.LVL5:
+  46:source\fatfs/diskio.c **** 	else return 0; 
+  65              		.loc 1 46 4 view .LVU12
+  66 0016 18BF     		it	ne
+  67 0018 0120     		movne	r0, #1
+  68 001a F8E7     		b	.L3
+  69              		.cfi_endproc
+  70              	.LFE123:
+  72              		.section	.text.disk_status,"ax",%progbits
+  73              		.align	1
+  74              		.global	disk_status
+  75              		.syntax unified
+  76              		.thumb
+  77              		.thumb_func
+  79              	disk_status:
+  80              	.LVL6:
+  81              	.LFB124:
+  49:source\fatfs/diskio.c **** 
+  50:source\fatfs/diskio.c **** unsigned char fs_disk_status;
+  51:source\fatfs/diskio.c **** 
+  52:source\fatfs/diskio.c **** DSTATUS disk_status (
+  53:source\fatfs/diskio.c **** 	BYTE pdrv		/* Physical drive nmuber (0..) */
+  54:source\fatfs/diskio.c **** )
+  55:source\fatfs/diskio.c **** {
+  82              		.loc 1 55 1 is_stmt 1 view -0
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 0, uses_anonymous_args = 0
+  86              		@ link register save eliminated.
+  56:source\fatfs/diskio.c **** 	fs_disk_status = pdrv;
+  87              		.loc 1 56 2 view .LVU14
+  88              		.loc 1 56 17 is_stmt 0 view .LVU15
+  89 0000 014B     		ldr	r3, .L5
+  90 0002 1870     		strb	r0, [r3]
+  57:source\fatfs/diskio.c **** 	return 0;
+  91              		.loc 1 57 2 is_stmt 1 view .LVU16
+  58:source\fatfs/diskio.c **** }
+  92              		.loc 1 58 1 is_stmt 0 view .LVU17
+  93 0004 0020     		movs	r0, #0
+  94              	.LVL7:
+  95              		.loc 1 58 1 view .LVU18
+  96 0006 7047     		bx	lr
+  97              	.L6:
+  98              		.align	2
+  99              	.L5:
+ 100 0008 00000000 		.word	fs_disk_status
+ 101              		.cfi_endproc
+ 102              	.LFE124:
+ 104              		.section	.text.disk_read,"ax",%progbits
+ 105              		.align	1
+ 106              		.global	disk_read
+ 107              		.syntax unified
+ 108              		.thumb
+ 109              		.thumb_func
+ 111              	disk_read:
+ 112              	.LVL8:
+ 113              	.LFB125:
+  59:source\fatfs/diskio.c **** 
+  60:source\fatfs/diskio.c **** 
+  61:source\fatfs/diskio.c **** DRESULT disk_read (
+  62:source\fatfs/diskio.c **** 	BYTE pdrv,		/* Physical drive nmuber (0..) */
+  63:source\fatfs/diskio.c **** 	BYTE *buff,		/* Data buffer to store read data */
+  64:source\fatfs/diskio.c **** 	DWORD sector,		/* Sector address (LBA) */
+  65:source\fatfs/diskio.c **** 	UINT count		/* Number of sectors to read (1..128) */
+  66:source\fatfs/diskio.c **** )
+  67:source\fatfs/diskio.c **** {
+ 114              		.loc 1 67 1 is_stmt 1 view -0
+ 115              		.cfi_startproc
+ 116              		@ args = 0, pretend = 0, frame = 0
+ 117              		@ frame_needed = 0, uses_anonymous_args = 0
+  68:source\fatfs/diskio.c **** 	u8 res=0;
+ 118              		.loc 1 68 2 view .LVU20
+  69:source\fatfs/diskio.c **** 	u8 tcnt=0;
+ 119              		.loc 1 69 2 view .LVU21
+  70:source\fatfs/diskio.c ****     if (!count)return RES_PARERR;
+ 120              		.loc 1 70 5 view .LVU22
+  67:source\fatfs/diskio.c **** 	u8 res=0;
+ 121              		.loc 1 67 1 is_stmt 0 view .LVU23
+ 122 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 123              		.cfi_def_cfa_offset 24
+ 124              		.cfi_offset 3, -24
+ 125              		.cfi_offset 4, -20
+ 126              		.cfi_offset 5, -16
+ 127              		.cfi_offset 6, -12
+ 128              		.cfi_offset 7, -8
+ 129              		.cfi_offset 14, -4
+  67:source\fatfs/diskio.c **** 	u8 res=0;
+ 130              		.loc 1 67 1 view .LVU24
+ 131 0002 0D46     		mov	r5, r1
+ 132 0004 1646     		mov	r6, r2
+ 133              		.loc 1 70 8 view .LVU25
+ 134 0006 F3B1     		cbz	r3, .L13
+  71:source\fatfs/diskio.c **** 	switch(pdrv)
+ 135              		.loc 1 71 2 is_stmt 1 view .LVU26
+ 136 0008 28B1     		cbz	r0, .L9
+ 137 000a 0138     		subs	r0, r0, #1
+ 138              	.LVL9:
+ 139              		.loc 1 71 2 is_stmt 0 view .LVU27
+ 140 000c 0128     		cmp	r0, #1
+ 141 000e 94BF     		ite	ls
+ 142 0010 0020     		movls	r0, #0
+ 143 0012 0120     		movhi	r0, #1
+ 144              	.LVL10:
+ 145              	.L8:
+  72:source\fatfs/diskio.c **** 	{
+  73:source\fatfs/diskio.c **** 		case SD_CARD:
+  74:source\fatfs/diskio.c **** 			res=SD_ReadDisk(buff,sector,count);
+  75:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+  76:source\fatfs/diskio.c **** 			{
+  77:source\fatfs/diskio.c **** 				tcnt++;
+  78:source\fatfs/diskio.c **** 				res=SD_Init();
+  79:source\fatfs/diskio.c **** 				res=SD_ReadDisk(buff,sector,count);
+  80:source\fatfs/diskio.c **** 			}
+  81:source\fatfs/diskio.c **** 			break;
+  82:source\fatfs/diskio.c **** 		case EX_FLASH:
+  83:source\fatfs/diskio.c **** 			for(;count>0;count--)
+  84:source\fatfs/diskio.c **** 			{
+  85:source\fatfs/diskio.c **** 				//W25QXX_Read(buff,sector*FLASH_SECTOR_SIZE,FLASH_SECTOR_SIZE);
+  86:source\fatfs/diskio.c **** 				//sector++;
+  87:source\fatfs/diskio.c **** 				//buff+=FLASH_SECTOR_SIZE;
+  88:source\fatfs/diskio.c **** 			}
+  89:source\fatfs/diskio.c **** 			res=0;
+  90:source\fatfs/diskio.c **** 			break;
+  91:source\fatfs/diskio.c **** 		case USB_DISK:
+  92:source\fatfs/diskio.c **** 			//res=USBH_UDISK_Read(buff,sector,count);
+  93:source\fatfs/diskio.c **** 			break;
+  94:source\fatfs/diskio.c **** 		default:
+  95:source\fatfs/diskio.c **** 			res=1;
+  96:source\fatfs/diskio.c **** 	}
+  97:source\fatfs/diskio.c ****     if(res==0x00)return RES_OK;
+  98:source\fatfs/diskio.c ****     else return RES_ERROR;
+  99:source\fatfs/diskio.c **** }
+ 146              		.loc 1 99 1 view .LVU28
+ 147 0014 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 148              	.LVL11:
+ 149              	.L9:
+  74:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 150              		.loc 1 74 4 is_stmt 1 view .LVU29
+  74:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 151              		.loc 1 74 8 is_stmt 0 view .LVU30
+ 152 0016 DCB2     		uxtb	r4, r3
+ 153 0018 2246     		mov	r2, r4
+ 154              	.LVL12:
+  74:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 155              		.loc 1 74 8 view .LVU31
+ 156 001a 3146     		mov	r1, r6
+ 157              	.LVL13:
+  74:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 158              		.loc 1 74 8 view .LVU32
+ 159 001c 2846     		mov	r0, r5
+ 160              	.LVL14:
+  74:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 161              		.loc 1 74 8 view .LVU33
+ 162 001e FFF7FEFF 		bl	SD_ReadDisk
+ 163              	.LVL15:
+  75:source\fatfs/diskio.c **** 			{
+ 164              		.loc 1 75 4 is_stmt 1 view .LVU34
+  75:source\fatfs/diskio.c **** 			{
+ 165              		.loc 1 75 9 is_stmt 0 view .LVU35
+ 166 0022 0B27     		movs	r7, #11
+ 167              	.LVL16:
+ 168              	.L10:
+  75:source\fatfs/diskio.c **** 			{
+ 169              		.loc 1 75 13 is_stmt 1 view .LVU36
+ 170 0024 18B1     		cbz	r0, .L11
+  75:source\fatfs/diskio.c **** 			{
+ 171              		.loc 1 75 13 is_stmt 0 discriminator 1 view .LVU37
+ 172 0026 013F     		subs	r7, r7, #1
+ 173              	.LVL17:
+  75:source\fatfs/diskio.c **** 			{
+ 174              		.loc 1 75 13 discriminator 1 view .LVU38
+ 175 0028 17F0FF07 		ands	r7, r7, #255
+ 176 002c 03D1     		bne	.L12
+ 177              	.L11:
+ 178              	.LVL18:
+  97:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 179              		.loc 1 97 5 is_stmt 1 view .LVU39
+  97:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 180              		.loc 1 97 7 is_stmt 0 view .LVU40
+ 181 002e 0038     		subs	r0, r0, #0
+ 182              	.LVL19:
+  97:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 183              		.loc 1 97 7 view .LVU41
+ 184 0030 18BF     		it	ne
+ 185 0032 0120     		movne	r0, #1
+ 186 0034 EEE7     		b	.L8
+ 187              	.LVL20:
+ 188              	.L12:
+  77:source\fatfs/diskio.c **** 				res=SD_Init();
+ 189              		.loc 1 77 5 is_stmt 1 view .LVU42
+  78:source\fatfs/diskio.c **** 				res=SD_ReadDisk(buff,sector,count);
+ 190              		.loc 1 78 5 view .LVU43
+  78:source\fatfs/diskio.c **** 				res=SD_ReadDisk(buff,sector,count);
+ 191              		.loc 1 78 9 is_stmt 0 view .LVU44
+ 192 0036 FFF7FEFF 		bl	SD_Init
+ 193              	.LVL21:
+  79:source\fatfs/diskio.c **** 			}
+ 194              		.loc 1 79 5 is_stmt 1 view .LVU45
+  79:source\fatfs/diskio.c **** 			}
+ 195              		.loc 1 79 9 is_stmt 0 view .LVU46
+ 196 003a 2246     		mov	r2, r4
+ 197 003c 3146     		mov	r1, r6
+ 198 003e 2846     		mov	r0, r5
+ 199 0040 FFF7FEFF 		bl	SD_ReadDisk
+ 200              	.LVL22:
+  79:source\fatfs/diskio.c **** 			}
+ 201              		.loc 1 79 9 view .LVU47
+ 202 0044 EEE7     		b	.L10
+ 203              	.LVL23:
+ 204              	.L13:
+  70:source\fatfs/diskio.c **** 	switch(pdrv)
+ 205              		.loc 1 70 23 view .LVU48
+ 206 0046 0420     		movs	r0, #4
+ 207              	.LVL24:
+  70:source\fatfs/diskio.c **** 	switch(pdrv)
+ 208              		.loc 1 70 23 view .LVU49
+ 209 0048 E4E7     		b	.L8
+ 210              		.cfi_endproc
+ 211              	.LFE125:
+ 213              		.section	.text.disk_write,"ax",%progbits
+ 214              		.align	1
+ 215              		.global	disk_write
+ 216              		.syntax unified
+ 217              		.thumb
+ 218              		.thumb_func
+ 220              	disk_write:
+ 221              	.LVL25:
+ 222              	.LFB126:
+ 100:source\fatfs/diskio.c **** 
+ 101:source\fatfs/diskio.c **** 
+ 102:source\fatfs/diskio.c **** #if _USE_WRITE
+ 103:source\fatfs/diskio.c **** DRESULT disk_write (
+ 104:source\fatfs/diskio.c **** 	BYTE pdrv,			/* Physical drive nmuber (0..) */
+ 105:source\fatfs/diskio.c **** 	BYTE *buff,			/* Data to be written */
+ 106:source\fatfs/diskio.c **** 	DWORD sector,			/* Sector address (LBA) */
+ 107:source\fatfs/diskio.c **** 	UINT count			/* Number of sectors to write (1..128) */
+ 108:source\fatfs/diskio.c **** )
+ 109:source\fatfs/diskio.c **** {
+ 223              		.loc 1 109 1 is_stmt 1 view -0
+ 224              		.cfi_startproc
+ 225              		@ args = 0, pretend = 0, frame = 0
+ 226              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110:source\fatfs/diskio.c **** 	u8 res=0;
+ 227              		.loc 1 110 2 view .LVU51
+ 111:source\fatfs/diskio.c ****  	u8 tcnt=0;
+ 228              		.loc 1 111 3 view .LVU52
+ 112:source\fatfs/diskio.c ****    if (!count)return RES_PARERR;
+ 229              		.loc 1 112 4 view .LVU53
+ 109:source\fatfs/diskio.c **** 	u8 res=0;
+ 230              		.loc 1 109 1 is_stmt 0 view .LVU54
+ 231 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 232              		.cfi_def_cfa_offset 24
+ 233              		.cfi_offset 3, -24
+ 234              		.cfi_offset 4, -20
+ 235              		.cfi_offset 5, -16
+ 236              		.cfi_offset 6, -12
+ 237              		.cfi_offset 7, -8
+ 238              		.cfi_offset 14, -4
+ 109:source\fatfs/diskio.c **** 	u8 res=0;
+ 239              		.loc 1 109 1 view .LVU55
+ 240 0002 0D46     		mov	r5, r1
+ 241 0004 1646     		mov	r6, r2
+ 242              		.loc 1 112 7 view .LVU56
+ 243 0006 F3B1     		cbz	r3, .L23
+ 113:source\fatfs/diskio.c ****  	switch(pdrv)
+ 244              		.loc 1 113 3 is_stmt 1 view .LVU57
+ 245 0008 28B1     		cbz	r0, .L19
+ 246 000a 0138     		subs	r0, r0, #1
+ 247              	.LVL26:
+ 248              		.loc 1 113 3 is_stmt 0 view .LVU58
+ 249 000c 0128     		cmp	r0, #1
+ 250 000e 94BF     		ite	ls
+ 251 0010 0020     		movls	r0, #0
+ 252 0012 0120     		movhi	r0, #1
+ 253              	.LVL27:
+ 254              	.L18:
+ 114:source\fatfs/diskio.c **** 	{
+ 115:source\fatfs/diskio.c **** 		case SD_CARD:
+ 116:source\fatfs/diskio.c **** 			res=SD_WriteDisk((u8 *)buff,sector,count);
+ 117:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 118:source\fatfs/diskio.c **** 			{
+ 119:source\fatfs/diskio.c **** 				tcnt++;
+ 120:source\fatfs/diskio.c **** 				res=SD_Init();	
+ 121:source\fatfs/diskio.c **** 				res=SD_WriteDisk((u8 *)buff,sector,count);
+ 122:source\fatfs/diskio.c **** 			}
+ 123:source\fatfs/diskio.c **** 			break;
+ 124:source\fatfs/diskio.c **** 		case EX_FLASH:
+ 125:source\fatfs/diskio.c **** 			for(;count>0;count--)
+ 126:source\fatfs/diskio.c **** 			{
+ 127:source\fatfs/diskio.c **** 				//W25QXX_Write((u8*)buff,sector*FLASH_SECTOR_SIZE,FLASH_SECTOR_SIZE);
+ 128:source\fatfs/diskio.c **** 				//sector++;
+ 129:source\fatfs/diskio.c **** 				//buff+=FLASH_SECTOR_SIZE;
+ 130:source\fatfs/diskio.c **** 			}
+ 131:source\fatfs/diskio.c **** 			res=0;
+ 132:source\fatfs/diskio.c **** 			break;
+ 133:source\fatfs/diskio.c **** 		case USB_DISK:
+ 134:source\fatfs/diskio.c **** 			//res=USBH_UDISK_Write((u8*)buff,sector,count);
+ 135:source\fatfs/diskio.c **** 			break;
+ 136:source\fatfs/diskio.c **** 		default:
+ 137:source\fatfs/diskio.c **** 			res=1;
+ 138:source\fatfs/diskio.c **** 	}
+ 139:source\fatfs/diskio.c ****     if(res==0x00)return RES_OK;
+ 140:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 141:source\fatfs/diskio.c **** }
+ 255              		.loc 1 141 1 view .LVU59
+ 256 0014 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 257              	.LVL28:
+ 258              	.L19:
+ 116:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 259              		.loc 1 116 4 is_stmt 1 view .LVU60
+ 116:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 260              		.loc 1 116 8 is_stmt 0 view .LVU61
+ 261 0016 DCB2     		uxtb	r4, r3
+ 262 0018 2246     		mov	r2, r4
+ 263              	.LVL29:
+ 116:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 264              		.loc 1 116 8 view .LVU62
+ 265 001a 3146     		mov	r1, r6
+ 266              	.LVL30:
+ 116:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 267              		.loc 1 116 8 view .LVU63
+ 268 001c 2846     		mov	r0, r5
+ 269              	.LVL31:
+ 116:source\fatfs/diskio.c **** 			while(res&&tcnt<10)
+ 270              		.loc 1 116 8 view .LVU64
+ 271 001e FFF7FEFF 		bl	SD_WriteDisk
+ 272              	.LVL32:
+ 117:source\fatfs/diskio.c **** 			{
+ 273              		.loc 1 117 4 is_stmt 1 view .LVU65
+ 117:source\fatfs/diskio.c **** 			{
+ 274              		.loc 1 117 9 is_stmt 0 view .LVU66
+ 275 0022 0B27     		movs	r7, #11
+ 276              	.LVL33:
+ 277              	.L20:
+ 117:source\fatfs/diskio.c **** 			{
+ 278              		.loc 1 117 13 is_stmt 1 view .LVU67
+ 279 0024 18B1     		cbz	r0, .L21
+ 117:source\fatfs/diskio.c **** 			{
+ 280              		.loc 1 117 13 is_stmt 0 discriminator 1 view .LVU68
+ 281 0026 013F     		subs	r7, r7, #1
+ 282              	.LVL34:
+ 117:source\fatfs/diskio.c **** 			{
+ 283              		.loc 1 117 13 discriminator 1 view .LVU69
+ 284 0028 17F0FF07 		ands	r7, r7, #255
+ 285 002c 03D1     		bne	.L22
+ 286              	.L21:
+ 287              	.LVL35:
+ 139:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 288              		.loc 1 139 5 is_stmt 1 view .LVU70
+ 139:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 289              		.loc 1 139 7 is_stmt 0 view .LVU71
+ 290 002e 0038     		subs	r0, r0, #0
+ 291              	.LVL36:
+ 139:source\fatfs/diskio.c ****     else return RES_ERROR;
+ 292              		.loc 1 139 7 view .LVU72
+ 293 0030 18BF     		it	ne
+ 294 0032 0120     		movne	r0, #1
+ 295 0034 EEE7     		b	.L18
+ 296              	.LVL37:
+ 297              	.L22:
+ 119:source\fatfs/diskio.c **** 				res=SD_Init();	
+ 298              		.loc 1 119 5 is_stmt 1 view .LVU73
+ 120:source\fatfs/diskio.c **** 				res=SD_WriteDisk((u8 *)buff,sector,count);
+ 299              		.loc 1 120 5 view .LVU74
+ 120:source\fatfs/diskio.c **** 				res=SD_WriteDisk((u8 *)buff,sector,count);
+ 300              		.loc 1 120 9 is_stmt 0 view .LVU75
+ 301 0036 FFF7FEFF 		bl	SD_Init
+ 302              	.LVL38:
+ 121:source\fatfs/diskio.c **** 			}
+ 303              		.loc 1 121 5 is_stmt 1 view .LVU76
+ 121:source\fatfs/diskio.c **** 			}
+ 304              		.loc 1 121 9 is_stmt 0 view .LVU77
+ 305 003a 2246     		mov	r2, r4
+ 306 003c 3146     		mov	r1, r6
+ 307 003e 2846     		mov	r0, r5
+ 308 0040 FFF7FEFF 		bl	SD_WriteDisk
+ 309              	.LVL39:
+ 121:source\fatfs/diskio.c **** 			}
+ 310              		.loc 1 121 9 view .LVU78
+ 311 0044 EEE7     		b	.L20
+ 312              	.LVL40:
+ 313              	.L23:
+ 112:source\fatfs/diskio.c ****  	switch(pdrv)
+ 314              		.loc 1 112 22 view .LVU79
+ 315 0046 0420     		movs	r0, #4
+ 316              	.LVL41:
+ 112:source\fatfs/diskio.c ****  	switch(pdrv)
+ 317              		.loc 1 112 22 view .LVU80
+ 318 0048 E4E7     		b	.L18
+ 319              		.cfi_endproc
+ 320              	.LFE126:
+ 322              		.section	.text.disk_ioctl,"ax",%progbits
+ 323              		.align	1
+ 324              		.global	disk_ioctl
+ 325              		.syntax unified
+ 326              		.thumb
+ 327              		.thumb_func
+ 329              	disk_ioctl:
+ 330              	.LVL42:
+ 331              	.LFB127:
+ 142:source\fatfs/diskio.c **** #endif
+ 143:source\fatfs/diskio.c **** 
+ 144:source\fatfs/diskio.c **** 
+ 145:source\fatfs/diskio.c **** 
+ 146:source\fatfs/diskio.c **** #if _USE_IOCTL
+ 147:source\fatfs/diskio.c **** DRESULT disk_ioctl (
+ 148:source\fatfs/diskio.c **** 	BYTE pdrv,		/* Physical drive nmuber (0..) */
+ 149:source\fatfs/diskio.c **** 	BYTE cmd,		/* Control code */
+ 150:source\fatfs/diskio.c **** 	void *buff		/* Buffer to send/receive control data */
+ 151:source\fatfs/diskio.c **** )
+ 152:source\fatfs/diskio.c **** {
+ 332              		.loc 1 152 1 is_stmt 1 view -0
+ 333              		.cfi_startproc
+ 334              		@ args = 0, pretend = 0, frame = 0
+ 335              		@ frame_needed = 0, uses_anonymous_args = 0
+ 153:source\fatfs/diskio.c **** 	DRESULT res;
+ 336              		.loc 1 153 2 view .LVU82
+ 154:source\fatfs/diskio.c **** 	if(pdrv==SD_CARD)
+ 337              		.loc 1 154 2 view .LVU83
+ 152:source\fatfs/diskio.c **** 	DRESULT res;
+ 338              		.loc 1 152 1 is_stmt 0 view .LVU84
+ 339 0000 10B5     		push	{r4, lr}
+ 340              		.cfi_def_cfa_offset 8
+ 341              		.cfi_offset 4, -8
+ 342              		.cfi_offset 14, -4
+ 343              		.loc 1 154 4 view .LVU85
+ 344 0002 E0B9     		cbnz	r0, .L28
+ 155:source\fatfs/diskio.c **** 	{
+ 156:source\fatfs/diskio.c **** 	    switch(cmd)
+ 345              		.loc 1 156 6 is_stmt 1 view .LVU86
+ 346 0004 0329     		cmp	r1, #3
+ 347 0006 23D8     		bhi	.L36
+ 348 0008 DFE801F0 		tbb	[pc, r1]
+ 349              	.L31:
+ 350 000c 09       		.byte	(.L29-.L31)/2
+ 351 000d 0A       		.byte	(.L33-.L31)/2
+ 352 000e 02       		.byte	(.L32-.L31)/2
+ 353 000f 06       		.byte	(.L30-.L31)/2
+ 354              		.p2align 1
+ 355              	.L32:
+ 157:source\fatfs/diskio.c **** 	    {
+ 158:source\fatfs/diskio.c **** 		    case CTRL_SYNC:
+ 159:source\fatfs/diskio.c **** 				res = RES_OK;
+ 160:source\fatfs/diskio.c **** 		        break;
+ 161:source\fatfs/diskio.c **** 		    case GET_SECTOR_SIZE:
+ 162:source\fatfs/diskio.c **** 				*(DWORD*)buff = 512;
+ 356              		.loc 1 162 5 view .LVU87
+ 357              		.loc 1 162 19 is_stmt 0 view .LVU88
+ 358 0010 4FF40073 		mov	r3, #512
+ 359              	.LVL43:
+ 360              	.L39:
+ 163:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 164:source\fatfs/diskio.c **** 		        break;
+ 165:source\fatfs/diskio.c **** 		    case GET_BLOCK_SIZE:
+ 166:source\fatfs/diskio.c **** 				*(WORD*)buff = SDCardInfo.CardBlockSize;
+ 167:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 168:source\fatfs/diskio.c **** 		        break;
+ 169:source\fatfs/diskio.c **** 		    case GET_SECTOR_COUNT:
+ 170:source\fatfs/diskio.c **** 		        *(DWORD*)buff = SDCardInfo.CardCapacity/512;
+ 361              		.loc 1 170 25 view .LVU89
+ 362 0014 1360     		str	r3, [r2]
+ 171:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 363              		.loc 1 171 11 is_stmt 1 view .LVU90
+ 364              	.LVL44:
+ 172:source\fatfs/diskio.c **** 		        break;
+ 365              		.loc 1 172 11 view .LVU91
+ 366 0016 02E0     		b	.L29
+ 367              	.LVL45:
+ 368              	.L30:
+ 166:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 369              		.loc 1 166 5 view .LVU92
+ 166:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 370              		.loc 1 166 30 is_stmt 0 view .LVU93
+ 371 0018 0F4B     		ldr	r3, .L40
+ 166:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 372              		.loc 1 166 18 view .LVU94
+ 373 001a 1B6D     		ldr	r3, [r3, #80]
+ 374 001c 1380     		strh	r3, [r2]	@ movhi
+ 167:source\fatfs/diskio.c **** 		        break;
+ 375              		.loc 1 167 11 is_stmt 1 view .LVU95
+ 376              	.LVL46:
+ 168:source\fatfs/diskio.c **** 		    case GET_SECTOR_COUNT:
+ 377              		.loc 1 168 11 view .LVU96
+ 378              	.L29:
+ 173:source\fatfs/diskio.c **** 		    default:
+ 174:source\fatfs/diskio.c **** 		        res = RES_PARERR;
+ 175:source\fatfs/diskio.c **** 		        break;
+ 176:source\fatfs/diskio.c **** 	    }
+ 177:source\fatfs/diskio.c **** 	}else if(pdrv==EX_FLASH)	
+ 178:source\fatfs/diskio.c **** 	{
+ 179:source\fatfs/diskio.c **** 	    switch(cmd)
+ 180:source\fatfs/diskio.c **** 	    {
+ 181:source\fatfs/diskio.c **** 		    case CTRL_SYNC:
+ 182:source\fatfs/diskio.c **** 				res = RES_OK;
+ 183:source\fatfs/diskio.c **** 		        break;
+ 184:source\fatfs/diskio.c **** 		    case GET_SECTOR_SIZE:
+ 185:source\fatfs/diskio.c **** 		        //*(WORD*)buff = FLASH_SECTOR_SIZE;
+ 186:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 187:source\fatfs/diskio.c **** 		        break;
+ 188:source\fatfs/diskio.c **** 		    case GET_BLOCK_SIZE:
+ 189:source\fatfs/diskio.c **** 		        //*(WORD*)buff = FLASH_BLOCK_SIZE;
+ 190:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 191:source\fatfs/diskio.c **** 		        break;
+ 192:source\fatfs/diskio.c **** 		    case GET_SECTOR_COUNT:
+ 193:source\fatfs/diskio.c **** 		        //*(DWORD*)buff = FLASH_SECTOR_COUNT;
+ 194:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 195:source\fatfs/diskio.c **** 		        break;
+ 196:source\fatfs/diskio.c **** 		    default:
+ 197:source\fatfs/diskio.c **** 		        res = RES_PARERR;
+ 198:source\fatfs/diskio.c **** 		        break;
+ 199:source\fatfs/diskio.c **** 	    }
+ 200:source\fatfs/diskio.c **** 	}else if(pdrv==USB_DISK)
+ 201:source\fatfs/diskio.c **** 	{
+ 202:source\fatfs/diskio.c **** 	    switch(cmd)
+ 203:source\fatfs/diskio.c **** 	    {
+ 204:source\fatfs/diskio.c **** 		    case CTRL_SYNC:
+ 205:source\fatfs/diskio.c **** 				res = RES_OK;
+ 206:source\fatfs/diskio.c **** 		        break;
+ 207:source\fatfs/diskio.c **** 		    case GET_SECTOR_SIZE:
+ 208:source\fatfs/diskio.c **** 		        //*(WORD*)buff=512;
+ 209:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 210:source\fatfs/diskio.c **** 		        break;
+ 211:source\fatfs/diskio.c **** 		    case GET_BLOCK_SIZE:
+ 212:source\fatfs/diskio.c **** 		        //*(WORD*)buff=512;
+ 213:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 214:source\fatfs/diskio.c **** 		        break;
+ 215:source\fatfs/diskio.c **** 		    case GET_SECTOR_COUNT:
+ 216:source\fatfs/diskio.c **** 		        //*(DWORD*)buff=USBH_MSC_Param.MSCapacity;
+ 217:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 218:source\fatfs/diskio.c **** 		        break;
+ 219:source\fatfs/diskio.c **** 		    default:
+ 220:source\fatfs/diskio.c **** 		        res = RES_PARERR;
+ 221:source\fatfs/diskio.c **** 		        break;
+ 222:source\fatfs/diskio.c **** 	    }
+ 223:source\fatfs/diskio.c **** 	}else res=RES_ERROR;
+ 224:source\fatfs/diskio.c ****     return res;
+ 379              		.loc 1 224 5 view .LVU97
+ 225:source\fatfs/diskio.c **** }
+ 380              		.loc 1 225 1 is_stmt 0 view .LVU98
+ 381 001e 10BD     		pop	{r4, pc}
+ 382              	.LVL47:
+ 383              	.L33:
+ 170:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 384              		.loc 1 170 11 is_stmt 1 view .LVU99
+ 170:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 385              		.loc 1 170 37 is_stmt 0 view .LVU100
+ 386 0020 0D49     		ldr	r1, .L40
+ 387              	.LVL48:
+ 170:source\fatfs/diskio.c **** 		        res = RES_OK;
+ 388              		.loc 1 170 50 view .LVU101
+ 389 0022 D1E91231 		ldrd	r3, r1, [r1, #72]
+ 390 0026 0029     		cmp	r1, #0
+ 391 0028 0C46     		mov	r4, r1
+ 392 002a 04DA     		bge	.L35
+ 393 002c 40F2FF14 		movw	r4, #511
+ 394 0030 1B19     		adds	r3, r3, r4
+ 395 0032 41F10004 		adc	r4, r1, #0
+ 396              	.L35:
+ 397 0036 5B0A     		lsrs	r3, r3, #9
+ 398 0038 43EAC453 		orr	r3, r3, r4, lsl #23
+ 399 003c EAE7     		b	.L39
+ 400              	.LVL49:
+ 401              	.L28:
+ 177:source\fatfs/diskio.c **** 	{
+ 402              		.loc 1 177 8 is_stmt 1 view .LVU102
+ 177:source\fatfs/diskio.c **** 	{
+ 403              		.loc 1 177 10 is_stmt 0 view .LVU103
+ 404 003e 0138     		subs	r0, r0, #1
+ 405              	.LVL50:
+ 177:source\fatfs/diskio.c **** 	{
+ 406              		.loc 1 177 10 view .LVU104
+ 407 0040 0128     		cmp	r0, #1
+ 408 0042 07D8     		bhi	.L37
+ 179:source\fatfs/diskio.c **** 	    {
+ 409              		.loc 1 179 6 is_stmt 1 view .LVU105
+ 410 0044 0329     		cmp	r1, #3
+ 411 0046 94BF     		ite	ls
+ 412 0048 0021     		movls	r1, #0
+ 413              	.LVL51:
+ 179:source\fatfs/diskio.c **** 	    {
+ 414              		.loc 1 179 6 is_stmt 0 view .LVU106
+ 415 004a 0121     		movhi	r1, #1
+ 416 004c 8800     		lsls	r0, r1, #2
+ 417 004e E6E7     		b	.L29
+ 418              	.LVL52:
+ 419              	.L36:
+ 220:source\fatfs/diskio.c **** 		        break;
+ 420              		.loc 1 220 15 view .LVU107
+ 421 0050 0420     		movs	r0, #4
+ 422              	.LVL53:
+ 220:source\fatfs/diskio.c **** 		        break;
+ 423              		.loc 1 220 15 view .LVU108
+ 424 0052 E4E7     		b	.L29
+ 425              	.L37:
+ 223:source\fatfs/diskio.c ****     return res;
+ 426              		.loc 1 223 11 view .LVU109
+ 427 0054 0120     		movs	r0, #1
+ 428 0056 E2E7     		b	.L29
+ 429              	.L41:
+ 430              		.align	2
+ 431              	.L40:
+ 432 0058 00000000 		.word	SDCardInfo
+ 433              		.cfi_endproc
+ 434              	.LFE127:
+ 436              		.section	.text.ff_enter,"ax",%progbits
+ 437              		.align	1
+ 438              		.global	ff_enter
+ 439              		.syntax unified
+ 440              		.thumb
+ 441              		.thumb_func
+ 443              	ff_enter:
+ 444              	.LVL54:
+ 445              	.LFB128:
+ 226:source\fatfs/diskio.c **** #endif
+ 227:source\fatfs/diskio.c **** vu8 cnt0=0;
+ 228:source\fatfs/diskio.c **** vu8 cnt1=0;
+ 229:source\fatfs/diskio.c **** vu8 fstype=0;
+ 230:source\fatfs/diskio.c **** 
+ 231:source\fatfs/diskio.c **** void ff_enter(FATFS *fs)
+ 232:source\fatfs/diskio.c **** {
+ 446              		.loc 1 232 1 is_stmt 1 view -0
+ 447              		.cfi_startproc
+ 448              		@ args = 0, pretend = 0, frame = 0
+ 449              		@ frame_needed = 0, uses_anonymous_args = 0
+ 450              		@ link register save eliminated.
+ 233:source\fatfs/diskio.c ****         fstype = fs->fs_type;	
+ 451              		.loc 1 233 9 view .LVU111
+ 452              		.loc 1 233 16 is_stmt 0 view .LVU112
+ 453 0000 074B     		ldr	r3, .L46
+ 454              		.loc 1 233 20 view .LVU113
+ 455 0002 90F80022 		ldrb	r2, [r0, #512]	@ zero_extendqisi2
+ 456              		.loc 1 233 16 view .LVU114
+ 457 0006 1A70     		strb	r2, [r3]
+ 234:source\fatfs/diskio.c **** 	if(fs->drv!=2)
+ 458              		.loc 1 234 2 is_stmt 1 view .LVU115
+ 459              		.loc 1 234 4 is_stmt 0 view .LVU116
+ 460 0008 90F80132 		ldrb	r3, [r0, #513]	@ zero_extendqisi2
+ 461 000c 022B     		cmp	r3, #2
+ 235:source\fatfs/diskio.c **** 	{
+ 236:source\fatfs/diskio.c **** 		cnt0++;
+ 462              		.loc 1 236 3 is_stmt 1 view .LVU117
+ 463              		.loc 1 236 7 is_stmt 0 view .LVU118
+ 464 000e 14BF     		ite	ne
+ 465 0010 044A     		ldrne	r2, .L46+4
+ 237:source\fatfs/diskio.c **** 	}else
+ 238:source\fatfs/diskio.c **** 	{
+ 239:source\fatfs/diskio.c **** 		cnt1++;
+ 466              		.loc 1 239 3 is_stmt 1 view .LVU119
+ 467              		.loc 1 239 7 is_stmt 0 view .LVU120
+ 468 0012 054A     		ldreq	r2, .L46+8
+ 469 0014 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 470 0016 0133     		adds	r3, r3, #1
+ 471 0018 DBB2     		uxtb	r3, r3
+ 472 001a 1370     		strb	r3, [r2]
+ 240:source\fatfs/diskio.c **** 	}
+ 241:source\fatfs/diskio.c **** }
+ 473              		.loc 1 241 1 view .LVU121
+ 474 001c 7047     		bx	lr
+ 475              	.L47:
+ 476 001e 00BF     		.align	2
+ 477              	.L46:
+ 478 0020 00000000 		.word	fstype
+ 479 0024 00000000 		.word	cnt0
+ 480 0028 00000000 		.word	cnt1
+ 481              		.cfi_endproc
+ 482              	.LFE128:
+ 484              		.section	.text.ff_leave,"ax",%progbits
+ 485              		.align	1
+ 486              		.global	ff_leave
+ 487              		.syntax unified
+ 488              		.thumb
+ 489              		.thumb_func
+ 491              	ff_leave:
+ 492              	.LVL55:
+ 493              	.LFB129:
+ 242:source\fatfs/diskio.c **** 
+ 243:source\fatfs/diskio.c **** void ff_leave(FATFS *fs)
+ 244:source\fatfs/diskio.c **** {
+ 494              		.loc 1 244 1 is_stmt 1 view -0
+ 495              		.cfi_startproc
+ 496              		@ args = 0, pretend = 0, frame = 0
+ 497              		@ frame_needed = 0, uses_anonymous_args = 0
+ 498              		@ link register save eliminated.
+ 245:source\fatfs/diskio.c ****         fstype = fs->fs_type;
+ 499              		.loc 1 245 9 view .LVU123
+ 500              		.loc 1 245 16 is_stmt 0 view .LVU124
+ 501 0000 094B     		ldr	r3, .L57
+ 502              		.loc 1 245 20 view .LVU125
+ 503 0002 90F80022 		ldrb	r2, [r0, #512]	@ zero_extendqisi2
+ 504              		.loc 1 245 16 view .LVU126
+ 505 0006 1A70     		strb	r2, [r3]
+ 246:source\fatfs/diskio.c **** 	if(cnt0)
+ 506              		.loc 1 246 2 is_stmt 1 view .LVU127
+ 507              		.loc 1 246 5 is_stmt 0 view .LVU128
+ 508 0008 084A     		ldr	r2, .L57+4
+ 509 000a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 510              		.loc 1 246 4 view .LVU129
+ 511 000c 1BB1     		cbz	r3, .L49
+ 247:source\fatfs/diskio.c **** 	{
+ 248:source\fatfs/diskio.c **** 		cnt0--;
+ 512              		.loc 1 248 3 is_stmt 1 view .LVU130
+ 513              		.loc 1 248 7 is_stmt 0 view .LVU131
+ 514 000e 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 515 0010 013B     		subs	r3, r3, #1
+ 516 0012 DBB2     		uxtb	r3, r3
+ 517 0014 1370     		strb	r3, [r2]
+ 518              	.L49:
+ 249:source\fatfs/diskio.c **** 	}
+ 250:source\fatfs/diskio.c **** 	if(cnt1)
+ 519              		.loc 1 250 2 is_stmt 1 view .LVU132
+ 520              		.loc 1 250 5 is_stmt 0 view .LVU133
+ 521 0016 064A     		ldr	r2, .L57+8
+ 522 0018 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 523              		.loc 1 250 4 view .LVU134
+ 524 001a 1BB1     		cbz	r3, .L48
+ 251:source\fatfs/diskio.c **** 	{
+ 252:source\fatfs/diskio.c **** 		cnt1--;
+ 525              		.loc 1 252 3 is_stmt 1 view .LVU135
+ 526              		.loc 1 252 7 is_stmt 0 view .LVU136
+ 527 001c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 528 001e 013B     		subs	r3, r3, #1
+ 529 0020 DBB2     		uxtb	r3, r3
+ 530 0022 1370     		strb	r3, [r2]
+ 531              	.L48:
+ 253:source\fatfs/diskio.c **** 	}
+ 254:source\fatfs/diskio.c **** }
+ 532              		.loc 1 254 1 view .LVU137
+ 533 0024 7047     		bx	lr
+ 534              	.L58:
+ 535 0026 00BF     		.align	2
+ 536              	.L57:
+ 537 0028 00000000 		.word	fstype
+ 538 002c 00000000 		.word	cnt0
+ 539 0030 00000000 		.word	cnt1
+ 540              		.cfi_endproc
+ 541              	.LFE129:
+ 543              		.section	.text.get_fattime,"ax",%progbits
+ 544              		.align	1
+ 545              		.global	get_fattime
+ 546              		.syntax unified
+ 547              		.thumb
+ 548              		.thumb_func
+ 550              	get_fattime:
+ 551              	.LFB130:
+ 255:source\fatfs/diskio.c **** 
+ 256:source\fatfs/diskio.c **** 
+ 257:source\fatfs/diskio.c **** DWORD get_fattime (void)
+ 258:source\fatfs/diskio.c **** {
+ 552              		.loc 1 258 1 is_stmt 1 view -0
+ 553              		.cfi_startproc
+ 554              		@ args = 0, pretend = 0, frame = 8
+ 555              		@ frame_needed = 0, uses_anonymous_args = 0
+ 259:source\fatfs/diskio.c **** 	u32 time=0;
+ 556              		.loc 1 259 2 view .LVU139
+ 557              	.LVL56:
+ 260:source\fatfs/diskio.c **** 	RTC_TimeTypeDef RTC_TimeStruct;
+ 558              		.loc 1 260 2 view .LVU140
+ 261:source\fatfs/diskio.c **** 	RTC_DateTypeDef RTC_DateStruct;	
+ 559              		.loc 1 261 2 view .LVU141
+ 262:source\fatfs/diskio.c ****         RTC_GetTime(RTC_Format_BIN,&RTC_TimeStruct);
+ 560              		.loc 1 262 9 view .LVU142
+ 258:source\fatfs/diskio.c **** 	u32 time=0;
+ 561              		.loc 1 258 1 is_stmt 0 view .LVU143
+ 562 0000 07B5     		push	{r0, r1, r2, lr}
+ 563              		.cfi_def_cfa_offset 16
+ 564              		.cfi_offset 14, -4
+ 565              		.loc 1 262 9 view .LVU144
+ 566 0002 0020     		movs	r0, #0
+ 567 0004 6946     		mov	r1, sp
+ 568 0006 FFF7FEFF 		bl	RTC_GetTime
+ 569              	.LVL57:
+ 263:source\fatfs/diskio.c ****         RTC_GetDate(RTC_Format_BIN, &RTC_DateStruct);
+ 570              		.loc 1 263 9 is_stmt 1 view .LVU145
+ 571 000a 01A9     		add	r1, sp, #4
+ 572 000c 0020     		movs	r0, #0
+ 573 000e FFF7FEFF 		bl	RTC_GetDate
+ 574              	.LVL58:
+ 264:source\fatfs/diskio.c **** 	time=(RTC_DateStruct.RTC_Year)<<25;
+ 575              		.loc 1 264 2 view .LVU146
+ 265:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Month)<<21;	
+ 576              		.loc 1 265 34 is_stmt 0 view .LVU147
+ 577 0012 9DF80530 		ldrb	r3, [sp, #5]	@ zero_extendqisi2
+ 264:source\fatfs/diskio.c **** 	time=(RTC_DateStruct.RTC_Year)<<25;
+ 578              		.loc 1 264 32 view .LVU148
+ 579 0016 9DF80720 		ldrb	r2, [sp, #7]	@ zero_extendqisi2
+ 580              	.LVL59:
+ 581              		.loc 1 265 2 is_stmt 1 view .LVU149
+ 266:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Date)<<16;	
+ 267:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Hours)<<11;		
+ 268:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Minutes)<<5;		
+ 269:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Seconds/2);		
+ 582              		.loc 1 269 35 is_stmt 0 view .LVU150
+ 583 001a 9DF80200 		ldrb	r0, [sp, #2]	@ zero_extendqisi2
+ 265:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Month)<<21;	
+ 584              		.loc 1 265 34 view .LVU151
+ 585 001e 5B05     		lsls	r3, r3, #21
+ 265:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Month)<<21;	
+ 586              		.loc 1 265 6 view .LVU152
+ 587 0020 43EA4263 		orr	r3, r3, r2, lsl #25
+ 588              	.LVL60:
+ 266:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Date)<<16;	
+ 589              		.loc 1 266 2 is_stmt 1 view .LVU153
+ 266:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Date)<<16;	
+ 590              		.loc 1 266 33 is_stmt 0 view .LVU154
+ 591 0024 9DF80620 		ldrb	r2, [sp, #6]	@ zero_extendqisi2
+ 266:source\fatfs/diskio.c **** 	time|=(RTC_DateStruct.RTC_Date)<<16;	
+ 592              		.loc 1 266 6 view .LVU155
+ 593 0028 43EA0243 		orr	r3, r3, r2, lsl #16
+ 594              	.LVL61:
+ 267:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Minutes)<<5;		
+ 595              		.loc 1 267 2 is_stmt 1 view .LVU156
+ 267:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Minutes)<<5;		
+ 596              		.loc 1 267 34 is_stmt 0 view .LVU157
+ 597 002c 9DF80020 		ldrb	r2, [sp]	@ zero_extendqisi2
+ 267:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Minutes)<<5;		
+ 598              		.loc 1 267 6 view .LVU158
+ 599 0030 43EAC223 		orr	r3, r3, r2, lsl #11
+ 600              	.LVL62:
+ 268:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Seconds/2);		
+ 601              		.loc 1 268 2 is_stmt 1 view .LVU159
+ 268:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Seconds/2);		
+ 602              		.loc 1 268 36 is_stmt 0 view .LVU160
+ 603 0034 9DF80120 		ldrb	r2, [sp, #1]	@ zero_extendqisi2
+ 268:source\fatfs/diskio.c **** 	time|=(RTC_TimeStruct.RTC_Seconds/2);		
+ 604              		.loc 1 268 6 view .LVU161
+ 605 0038 43EA4213 		orr	r3, r3, r2, lsl #5
+ 606              	.LVL63:
+ 607              		.loc 1 269 2 is_stmt 1 view .LVU162
+ 270:source\fatfs/diskio.c **** 	return time;
+ 608              		.loc 1 270 2 view .LVU163
+ 271:source\fatfs/diskio.c **** }
+ 609              		.loc 1 271 1 is_stmt 0 view .LVU164
+ 610 003c 43EA5000 		orr	r0, r3, r0, lsr #1
+ 611              	.LVL64:
+ 612              		.loc 1 271 1 view .LVU165
+ 613 0040 03B0     		add	sp, sp, #12
+ 614              		.cfi_def_cfa_offset 4
+ 615              		@ sp needed
+ 616 0042 5DF804FB 		ldr	pc, [sp], #4
+ 617              		.cfi_endproc
+ 618              	.LFE130:
+ 620              		.section	.text.ff_memalloc,"ax",%progbits
+ 621              		.align	1
+ 622              		.global	ff_memalloc
+ 623              		.syntax unified
+ 624              		.thumb
+ 625              		.thumb_func
+ 627              	ff_memalloc:
+ 628              	.LVL65:
+ 629              	.LFB131:
+ 272:source\fatfs/diskio.c **** 
+ 273:source\fatfs/diskio.c **** void *ff_memalloc (UINT size)
+ 274:source\fatfs/diskio.c **** {
+ 630              		.loc 1 274 1 is_stmt 1 view -0
+ 631              		.cfi_startproc
+ 632              		@ args = 0, pretend = 0, frame = 0
+ 633              		@ frame_needed = 0, uses_anonymous_args = 0
+ 634              		@ link register save eliminated.
+ 275:source\fatfs/diskio.c **** 	return (void*)malloc(size);
+ 635              		.loc 1 275 2 view .LVU167
+ 636              		.loc 1 275 9 is_stmt 0 view .LVU168
+ 637 0000 FFF7FEBF 		b	malloc
+ 638              	.LVL66:
+ 639              		.loc 1 275 9 view .LVU169
+ 640              		.cfi_endproc
+ 641              	.LFE131:
+ 643              		.section	.text.ff_memfree,"ax",%progbits
+ 644              		.align	1
+ 645              		.global	ff_memfree
+ 646              		.syntax unified
+ 647              		.thumb
+ 648              		.thumb_func
+ 650              	ff_memfree:
+ 651              	.LVL67:
+ 652              	.LFB132:
+ 276:source\fatfs/diskio.c **** }
+ 277:source\fatfs/diskio.c **** 
+ 278:source\fatfs/diskio.c **** void ff_memfree (void* mf)
+ 279:source\fatfs/diskio.c **** {
+ 653              		.loc 1 279 1 is_stmt 1 view -0
+ 654              		.cfi_startproc
+ 655              		@ args = 0, pretend = 0, frame = 0
+ 656              		@ frame_needed = 0, uses_anonymous_args = 0
+ 657              		@ link register save eliminated.
+ 280:source\fatfs/diskio.c **** 	free(mf);
+ 658              		.loc 1 280 2 view .LVU171
+ 659 0000 FFF7FEBF 		b	free
+ 660              	.LVL68:
+ 661              		.loc 1 280 2 is_stmt 0 view .LVU172
+ 662              		.cfi_endproc
+ 663              	.LFE132:
+ 665              		.global	fstype
+ 666              		.section	.bss.fstype,"aw",%nobits
+ 669              	fstype:
+ 670 0000 00       		.space	1
+ 671              		.global	cnt1
+ 672              		.section	.bss.cnt1,"aw",%nobits
+ 675              	cnt1:
+ 676 0000 00       		.space	1
+ 677              		.global	cnt0
+ 678              		.section	.bss.cnt0,"aw",%nobits
+ 681              	cnt0:
+ 682 0000 00       		.space	1
+ 683              		.global	fs_disk_status
+ 684              		.section	.bss.fs_disk_status,"aw",%nobits
+ 687              	fs_disk_status:
+ 688 0000 00       		.space	1
+ 689              		.global	FLASH_SECTOR_COUNT
+ 690              		.section	.bss.FLASH_SECTOR_COUNT,"aw",%nobits
+ 691              		.align	1
+ 694              	FLASH_SECTOR_COUNT:
+ 695 0000 0000     		.space	2
+ 696              		.text
+ 697              	.Letext0:
+ 698              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 699              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 700              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 701              		.file 5 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_rtc.h"
+ 702              		.file 6 "source\\fatfs\\../fatfs/integer.h"
+ 703              		.file 7 "source\\fatfs\\../fatfs/ff.h"
+ 704              		.file 8 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\lib\\gcc\\ar
+ 705              		.file 9 "source\\fatfs\\../prototype.h"
+ 706              		.file 10 "source\\fatfs\\diskio.h"
+ 707              		.file 11 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+DEFINED SYMBOLS
+                            *ABS*:00000000 diskio.c
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:21     .text.disk_initialize:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:27     .text.disk_initialize:00000000 disk_initialize
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:73     .text.disk_status:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:79     .text.disk_status:00000000 disk_status
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:100    .text.disk_status:00000008 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:687    .bss.fs_disk_status:00000000 fs_disk_status
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:105    .text.disk_read:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:111    .text.disk_read:00000000 disk_read
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:214    .text.disk_write:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:220    .text.disk_write:00000000 disk_write
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:323    .text.disk_ioctl:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:329    .text.disk_ioctl:00000000 disk_ioctl
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:350    .text.disk_ioctl:0000000c $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:354    .text.disk_ioctl:00000010 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:432    .text.disk_ioctl:00000058 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:437    .text.ff_enter:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:443    .text.ff_enter:00000000 ff_enter
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:478    .text.ff_enter:00000020 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:669    .bss.fstype:00000000 fstype
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:681    .bss.cnt0:00000000 cnt0
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:675    .bss.cnt1:00000000 cnt1
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:485    .text.ff_leave:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:491    .text.ff_leave:00000000 ff_leave
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:537    .text.ff_leave:00000028 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:544    .text.get_fattime:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:550    .text.get_fattime:00000000 get_fattime
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:621    .text.ff_memalloc:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:627    .text.ff_memalloc:00000000 ff_memalloc
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:644    .text.ff_memfree:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:650    .text.ff_memfree:00000000 ff_memfree
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:670    .bss.fstype:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:676    .bss.cnt1:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:682    .bss.cnt0:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:688    .bss.fs_disk_status:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:694    .bss.FLASH_SECTOR_COUNT:00000000 FLASH_SECTOR_COUNT
+C:\Users\37593\AppData\Local\Temp\ccedjA4j.s:691    .bss.FLASH_SECTOR_COUNT:00000000 $d
+
+UNDEFINED SYMBOLS
+SD_Init
+SD_ReadDisk
+SD_WriteDisk
+SDCardInfo
+RTC_GetTime
+RTC_GetDate
+malloc
+free

@@ -1,0 +1,2485 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"flacplay.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\audio\\flacplay.c"
+  20              		.section	.text.flac_i2s_dma_tx_callback,"ax",%progbits
+  21              		.align	1
+  22              		.global	flac_i2s_dma_tx_callback
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	flac_i2s_dma_tx_callback:
+  28              	.LFB124:
+   1:source\audio/flacplay.c **** /********************************************************************************/
+   2:source\audio/flacplay.c **** /* flacplay.c                                                                   */
+   3:source\audio/flacplay.c **** /* STM32F407ZGT6                                                                */
+   4:source\audio/flacplay.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\audio/flacplay.c **** /* stm32f4x_test								*/
+   6:source\audio/flacplay.c **** /********************************************************************************/
+   7:source\audio/flacplay.c **** #include "../../hwdefs.h"
+   8:source\audio/flacplay.c **** #include "../prototype.h"
+   9:source\audio/flacplay.c **** #include <string.h>
+  10:source\audio/flacplay.c **** 
+  11:source\audio/flacplay.c **** 
+  12:source\audio/flacplay.c **** __flacctrl *flacctrl;
+  13:source\audio/flacplay.c **** volatile unsigned char flactransferend = 0;
+  14:source\audio/flacplay.c **** volatile unsigned char flacwitchbuf = 0;
+  15:source\audio/flacplay.c **** FLACContext *flac_fc = 0;
+  16:source\audio/flacplay.c **** int flac_bytesleft;
+  17:source\audio/flacplay.c **** unsigned char *flac_buffer = 0;
+  18:source\audio/flacplay.c **** unsigned char *flac_decbuf0 = 0;
+  19:source\audio/flacplay.c **** unsigned char *flac_decbuf1 = 0;
+  20:source\audio/flacplay.c **** unsigned int flac_fptr = 0;
+  21:source\audio/flacplay.c **** 
+  22:source\audio/flacplay.c **** extern volatile unsigned char ms_delay;
+  23:source\audio/flacplay.c **** extern volatile unsigned char volume;
+  24:source\audio/flacplay.c **** extern volatile unsigned char audio_delay,audio_read_flag,audio_run,audio_pause,music_play;
+  25:source\audio/flacplay.c **** extern unsigned int audio_old_sec;
+  26:source\audio/flacplay.c **** 
+  27:source\audio/flacplay.c **** extern int flac_seek_frame (u8 *buf,u32 size,FLACContext * fc);
+  28:source\audio/flacplay.c **** extern int flac_decode_frame24 (FLACContext *fc, uint8_t *buf, int buf_size, s32 *wavbuf);
+  29:source\audio/flacplay.c **** extern int flac_decode_frame16 (FLACContext *fc, uint8_t *buf, int buf_size, s16 *wavbuf);
+  30:source\audio/flacplay.c **** 
+  31:source\audio/flacplay.c **** 
+  32:source\audio/flacplay.c **** 
+  33:source\audio/flacplay.c **** unsigned char flac_init (FIL *fx,__flacctrl *fctrl,FLACContext *fc)
+  34:source\audio/flacplay.c **** {
+  35:source\audio/flacplay.c ****       FLAC_Tag *flactag;
+  36:source\audio/flacplay.c ****       MD_Block_Head *flacblkh;
+  37:source\audio/flacplay.c ****       unsigned char *buf;
+  38:source\audio/flacplay.c ****       unsigned char endofmetadata = 0;
+  39:source\audio/flacplay.c ****       int blocklength;
+  40:source\audio/flacplay.c ****       unsigned int br;
+  41:source\audio/flacplay.c ****       unsigned char res;
+  42:source\audio/flacplay.c ****       buf = malloc(512);
+  43:source\audio/flacplay.c ****       if (!buf) return 1;
+  44:source\audio/flacplay.c ****       f_lseek(fx,0);
+  45:source\audio/flacplay.c ****       f_read(fx,buf,4,&br);
+  46:source\audio/flacplay.c ****       flactag = (FLAC_Tag *)buf;
+  47:source\audio/flacplay.c ****       if (strncmp("fLaC",(char *)flactag->id,4) != 0) {
+  48:source\audio/flacplay.c **** 	 free(buf);
+  49:source\audio/flacplay.c **** 	 return 2;
+  50:source\audio/flacplay.c ****       }
+  51:source\audio/flacplay.c ****       while (!endofmetadata) {
+  52:source\audio/flacplay.c **** 	    f_read(fx,buf,4,&br);
+  53:source\audio/flacplay.c ****             if (br < 4) break;
+  54:source\audio/flacplay.c **** 	    flacblkh = (MD_Block_Head *)buf;
+  55:source\audio/flacplay.c **** 	    endofmetadata = flacblkh->head & 0x80;
+  56:source\audio/flacplay.c **** 	    blocklength = ((unsigned int)flacblkh->size[0] << 16) | ((unsigned short)flacblkh->size[1] << 
+  57:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+  58:source\audio/flacplay.c **** 	       res = f_read(fx,buf,blocklength,&br);
+  59:source\audio/flacplay.c ****                if (res != FR_OK) break;
+  60:source\audio/flacplay.c ****                fc->min_blocksize = ((unsigned short)buf[0] << 8) | buf[1];
+  61:source\audio/flacplay.c ****                fc->max_blocksize = ((unsigned short)buf[2] << 8) | buf[3];
+  62:source\audio/flacplay.c ****                fc->min_framesize = ((unsigned int)buf[4] << 16) | ((unsigned short)buf[5] << 8) | b
+  63:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+  64:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+  65:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+  66:source\audio/flacplay.c ****                fc->bps = ((((unsigned short)buf[12] & 0x01) << 4) | ((buf[13] & 0xF0) >> 4)) + 1;
+  67:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+  68:source\audio/flacplay.c **** 	       fctrl->samplerate = fc->samplerate;
+  69:source\audio/flacplay.c **** 	       fctrl->totsec = (fc->totalsamples / fc->samplerate);
+  70:source\audio/flacplay.c ****             } else {
+  71:source\audio/flacplay.c ****                if (f_lseek(fx,fx->fptr + blocklength) != FR_OK) {
+  72:source\audio/flacplay.c **** 		  free(buf);
+  73:source\audio/flacplay.c **** 		  return 3;
+  74:source\audio/flacplay.c ****                }
+  75:source\audio/flacplay.c **** 	    }
+  76:source\audio/flacplay.c ****       }
+  77:source\audio/flacplay.c ****       free(buf);
+  78:source\audio/flacplay.c ****       if (fctrl->totsec) {
+  79:source\audio/flacplay.c **** 	 fctrl->outsamples = fc->max_blocksize * 2;
+  80:source\audio/flacplay.c **** 	 fctrl->bps = fc->bps;
+  81:source\audio/flacplay.c **** 	 fctrl->datastart = fx->fptr;
+  82:source\audio/flacplay.c **** 	 fctrl->bitrate = ((fx->fsize - fctrl->datastart) * 8) / fctrl->totsec;
+  83:source\audio/flacplay.c ****       } else return 4;
+  84:source\audio/flacplay.c ****       return 0;
+  85:source\audio/flacplay.c **** }
+  86:source\audio/flacplay.c **** 
+  87:source\audio/flacplay.c **** 
+  88:source\audio/flacplay.c **** void flac_i2s_dma_tx_callback (void)
+  89:source\audio/flacplay.c **** {
+  29              		.loc 1 89 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  90:source\audio/flacplay.c ****       unsigned short i;
+  33              		.loc 1 90 7 view .LVU1
+  91:source\audio/flacplay.c ****       unsigned short size;
+  34              		.loc 1 91 7 view .LVU2
+  92:source\audio/flacplay.c ****       if (DMA1_Stream4->CR & (1 << 19))	{
+  35              		.loc 1 92 7 view .LVU3
+  36              		.loc 1 92 23 is_stmt 0 view .LVU4
+  37 0000 1C4B     		ldr	r3, .L16
+  38 0002 1D48     		ldr	r0, .L16+4
+  39 0004 1A6F     		ldr	r2, [r3, #112]
+  40 0006 1D4B     		ldr	r3, .L16+8
+  41              		.loc 1 92 10 view .LVU5
+  42 0008 12F40022 		ands	r2, r2, #524288
+  89:source\audio/flacplay.c ****       unsigned short i;
+  43              		.loc 1 89 1 view .LVU6
+  44 000c 10B5     		push	{r4, lr}
+  45              		.cfi_def_cfa_offset 8
+  46              		.cfi_offset 4, -8
+  47              		.cfi_offset 14, -4
+  48              		.loc 1 92 10 view .LVU7
+  49 000e 1AD0     		beq	.L2
+  93:source\audio/flacplay.c **** 	 flacwitchbuf = 0;
+  50              		.loc 1 93 3 is_stmt 1 view .LVU8
+  51              		.loc 1 93 16 is_stmt 0 view .LVU9
+  52 0010 0022     		movs	r2, #0
+  53 0012 1A70     		strb	r2, [r3]
+  94:source\audio/flacplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+  54              		.loc 1 94 3 is_stmt 1 view .LVU10
+  55              		.loc 1 94 16 is_stmt 0 view .LVU11
+  56 0014 037D     		ldrb	r3, [r0, #20]	@ zero_extendqisi2
+  57              		.loc 1 94 6 view .LVU12
+  58 0016 DA07     		lsls	r2, r3, #31
+  59 0018 03D5     		bpl	.L3
+  60              	.L8:
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  96:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf1[i] = 0;
+  97:source\audio/flacplay.c **** 	 }
+  98:source\audio/flacplay.c ****       } else {
+  99:source\audio/flacplay.c **** 	 flacwitchbuf = 1;
+ 100:source\audio/flacplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+ 101:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+ 102:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 103:source\audio/flacplay.c **** 	 }
+ 104:source\audio/flacplay.c ****       }
+ 105:source\audio/flacplay.c ****       flactransferend = 1;
+  61              		.loc 1 105 7 is_stmt 1 view .LVU13
+  62              		.loc 1 105 23 is_stmt 0 view .LVU14
+  63 001a 194B     		ldr	r3, .L16+12
+  64 001c 0122     		movs	r2, #1
+  65 001e 1A70     		strb	r2, [r3]
+ 106:source\audio/flacplay.c **** }
+  66              		.loc 1 106 1 view .LVU15
+  67 0020 10BD     		pop	{r4, pc}
+  68              	.L3:
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  69              		.loc 1 95 6 is_stmt 1 view .LVU16
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  70              		.loc 1 95 18 is_stmt 0 view .LVU17
+  71 0022 184B     		ldr	r3, .L16+16
+  72 0024 1A68     		ldr	r2, [r3]
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  73              		.loc 1 95 46 view .LVU18
+  74 0026 138A     		ldrh	r3, [r2, #16]	@ unaligned
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  75              		.loc 1 95 9 view .LVU19
+  76 0028 528A     		ldrh	r2, [r2, #18]	@ unaligned
+  77 002a 182A     		cmp	r2, #24
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  78              		.loc 1 95 31 is_stmt 1 view .LVU20
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  79              		.loc 1 95 36 is_stmt 0 view .LVU21
+  80 002c 0CBF     		ite	eq
+  81 002e 9B00     		lsleq	r3, r3, #2
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  82              		.loc 1 95 68 is_stmt 1 view .LVU22
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  83              		.loc 1 95 73 is_stmt 0 view .LVU23
+  84 0030 5B00     		lslne	r3, r3, #1
+  96:source\audio/flacplay.c **** 	 }
+  85              		.loc 1 96 6 view .LVU24
+  86 0032 0022     		movs	r2, #0
+  95:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+  87              		.loc 1 95 73 view .LVU25
+  88 0034 9BB2     		uxth	r3, r3
+  89              	.LVL0:
+  96:source\audio/flacplay.c **** 	 }
+  90              		.loc 1 96 6 is_stmt 1 view .LVU26
+  96:source\audio/flacplay.c **** 	 }
+  91              		.loc 1 96 47 is_stmt 0 view .LVU27
+  92 0036 1446     		mov	r4, r2
+  93              	.LVL1:
+  94              	.L6:
+  96:source\audio/flacplay.c **** 	 }
+  95              		.loc 1 96 16 is_stmt 1 discriminator 1 view .LVU28
+  96 0038 91B2     		uxth	r1, r2
+  97 003a 9942     		cmp	r1, r3
+  98 003c EDD2     		bcs	.L8
+  96:source\audio/flacplay.c **** 	 }
+  99              		.loc 1 96 27 discriminator 3 view .LVU29
+  96:source\audio/flacplay.c **** 	 }
+ 100              		.loc 1 96 35 is_stmt 0 discriminator 3 view .LVU30
+ 101 003e 0168     		ldr	r1, [r0]	@ unaligned
+  96:source\audio/flacplay.c **** 	 }
+ 102              		.loc 1 96 47 discriminator 3 view .LVU31
+ 103 0040 8C54     		strb	r4, [r1, r2]
+  96:source\audio/flacplay.c **** 	 }
+ 104              		.loc 1 96 23 is_stmt 1 discriminator 3 view .LVU32
+ 105              	.LVL2:
+  96:source\audio/flacplay.c **** 	 }
+ 106              		.loc 1 96 23 is_stmt 0 discriminator 3 view .LVU33
+ 107 0042 0132     		adds	r2, r2, #1
+ 108              	.LVL3:
+  96:source\audio/flacplay.c **** 	 }
+ 109              		.loc 1 96 23 discriminator 3 view .LVU34
+ 110 0044 F8E7     		b	.L6
+ 111              	.LVL4:
+ 112              	.L2:
+  99:source\audio/flacplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+ 113              		.loc 1 99 3 is_stmt 1 view .LVU35
+  99:source\audio/flacplay.c **** 	 if ((audiodev.status & 0x01) == 0) {
+ 114              		.loc 1 99 16 is_stmt 0 view .LVU36
+ 115 0046 0121     		movs	r1, #1
+ 116 0048 1970     		strb	r1, [r3]
+ 100:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+ 117              		.loc 1 100 3 is_stmt 1 view .LVU37
+ 100:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+ 118              		.loc 1 100 16 is_stmt 0 view .LVU38
+ 119 004a 037D     		ldrb	r3, [r0, #20]	@ zero_extendqisi2
+ 100:source\audio/flacplay.c **** 	    if (flacctrl->bps == 24) size = flacctrl->outsamples * 4;else size = flacctrl->outsamples * 2;
+ 120              		.loc 1 100 6 view .LVU39
+ 121 004c DB07     		lsls	r3, r3, #31
+ 122 004e E4D4     		bmi	.L8
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 123              		.loc 1 101 6 is_stmt 1 view .LVU40
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 124              		.loc 1 101 18 is_stmt 0 view .LVU41
+ 125 0050 0C4B     		ldr	r3, .L16+16
+ 126 0052 1968     		ldr	r1, [r3]
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 127              		.loc 1 101 46 view .LVU42
+ 128 0054 0B8A     		ldrh	r3, [r1, #16]	@ unaligned
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 129              		.loc 1 101 9 view .LVU43
+ 130 0056 498A     		ldrh	r1, [r1, #18]	@ unaligned
+ 131 0058 1829     		cmp	r1, #24
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 132              		.loc 1 101 31 is_stmt 1 view .LVU44
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 133              		.loc 1 101 36 is_stmt 0 view .LVU45
+ 134 005a 0CBF     		ite	eq
+ 135 005c 9B00     		lsleq	r3, r3, #2
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 136              		.loc 1 101 68 is_stmt 1 view .LVU46
+ 101:source\audio/flacplay.c **** 	    for (i=0;i<size;i++) audiodev.i2sbuf2[i] = 0;
+ 137              		.loc 1 101 73 is_stmt 0 view .LVU47
+ 138 005e 5B00     		lslne	r3, r3, #1
+ 139 0060 9BB2     		uxth	r3, r3
+ 140              	.LVL5:
+ 102:source\audio/flacplay.c **** 	 }
+ 141              		.loc 1 102 6 is_stmt 1 view .LVU48
+ 102:source\audio/flacplay.c **** 	 }
+ 142              		.loc 1 102 47 is_stmt 0 view .LVU49
+ 143 0062 0024     		movs	r4, #0
+ 144              	.LVL6:
+ 145              	.L11:
+ 102:source\audio/flacplay.c **** 	 }
+ 146              		.loc 1 102 16 is_stmt 1 discriminator 1 view .LVU50
+ 147 0064 91B2     		uxth	r1, r2
+ 148 0066 8B42     		cmp	r3, r1
+ 149 0068 D7D9     		bls	.L8
+ 102:source\audio/flacplay.c **** 	 }
+ 150              		.loc 1 102 27 discriminator 3 view .LVU51
+ 102:source\audio/flacplay.c **** 	 }
+ 151              		.loc 1 102 35 is_stmt 0 discriminator 3 view .LVU52
+ 152 006a 4168     		ldr	r1, [r0, #4]	@ unaligned
+ 102:source\audio/flacplay.c **** 	 }
+ 153              		.loc 1 102 47 discriminator 3 view .LVU53
+ 154 006c 8C54     		strb	r4, [r1, r2]
+ 102:source\audio/flacplay.c **** 	 }
+ 155              		.loc 1 102 23 is_stmt 1 discriminator 3 view .LVU54
+ 156              	.LVL7:
+ 102:source\audio/flacplay.c **** 	 }
+ 157              		.loc 1 102 23 is_stmt 0 discriminator 3 view .LVU55
+ 158 006e 0132     		adds	r2, r2, #1
+ 159              	.LVL8:
+ 102:source\audio/flacplay.c **** 	 }
+ 160              		.loc 1 102 23 discriminator 3 view .LVU56
+ 161 0070 F8E7     		b	.L11
+ 162              	.L17:
+ 163 0072 00BF     		.align	2
+ 164              	.L16:
+ 165 0074 00600240 		.word	1073897472
+ 166 0078 00000000 		.word	audiodev
+ 167 007c 00000000 		.word	flacwitchbuf
+ 168 0080 00000000 		.word	flactransferend
+ 169 0084 00000000 		.word	flacctrl
+ 170              		.cfi_endproc
+ 171              	.LFE124:
+ 173              		.section	.text.flac_file_seek,"ax",%progbits
+ 174              		.align	1
+ 175              		.global	flac_file_seek
+ 176              		.syntax unified
+ 177              		.thumb
+ 178              		.thumb_func
+ 180              	flac_file_seek:
+ 181              	.LVL9:
+ 182              	.LFB126:
+ 107:source\audio/flacplay.c **** 
+ 108:source\audio/flacplay.c **** 
+ 109:source\audio/flacplay.c **** void flac_get_curtime (FIL *fx,__flacctrl *tflacctrl)
+ 110:source\audio/flacplay.c **** {
+ 111:source\audio/flacplay.c ****       long long fpos = 0;
+ 112:source\audio/flacplay.c ****       if (fx->fptr > tflacctrl->datastart) fpos = fx->fptr - tflacctrl->datastart;
+ 113:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 114:source\audio/flacplay.c **** }
+ 115:source\audio/flacplay.c **** 
+ 116:source\audio/flacplay.c **** 
+ 117:source\audio/flacplay.c **** unsigned int flac_file_seek (unsigned int pos)
+ 118:source\audio/flacplay.c **** {
+ 183              		.loc 1 118 1 is_stmt 1 view -0
+ 184              		.cfi_startproc
+ 185              		@ args = 0, pretend = 0, frame = 0
+ 186              		@ frame_needed = 0, uses_anonymous_args = 0
+ 119:source\audio/flacplay.c ****       if (pos > audiodev.file->fsize) {
+ 187              		.loc 1 119 7 view .LVU58
+ 118:source\audio/flacplay.c ****       if (pos > audiodev.file->fsize) {
+ 188              		.loc 1 118 1 is_stmt 0 view .LVU59
+ 189 0000 10B5     		push	{r4, lr}
+ 190              		.cfi_def_cfa_offset 8
+ 191              		.cfi_offset 4, -8
+ 192              		.cfi_offset 14, -4
+ 193              		.loc 1 119 25 view .LVU60
+ 194 0002 074C     		ldr	r4, .L19
+ 195 0004 E368     		ldr	r3, [r4, #12]	@ unaligned
+ 196              	.LVL10:
+ 120:source\audio/flacplay.c **** 	 pos = audiodev.file->fsize;
+ 121:source\audio/flacplay.c ****       }
+ 122:source\audio/flacplay.c ****       f_lseek(audiodev.file,pos);
+ 197              		.loc 1 122 7 is_stmt 1 view .LVU61
+ 198 0006 D3F80C22 		ldr	r2, [r3, #524]
+ 199 000a 9042     		cmp	r0, r2
+ 200 000c 0146     		mov	r1, r0
+ 201 000e 28BF     		it	cs
+ 202 0010 1146     		movcs	r1, r2
+ 203 0012 1846     		mov	r0, r3
+ 204              	.LVL11:
+ 205              		.loc 1 122 7 is_stmt 0 view .LVU62
+ 206 0014 FFF7FEFF 		bl	f_lseek
+ 207              	.LVL12:
+ 123:source\audio/flacplay.c ****       return audiodev.file->fptr;
+ 208              		.loc 1 123 7 is_stmt 1 view .LVU63
+ 209              		.loc 1 123 22 is_stmt 0 view .LVU64
+ 210 0018 E368     		ldr	r3, [r4, #12]	@ unaligned
+ 124:source\audio/flacplay.c **** }
+ 211              		.loc 1 124 1 view .LVU65
+ 212 001a D3F80802 		ldr	r0, [r3, #520]
+ 213 001e 10BD     		pop	{r4, pc}
+ 214              	.L20:
+ 215              		.align	2
+ 216              	.L19:
+ 217 0020 00000000 		.word	audiodev
+ 218              		.cfi_endproc
+ 219              	.LFE126:
+ 221              		.section	.rodata.flac_init.str1.1,"aMS",%progbits,1
+ 222              	.LC0:
+ 223 0000 664C6143 		.ascii	"fLaC\000"
+ 223      00
+ 224              		.section	.text.flac_init,"ax",%progbits
+ 225              		.align	1
+ 226              		.global	flac_init
+ 227              		.syntax unified
+ 228              		.thumb
+ 229              		.thumb_func
+ 231              	flac_init:
+ 232              	.LVL13:
+ 233              	.LFB123:
+  34:source\audio/flacplay.c ****       FLAC_Tag *flactag;
+ 234              		.loc 1 34 1 is_stmt 1 view -0
+ 235              		.cfi_startproc
+ 236              		@ args = 0, pretend = 0, frame = 8
+ 237              		@ frame_needed = 0, uses_anonymous_args = 0
+  35:source\audio/flacplay.c ****       MD_Block_Head *flacblkh;
+ 238              		.loc 1 35 7 view .LVU67
+  36:source\audio/flacplay.c ****       unsigned char *buf;
+ 239              		.loc 1 36 7 view .LVU68
+  37:source\audio/flacplay.c ****       unsigned char endofmetadata = 0;
+ 240              		.loc 1 37 7 view .LVU69
+  38:source\audio/flacplay.c ****       int blocklength;
+ 241              		.loc 1 38 7 view .LVU70
+  39:source\audio/flacplay.c ****       unsigned int br;
+ 242              		.loc 1 39 7 view .LVU71
+  40:source\audio/flacplay.c ****       unsigned char res;
+ 243              		.loc 1 40 7 view .LVU72
+  41:source\audio/flacplay.c ****       buf = malloc(512);
+ 244              		.loc 1 41 7 view .LVU73
+  42:source\audio/flacplay.c ****       if (!buf) return 1;
+ 245              		.loc 1 42 7 view .LVU74
+  34:source\audio/flacplay.c ****       FLAC_Tag *flactag;
+ 246              		.loc 1 34 1 is_stmt 0 view .LVU75
+ 247 0000 2DE9F341 		push	{r0, r1, r4, r5, r6, r7, r8, lr}
+ 248              		.cfi_def_cfa_offset 32
+ 249              		.cfi_offset 4, -24
+ 250              		.cfi_offset 5, -20
+ 251              		.cfi_offset 6, -16
+ 252              		.cfi_offset 7, -12
+ 253              		.cfi_offset 8, -8
+ 254              		.cfi_offset 14, -4
+  34:source\audio/flacplay.c ****       FLAC_Tag *flactag;
+ 255              		.loc 1 34 1 view .LVU76
+ 256 0004 0646     		mov	r6, r0
+  42:source\audio/flacplay.c ****       if (!buf) return 1;
+ 257              		.loc 1 42 13 view .LVU77
+ 258 0006 4FF40070 		mov	r0, #512
+ 259              	.LVL14:
+  34:source\audio/flacplay.c ****       FLAC_Tag *flactag;
+ 260              		.loc 1 34 1 view .LVU78
+ 261 000a 0F46     		mov	r7, r1
+ 262 000c 1546     		mov	r5, r2
+  42:source\audio/flacplay.c ****       if (!buf) return 1;
+ 263              		.loc 1 42 13 view .LVU79
+ 264 000e FFF7FEFF 		bl	malloc
+ 265              	.LVL15:
+  43:source\audio/flacplay.c ****       f_lseek(fx,0);
+ 266              		.loc 1 43 7 is_stmt 1 view .LVU80
+  43:source\audio/flacplay.c ****       f_lseek(fx,0);
+ 267              		.loc 1 43 10 is_stmt 0 view .LVU81
+ 268 0012 0446     		mov	r4, r0
+ 269 0014 0028     		cmp	r0, #0
+ 270 0016 00F09280 		beq	.L29
+  44:source\audio/flacplay.c ****       f_read(fx,buf,4,&br);
+ 271              		.loc 1 44 7 is_stmt 1 view .LVU82
+ 272 001a 0021     		movs	r1, #0
+ 273 001c 3046     		mov	r0, r6
+ 274              	.LVL16:
+  44:source\audio/flacplay.c ****       f_read(fx,buf,4,&br);
+ 275              		.loc 1 44 7 is_stmt 0 view .LVU83
+ 276 001e FFF7FEFF 		bl	f_lseek
+ 277              	.LVL17:
+  45:source\audio/flacplay.c ****       flactag = (FLAC_Tag *)buf;
+ 278              		.loc 1 45 7 is_stmt 1 view .LVU84
+ 279 0022 0422     		movs	r2, #4
+ 280 0024 2146     		mov	r1, r4
+ 281 0026 01AB     		add	r3, sp, #4
+ 282 0028 3046     		mov	r0, r6
+ 283 002a FFF7FEFF 		bl	f_read
+ 284              	.LVL18:
+  46:source\audio/flacplay.c ****       if (strncmp("fLaC",(char *)flactag->id,4) != 0) {
+ 285              		.loc 1 46 7 view .LVU85
+  47:source\audio/flacplay.c **** 	 free(buf);
+ 286              		.loc 1 47 7 view .LVU86
+  47:source\audio/flacplay.c **** 	 free(buf);
+ 287              		.loc 1 47 11 is_stmt 0 view .LVU87
+ 288 002e 4548     		ldr	r0, .L35
+ 289 0030 0422     		movs	r2, #4
+ 290 0032 2146     		mov	r1, r4
+ 291 0034 FFF7FEFF 		bl	strncmp
+ 292              	.LVL19:
+  47:source\audio/flacplay.c **** 	 free(buf);
+ 293              		.loc 1 47 10 view .LVU88
+ 294 0038 0028     		cmp	r0, #0
+ 295 003a 52D0     		beq	.L23
+  48:source\audio/flacplay.c **** 	 return 2;
+ 296              		.loc 1 48 3 is_stmt 1 view .LVU89
+ 297 003c 2046     		mov	r0, r4
+ 298 003e FFF7FEFF 		bl	free
+ 299              	.LVL20:
+  49:source\audio/flacplay.c ****       }
+ 300              		.loc 1 49 3 view .LVU90
+  49:source\audio/flacplay.c ****       }
+ 301              		.loc 1 49 10 is_stmt 0 view .LVU91
+ 302 0042 0220     		movs	r0, #2
+ 303              	.LVL21:
+ 304              	.L22:
+  85:source\audio/flacplay.c **** 
+ 305              		.loc 1 85 1 view .LVU92
+ 306 0044 02B0     		add	sp, sp, #8
+ 307              		.cfi_remember_state
+ 308              		.cfi_def_cfa_offset 24
+ 309              		@ sp needed
+ 310 0046 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 311              	.LVL22:
+ 312              	.L24:
+ 313              		.cfi_restore_state
+  54:source\audio/flacplay.c **** 	    endofmetadata = flacblkh->head & 0x80;
+ 314              		.loc 1 54 6 is_stmt 1 view .LVU93
+  55:source\audio/flacplay.c **** 	    blocklength = ((unsigned int)flacblkh->size[0] << 16) | ((unsigned short)flacblkh->size[1] << 
+ 315              		.loc 1 55 6 view .LVU94
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 316              		.loc 1 56 97 is_stmt 0 view .LVU95
+ 317 004a A278     		ldrb	r2, [r4, #2]	@ zero_extendqisi2
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 318              		.loc 1 56 21 view .LVU96
+ 319 004c 6378     		ldrb	r3, [r4, #1]	@ zero_extendqisi2
+  55:source\audio/flacplay.c **** 	    blocklength = ((unsigned int)flacblkh->size[0] << 16) | ((unsigned short)flacblkh->size[1] << 
+ 320              		.loc 1 55 30 view .LVU97
+ 321 004e 94F80080 		ldrb	r8, [r4]	@ zero_extendqisi2
+ 322              	.LVL23:
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 323              		.loc 1 56 6 is_stmt 1 view .LVU98
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 324              		.loc 1 56 97 is_stmt 0 view .LVU99
+ 325 0052 1202     		lsls	r2, r2, #8
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 326              		.loc 1 56 60 view .LVU100
+ 327 0054 42EA0342 		orr	r2, r2, r3, lsl #16
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 328              		.loc 1 56 120 view .LVU101
+ 329 0058 E378     		ldrb	r3, [r4, #3]	@ zero_extendqisi2
+  57:source\audio/flacplay.c **** 	       res = f_read(fx,buf,blocklength,&br);
+ 330              		.loc 1 57 16 view .LVU102
+ 331 005a 18F07F0F 		tst	r8, #127
+  56:source\audio/flacplay.c ****             if ((flacblkh->head & 0x7F) == 0) {
+ 332              		.loc 1 56 103 view .LVU103
+ 333 005e 42EA0302 		orr	r2, r2, r3
+ 334              	.LVL24:
+  57:source\audio/flacplay.c **** 	       res = f_read(fx,buf,blocklength,&br);
+ 335              		.loc 1 57 13 is_stmt 1 view .LVU104
+  57:source\audio/flacplay.c **** 	       res = f_read(fx,buf,blocklength,&br);
+ 336              		.loc 1 57 16 is_stmt 0 view .LVU105
+ 337 0062 4ED1     		bne	.L26
+  58:source\audio/flacplay.c ****                if (res != FR_OK) break;
+ 338              		.loc 1 58 9 is_stmt 1 view .LVU106
+  58:source\audio/flacplay.c ****                if (res != FR_OK) break;
+ 339              		.loc 1 58 15 is_stmt 0 view .LVU107
+ 340 0064 01AB     		add	r3, sp, #4
+ 341 0066 2146     		mov	r1, r4
+ 342 0068 3046     		mov	r0, r6
+ 343 006a FFF7FEFF 		bl	f_read
+ 344              	.LVL25:
+  59:source\audio/flacplay.c ****                fc->min_blocksize = ((unsigned short)buf[0] << 8) | buf[1];
+ 345              		.loc 1 59 16 is_stmt 1 view .LVU108
+  59:source\audio/flacplay.c ****                fc->min_blocksize = ((unsigned short)buf[0] << 8) | buf[1];
+ 346              		.loc 1 59 19 is_stmt 0 view .LVU109
+ 347 006e 0028     		cmp	r0, #0
+ 348 0070 40D1     		bne	.L27
+  60:source\audio/flacplay.c ****                fc->max_blocksize = ((unsigned short)buf[2] << 8) | buf[3];
+ 349              		.loc 1 60 16 is_stmt 1 view .LVU110
+  60:source\audio/flacplay.c ****                fc->max_blocksize = ((unsigned short)buf[2] << 8) | buf[3];
+ 350              		.loc 1 60 34 is_stmt 0 view .LVU111
+ 351 0072 2388     		ldrh	r3, [r4]
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 352              		.loc 1 62 37 view .LVU112
+ 353 0074 2279     		ldrb	r2, [r4, #4]	@ zero_extendqisi2
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 354              		.loc 1 64 34 view .LVU113
+ 355 0076 A17A     		ldrb	r1, [r4, #10]	@ zero_extendqisi2
+  60:source\audio/flacplay.c ****                fc->max_blocksize = ((unsigned short)buf[2] << 8) | buf[3];
+ 356              		.loc 1 60 34 view .LVU114
+ 357 0078 5BBA     		rev16	r3, r3
+ 358 007a 9BB2     		uxth	r3, r3
+ 359 007c 2B61     		str	r3, [r5, #16]
+  61:source\audio/flacplay.c ****                fc->min_framesize = ((unsigned int)buf[4] << 16) | ((unsigned short)buf[5] << 8) | b
+ 360              		.loc 1 61 16 is_stmt 1 view .LVU115
+  61:source\audio/flacplay.c ****                fc->min_framesize = ((unsigned int)buf[4] << 16) | ((unsigned short)buf[5] << 8) | b
+ 361              		.loc 1 61 34 is_stmt 0 view .LVU116
+ 362 007e 6388     		ldrh	r3, [r4, #2]
+ 363 0080 5BBA     		rev16	r3, r3
+ 364 0082 9BB2     		uxth	r3, r3
+ 365 0084 6B61     		str	r3, [r5, #20]
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 366              		.loc 1 62 16 is_stmt 1 view .LVU117
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 367              		.loc 1 62 91 is_stmt 0 view .LVU118
+ 368 0086 6379     		ldrb	r3, [r4, #5]	@ zero_extendqisi2
+ 369 0088 1B02     		lsls	r3, r3, #8
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 370              		.loc 1 62 65 view .LVU119
+ 371 008a 43EA0243 		orr	r3, r3, r2, lsl #16
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 372              		.loc 1 62 102 view .LVU120
+ 373 008e A279     		ldrb	r2, [r4, #6]	@ zero_extendqisi2
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 374              		.loc 1 62 97 view .LVU121
+ 375 0090 1343     		orrs	r3, r3, r2
+  62:source\audio/flacplay.c ****                fc->max_framesize = ((unsigned int)buf[7] << 16) | ((unsigned short)buf[8] << 8) | b
+ 376              		.loc 1 62 34 view .LVU122
+ 377 0092 AB61     		str	r3, [r5, #24]
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 378              		.loc 1 63 16 is_stmt 1 view .LVU123
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 379              		.loc 1 63 91 is_stmt 0 view .LVU124
+ 380 0094 237A     		ldrb	r3, [r4, #8]	@ zero_extendqisi2
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 381              		.loc 1 63 37 view .LVU125
+ 382 0096 E279     		ldrb	r2, [r4, #7]	@ zero_extendqisi2
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 383              		.loc 1 63 91 view .LVU126
+ 384 0098 1B02     		lsls	r3, r3, #8
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 385              		.loc 1 63 65 view .LVU127
+ 386 009a 43EA0243 		orr	r3, r3, r2, lsl #16
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 387              		.loc 1 63 102 view .LVU128
+ 388 009e 627A     		ldrb	r2, [r4, #9]	@ zero_extendqisi2
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 389              		.loc 1 63 97 view .LVU129
+ 390 00a0 1343     		orrs	r3, r3, r2
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 391              		.loc 1 64 90 view .LVU130
+ 392 00a2 E27A     		ldrb	r2, [r4, #11]	@ zero_extendqisi2
+  63:source\audio/flacplay.c ****                fc->samplerate = ((unsigned int)buf[10] << 12) | ((unsigned short)buf[11] << 4) | ((
+ 393              		.loc 1 63 34 view .LVU131
+ 394 00a4 EB61     		str	r3, [r5, #28]
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 395              		.loc 1 64 16 is_stmt 1 view .LVU132
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 396              		.loc 1 64 103 is_stmt 0 view .LVU133
+ 397 00a6 237B     		ldrb	r3, [r4, #12]	@ zero_extendqisi2
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 398              		.loc 1 64 90 view .LVU134
+ 399 00a8 1201     		lsls	r2, r2, #4
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 400              		.loc 1 64 63 view .LVU135
+ 401 00aa 42EA0132 		orr	r2, r2, r1, lsl #12
+  65:source\audio/flacplay.c ****                fc->bps = ((((unsigned short)buf[12] & 0x01) << 4) | ((buf[13] & 0xF0) >> 4)) + 1;
+ 402              		.loc 1 65 49 view .LVU136
+ 403 00ae C3F34201 		ubfx	r1, r3, #1, #3
+  65:source\audio/flacplay.c ****                fc->bps = ((((unsigned short)buf[12] & 0x01) << 4) | ((buf[13] & 0xF0) >> 4)) + 1;
+ 404              		.loc 1 65 55 view .LVU137
+ 405 00b2 0131     		adds	r1, r1, #1
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 406              		.loc 1 64 96 view .LVU138
+ 407 00b4 42EA1312 		orr	r2, r2, r3, lsr #4
+  65:source\audio/flacplay.c ****                fc->bps = ((((unsigned short)buf[12] & 0x01) << 4) | ((buf[13] & 0xF0) >> 4)) + 1;
+ 408              		.loc 1 65 29 view .LVU139
+ 409 00b8 6962     		str	r1, [r5, #36]
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 410              		.loc 1 66 61 view .LVU140
+ 411 00ba 1B01     		lsls	r3, r3, #4
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 412              		.loc 1 66 87 view .LVU141
+ 413 00bc 617B     		ldrb	r1, [r4, #13]	@ zero_extendqisi2
+  64:source\audio/flacplay.c ****                fc->channels = ((buf[12] & 0x0E) >> 1) + 1;
+ 414              		.loc 1 64 31 view .LVU142
+ 415 00be 2A62     		str	r2, [r5, #32]
+  65:source\audio/flacplay.c ****                fc->bps = ((((unsigned short)buf[12] & 0x01) << 4) | ((buf[13] & 0xF0) >> 4)) + 1;
+ 416              		.loc 1 65 16 is_stmt 1 view .LVU143
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 417              		.loc 1 66 16 view .LVU144
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 418              		.loc 1 66 61 is_stmt 0 view .LVU145
+ 419 00c0 03F01003 		and	r3, r3, #16
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 420              		.loc 1 66 67 view .LVU146
+ 421 00c4 43EA1113 		orr	r3, r3, r1, lsr #4
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 422              		.loc 1 66 94 view .LVU147
+ 423 00c8 0133     		adds	r3, r3, #1
+  66:source\audio/flacplay.c ****                fc->totalsamples = ((unsigned int)buf[14] << 24) | ((unsigned int)buf[15] << 16) | (
+ 424              		.loc 1 66 24 view .LVU148
+ 425 00ca EB62     		str	r3, [r5, #44]
+  67:source\audio/flacplay.c **** 	       fctrl->samplerate = fc->samplerate;
+ 426              		.loc 1 67 16 is_stmt 1 view .LVU149
+ 427 00cc D4F80E30 		ldr	r3, [r4, #14]	@ unaligned
+ 428 00d0 1BBA     		rev	r3, r3
+  67:source\audio/flacplay.c **** 	       fctrl->samplerate = fc->samplerate;
+ 429              		.loc 1 67 33 is_stmt 0 view .LVU150
+ 430 00d2 AB63     		str	r3, [r5, #56]
+  68:source\audio/flacplay.c **** 	       fctrl->totsec = (fc->totalsamples / fc->samplerate);
+ 431              		.loc 1 68 9 is_stmt 1 view .LVU151
+  69:source\audio/flacplay.c ****             } else {
+ 432              		.loc 1 69 43 is_stmt 0 view .LVU152
+ 433 00d4 B3FBF2F3 		udiv	r3, r3, r2
+  68:source\audio/flacplay.c **** 	       fctrl->totsec = (fc->totalsamples / fc->samplerate);
+ 434              		.loc 1 68 27 view .LVU153
+ 435 00d8 FA60     		str	r2, [r7, #12]	@ unaligned
+  69:source\audio/flacplay.c ****             } else {
+ 436              		.loc 1 69 9 is_stmt 1 view .LVU154
+  69:source\audio/flacplay.c ****             } else {
+ 437              		.loc 1 69 23 is_stmt 0 view .LVU155
+ 438 00da 3B60     		str	r3, [r7]	@ unaligned
+ 439              	.LVL26:
+ 440              	.L28:
+  51:source\audio/flacplay.c **** 	    f_read(fx,buf,4,&br);
+ 441              		.loc 1 51 14 is_stmt 1 view .LVU156
+ 442 00dc 18F0800F 		tst	r8, #128
+ 443 00e0 08D1     		bne	.L27
+ 444              	.LVL27:
+ 445              	.L23:
+  52:source\audio/flacplay.c ****             if (br < 4) break;
+ 446              		.loc 1 52 6 view .LVU157
+ 447 00e2 01AB     		add	r3, sp, #4
+ 448 00e4 0422     		movs	r2, #4
+ 449 00e6 2146     		mov	r1, r4
+ 450 00e8 3046     		mov	r0, r6
+ 451 00ea FFF7FEFF 		bl	f_read
+ 452              	.LVL28:
+  53:source\audio/flacplay.c **** 	    flacblkh = (MD_Block_Head *)buf;
+ 453              		.loc 1 53 13 view .LVU158
+  53:source\audio/flacplay.c **** 	    flacblkh = (MD_Block_Head *)buf;
+ 454              		.loc 1 53 16 is_stmt 0 view .LVU159
+ 455 00ee 019B     		ldr	r3, [sp, #4]
+ 456 00f0 032B     		cmp	r3, #3
+ 457 00f2 AAD8     		bhi	.L24
+ 458              	.LVL29:
+ 459              	.L27:
+  77:source\audio/flacplay.c ****       if (fctrl->totsec) {
+ 460              		.loc 1 77 7 is_stmt 1 view .LVU160
+ 461 00f4 2046     		mov	r0, r4
+ 462 00f6 FFF7FEFF 		bl	free
+ 463              	.LVL30:
+  78:source\audio/flacplay.c **** 	 fctrl->outsamples = fc->max_blocksize * 2;
+ 464              		.loc 1 78 7 view .LVU161
+  78:source\audio/flacplay.c **** 	 fctrl->outsamples = fc->max_blocksize * 2;
+ 465              		.loc 1 78 16 is_stmt 0 view .LVU162
+ 466 00fa 3A68     		ldr	r2, [r7]	@ unaligned
+  78:source\audio/flacplay.c **** 	 fctrl->outsamples = fc->max_blocksize * 2;
+ 467              		.loc 1 78 10 view .LVU163
+ 468 00fc 72B9     		cbnz	r2, .L25
+  83:source\audio/flacplay.c ****       return 0;
+ 469              		.loc 1 83 21 view .LVU164
+ 470 00fe 0420     		movs	r0, #4
+ 471 0100 A0E7     		b	.L22
+ 472              	.LVL31:
+ 473              	.L26:
+  71:source\audio/flacplay.c **** 		  free(buf);
+ 474              		.loc 1 71 16 is_stmt 1 view .LVU165
+  71:source\audio/flacplay.c **** 		  free(buf);
+ 475              		.loc 1 71 20 is_stmt 0 view .LVU166
+ 476 0102 D6F80812 		ldr	r1, [r6, #520]
+ 477 0106 3046     		mov	r0, r6
+ 478 0108 1144     		add	r1, r1, r2
+ 479 010a FFF7FEFF 		bl	f_lseek
+ 480              	.LVL32:
+  71:source\audio/flacplay.c **** 		  free(buf);
+ 481              		.loc 1 71 19 view .LVU167
+ 482 010e 0028     		cmp	r0, #0
+ 483 0110 E4D0     		beq	.L28
+  72:source\audio/flacplay.c **** 		  return 3;
+ 484              		.loc 1 72 5 is_stmt 1 view .LVU168
+ 485 0112 2046     		mov	r0, r4
+ 486 0114 FFF7FEFF 		bl	free
+ 487              	.LVL33:
+  73:source\audio/flacplay.c ****                }
+ 488              		.loc 1 73 5 view .LVU169
+  73:source\audio/flacplay.c ****                }
+ 489              		.loc 1 73 12 is_stmt 0 view .LVU170
+ 490 0118 0320     		movs	r0, #3
+ 491 011a 93E7     		b	.L22
+ 492              	.LVL34:
+ 493              	.L25:
+  79:source\audio/flacplay.c **** 	 fctrl->bps = fc->bps;
+ 494              		.loc 1 79 3 is_stmt 1 view .LVU171
+  79:source\audio/flacplay.c **** 	 fctrl->bps = fc->bps;
+ 495              		.loc 1 79 21 is_stmt 0 view .LVU172
+ 496 011c 6B69     		ldr	r3, [r5, #20]
+  81:source\audio/flacplay.c **** 	 fctrl->bitrate = ((fx->fsize - fctrl->datastart) * 8) / fctrl->totsec;
+ 497              		.loc 1 81 24 view .LVU173
+ 498 011e D6F80812 		ldr	r1, [r6, #520]
+  79:source\audio/flacplay.c **** 	 fctrl->bps = fc->bps;
+ 499              		.loc 1 79 21 view .LVU174
+ 500 0122 5B00     		lsls	r3, r3, #1
+ 501 0124 3B82     		strh	r3, [r7, #16]	@ unaligned
+  80:source\audio/flacplay.c **** 	 fctrl->datastart = fx->fptr;
+ 502              		.loc 1 80 3 is_stmt 1 view .LVU175
+  80:source\audio/flacplay.c **** 	 fctrl->datastart = fx->fptr;
+ 503              		.loc 1 80 14 is_stmt 0 view .LVU176
+ 504 0126 EB6A     		ldr	r3, [r5, #44]
+ 505 0128 7B82     		strh	r3, [r7, #18]	@ unaligned
+  81:source\audio/flacplay.c **** 	 fctrl->bitrate = ((fx->fsize - fctrl->datastart) * 8) / fctrl->totsec;
+ 506              		.loc 1 81 3 is_stmt 1 view .LVU177
+  82:source\audio/flacplay.c ****       } else return 4;
+ 507              		.loc 1 82 32 is_stmt 0 view .LVU178
+ 508 012a D6F80C32 		ldr	r3, [r6, #524]
+  81:source\audio/flacplay.c **** 	 fctrl->bitrate = ((fx->fsize - fctrl->datastart) * 8) / fctrl->totsec;
+ 509              		.loc 1 81 20 view .LVU179
+ 510 012e 7961     		str	r1, [r7, #20]	@ unaligned
+  82:source\audio/flacplay.c ****       } else return 4;
+ 511              		.loc 1 82 3 is_stmt 1 view .LVU180
+  82:source\audio/flacplay.c ****       } else return 4;
+ 512              		.loc 1 82 32 is_stmt 0 view .LVU181
+ 513 0130 5B1A     		subs	r3, r3, r1
+  82:source\audio/flacplay.c ****       } else return 4;
+ 514              		.loc 1 82 52 view .LVU182
+ 515 0132 DB00     		lsls	r3, r3, #3
+  84:source\audio/flacplay.c **** }
+ 516              		.loc 1 84 14 view .LVU183
+ 517 0134 0020     		movs	r0, #0
+  82:source\audio/flacplay.c ****       } else return 4;
+ 518              		.loc 1 82 57 view .LVU184
+ 519 0136 B3FBF2F3 		udiv	r3, r3, r2
+  82:source\audio/flacplay.c ****       } else return 4;
+ 520              		.loc 1 82 18 view .LVU185
+ 521 013a BB60     		str	r3, [r7, #8]	@ unaligned
+  84:source\audio/flacplay.c **** }
+ 522              		.loc 1 84 7 is_stmt 1 view .LVU186
+  84:source\audio/flacplay.c **** }
+ 523              		.loc 1 84 14 is_stmt 0 view .LVU187
+ 524 013c 82E7     		b	.L22
+ 525              	.LVL35:
+ 526              	.L29:
+  43:source\audio/flacplay.c ****       f_lseek(fx,0);
+ 527              		.loc 1 43 24 view .LVU188
+ 528 013e 0120     		movs	r0, #1
+ 529              	.LVL36:
+  43:source\audio/flacplay.c ****       f_lseek(fx,0);
+ 530              		.loc 1 43 24 view .LVU189
+ 531 0140 80E7     		b	.L22
+ 532              	.L36:
+ 533 0142 00BF     		.align	2
+ 534              	.L35:
+ 535 0144 00000000 		.word	.LC0
+ 536              		.cfi_endproc
+ 537              	.LFE123:
+ 539              		.global	__aeabi_uldivmod
+ 540              		.global	__aeabi_ldivmod
+ 541              		.section	.text.flac_get_curtime,"ax",%progbits
+ 542              		.align	1
+ 543              		.global	flac_get_curtime
+ 544              		.syntax unified
+ 545              		.thumb
+ 546              		.thumb_func
+ 548              	flac_get_curtime:
+ 549              	.LVL37:
+ 550              	.LFB125:
+ 110:source\audio/flacplay.c ****       long long fpos = 0;
+ 551              		.loc 1 110 1 is_stmt 1 view -0
+ 552              		.cfi_startproc
+ 553              		@ args = 0, pretend = 0, frame = 0
+ 554              		@ frame_needed = 0, uses_anonymous_args = 0
+ 111:source\audio/flacplay.c ****       if (fx->fptr > tflacctrl->datastart) fpos = fx->fptr - tflacctrl->datastart;
+ 555              		.loc 1 111 7 view .LVU191
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 556              		.loc 1 112 7 view .LVU192
+ 110:source\audio/flacplay.c ****       long long fpos = 0;
+ 557              		.loc 1 110 1 is_stmt 0 view .LVU193
+ 558 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 559              		.cfi_def_cfa_offset 24
+ 560              		.cfi_offset 3, -24
+ 561              		.cfi_offset 4, -20
+ 562              		.cfi_offset 5, -16
+ 563              		.cfi_offset 6, -12
+ 564              		.cfi_offset 7, -8
+ 565              		.cfi_offset 14, -4
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 566              		.loc 1 112 13 view .LVU194
+ 567 0002 D0F80832 		ldr	r3, [r0, #520]
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 568              		.loc 1 112 31 view .LVU195
+ 569 0006 4A69     		ldr	r2, [r1, #20]	@ unaligned
+ 110:source\audio/flacplay.c ****       long long fpos = 0;
+ 570              		.loc 1 110 1 view .LVU196
+ 571 0008 0C46     		mov	r4, r1
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 572              		.loc 1 112 10 view .LVU197
+ 573 000a 9342     		cmp	r3, r2
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 574              		.loc 1 112 44 is_stmt 1 view .LVU198
+ 113:source\audio/flacplay.c **** }
+ 575              		.loc 1 113 43 is_stmt 0 view .LVU199
+ 576 000c 2668     		ldr	r6, [r4]	@ unaligned
+ 110:source\audio/flacplay.c ****       long long fpos = 0;
+ 577              		.loc 1 110 1 view .LVU200
+ 578 000e 0546     		mov	r5, r0
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 579              		.loc 1 112 60 view .LVU201
+ 580 0010 8EBF     		itee	hi
+ 581 0012 9B1A     		subhi	r3, r3, r2
+ 111:source\audio/flacplay.c ****       if (fx->fptr > tflacctrl->datastart) fpos = fx->fptr - tflacctrl->datastart;
+ 582              		.loc 1 111 17 view .LVU202
+ 583 0014 0023     		movls	r3, #0
+ 584 0016 1946     		movls	r1, r3
+ 585              	.LVL38:
+ 113:source\audio/flacplay.c **** }
+ 586              		.loc 1 113 32 view .LVU203
+ 587 0018 A6FB0307 		umull	r0, r7, r6, r3
+ 588              	.LVL39:
+ 113:source\audio/flacplay.c **** }
+ 589              		.loc 1 113 65 view .LVU204
+ 590 001c D5F80C32 		ldr	r3, [r5, #524]
+ 112:source\audio/flacplay.c ****       tflacctrl->cursec = fpos * tflacctrl->totsec / (fx->fsize - tflacctrl->datastart);
+ 591              		.loc 1 112 49 view .LVU205
+ 592 0020 88BF     		it	hi
+ 593 0022 0021     		movhi	r1, #0
+ 594              	.LVL40:
+ 113:source\audio/flacplay.c **** }
+ 595              		.loc 1 113 7 is_stmt 1 view .LVU206
+ 113:source\audio/flacplay.c **** }
+ 596              		.loc 1 113 52 is_stmt 0 view .LVU207
+ 597 0024 9A1A     		subs	r2, r3, r2
+ 598 0026 06FB0171 		mla	r1, r6, r1, r7
+ 599 002a 0023     		movs	r3, #0
+ 600 002c FFF7FEFF 		bl	__aeabi_ldivmod
+ 601              	.LVL41:
+ 113:source\audio/flacplay.c **** }
+ 602              		.loc 1 113 25 view .LVU208
+ 603 0030 6060     		str	r0, [r4, #4]	@ unaligned
+ 114:source\audio/flacplay.c **** 
+ 604              		.loc 1 114 1 view .LVU209
+ 605 0032 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 114:source\audio/flacplay.c **** 
+ 606              		.loc 1 114 1 view .LVU210
+ 607              		.cfi_endproc
+ 608              	.LFE125:
+ 610              		.section	.text.flac_stop,"ax",%progbits
+ 611              		.align	1
+ 612              		.global	flac_stop
+ 613              		.syntax unified
+ 614              		.thumb
+ 615              		.thumb_func
+ 617              	flac_stop:
+ 618              	.LFB127:
+ 125:source\audio/flacplay.c **** 
+ 126:source\audio/flacplay.c **** 
+ 127:source\audio/flacplay.c **** void flac_stop (void)
+ 128:source\audio/flacplay.c **** {
+ 619              		.loc 1 128 1 is_stmt 1 view -0
+ 620              		.cfi_startproc
+ 621              		@ args = 0, pretend = 0, frame = 0
+ 622              		@ frame_needed = 0, uses_anonymous_args = 0
+ 129:source\audio/flacplay.c ****       audio_stop();
+ 623              		.loc 1 129 7 view .LVU212
+ 128:source\audio/flacplay.c ****       audio_stop();
+ 624              		.loc 1 128 1 is_stmt 0 view .LVU213
+ 625 0000 10B5     		push	{r4, lr}
+ 626              		.cfi_def_cfa_offset 8
+ 627              		.cfi_offset 4, -8
+ 628              		.cfi_offset 14, -4
+ 130:source\audio/flacplay.c ****       f_close(audiodev.file);
+ 629              		.loc 1 130 7 view .LVU214
+ 630 0002 194C     		ldr	r4, .L41
+ 129:source\audio/flacplay.c ****       audio_stop();
+ 631              		.loc 1 129 7 view .LVU215
+ 632 0004 FFF7FEFF 		bl	audio_stop
+ 633              	.LVL42:
+ 634              		.loc 1 130 7 is_stmt 1 view .LVU216
+ 635 0008 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 636 000a FFF7FEFF 		bl	f_close
+ 637              	.LVL43:
+ 131:source\audio/flacplay.c ****       free(flac_fc);
+ 638              		.loc 1 131 7 view .LVU217
+ 639 000e 174B     		ldr	r3, .L41+4
+ 640 0010 1868     		ldr	r0, [r3]
+ 641 0012 FFF7FEFF 		bl	free
+ 642              	.LVL44:
+ 132:source\audio/flacplay.c ****       free(flacctrl);
+ 643              		.loc 1 132 7 view .LVU218
+ 644 0016 164B     		ldr	r3, .L41+8
+ 645 0018 1868     		ldr	r0, [r3]
+ 646 001a FFF7FEFF 		bl	free
+ 647              	.LVL45:
+ 133:source\audio/flacplay.c ****       free(audiodev.file);
+ 648              		.loc 1 133 7 view .LVU219
+ 649 001e E068     		ldr	r0, [r4, #12]	@ unaligned
+ 650 0020 FFF7FEFF 		bl	free
+ 651              	.LVL46:
+ 134:source\audio/flacplay.c ****       free(audiodev.i2sbuf1);
+ 652              		.loc 1 134 7 view .LVU220
+ 653 0024 2068     		ldr	r0, [r4]	@ unaligned
+ 654 0026 FFF7FEFF 		bl	free
+ 655              	.LVL47:
+ 135:source\audio/flacplay.c ****       free(audiodev.i2sbuf2);
+ 656              		.loc 1 135 7 view .LVU221
+ 657 002a 6068     		ldr	r0, [r4, #4]	@ unaligned
+ 658 002c FFF7FEFF 		bl	free
+ 659              	.LVL48:
+ 136:source\audio/flacplay.c ****       free(flac_buffer);
+ 660              		.loc 1 136 7 view .LVU222
+ 661 0030 104B     		ldr	r3, .L41+12
+ 662 0032 1868     		ldr	r0, [r3]
+ 663 0034 FFF7FEFF 		bl	free
+ 664              	.LVL49:
+ 137:source\audio/flacplay.c ****       free(flac_decbuf0);
+ 665              		.loc 1 137 7 view .LVU223
+ 666 0038 0F4B     		ldr	r3, .L41+16
+ 667 003a 1868     		ldr	r0, [r3]
+ 668 003c FFF7FEFF 		bl	free
+ 669              	.LVL50:
+ 138:source\audio/flacplay.c ****       free(flac_decbuf1);
+ 670              		.loc 1 138 7 view .LVU224
+ 671 0040 0E4B     		ldr	r3, .L41+20
+ 672 0042 1868     		ldr	r0, [r3]
+ 673 0044 FFF7FEFF 		bl	free
+ 674              	.LVL51:
+ 139:source\audio/flacplay.c ****       audio_run = 0;
+ 675              		.loc 1 139 7 view .LVU225
+ 676              		.loc 1 139 17 is_stmt 0 view .LVU226
+ 677 0048 0D4A     		ldr	r2, .L41+24
+ 678 004a 0023     		movs	r3, #0
+ 679 004c 1370     		strb	r3, [r2]
+ 140:source\audio/flacplay.c ****       audio_read_flag = 0;
+ 680              		.loc 1 140 7 is_stmt 1 view .LVU227
+ 681              		.loc 1 140 23 is_stmt 0 view .LVU228
+ 682 004e 0D4A     		ldr	r2, .L41+28
+ 683 0050 1370     		strb	r3, [r2]
+ 141:source\audio/flacplay.c ****       audio_pause = 0;
+ 684              		.loc 1 141 7 is_stmt 1 view .LVU229
+ 685              		.loc 1 141 19 is_stmt 0 view .LVU230
+ 686 0052 0D4A     		ldr	r2, .L41+32
+ 687 0054 1370     		strb	r3, [r2]
+ 142:source\audio/flacplay.c ****       audio_play_function = NULL;
+ 688              		.loc 1 142 7 is_stmt 1 view .LVU231
+ 689              		.loc 1 142 27 is_stmt 0 view .LVU232
+ 690 0056 0D4A     		ldr	r2, .L41+36
+ 691 0058 1360     		str	r3, [r2]
+ 143:source\audio/flacplay.c ****       audio_stop_function = NULL;
+ 692              		.loc 1 143 7 is_stmt 1 view .LVU233
+ 693              		.loc 1 143 27 is_stmt 0 view .LVU234
+ 694 005a 0D4A     		ldr	r2, .L41+40
+ 695 005c 1360     		str	r3, [r2]
+ 144:source\audio/flacplay.c ****       music_play = 1;
+ 696              		.loc 1 144 7 is_stmt 1 view .LVU235
+ 697              		.loc 1 144 18 is_stmt 0 view .LVU236
+ 698 005e 0D4B     		ldr	r3, .L41+44
+ 699 0060 0122     		movs	r2, #1
+ 700 0062 1A70     		strb	r2, [r3]
+ 145:source\audio/flacplay.c **** }
+ 701              		.loc 1 145 1 view .LVU237
+ 702 0064 10BD     		pop	{r4, pc}
+ 703              	.L42:
+ 704 0066 00BF     		.align	2
+ 705              	.L41:
+ 706 0068 00000000 		.word	audiodev
+ 707 006c 00000000 		.word	flac_fc
+ 708 0070 00000000 		.word	flacctrl
+ 709 0074 00000000 		.word	flac_buffer
+ 710 0078 00000000 		.word	flac_decbuf0
+ 711 007c 00000000 		.word	flac_decbuf1
+ 712 0080 00000000 		.word	audio_run
+ 713 0084 00000000 		.word	audio_read_flag
+ 714 0088 00000000 		.word	audio_pause
+ 715 008c 00000000 		.word	audio_play_function
+ 716 0090 00000000 		.word	audio_stop_function
+ 717 0094 00000000 		.word	music_play
+ 718              		.cfi_endproc
+ 719              	.LFE127:
+ 721              		.section	.rodata.flac_play_song.str1.1,"aMS",%progbits,1
+ 722              	.LC1:
+ 723 0000 46696C65 		.ascii	"File: %s \000"
+ 723      3A202573 
+ 723      2000
+ 724              	.LC2:
+ 725 000a 426C6F63 		.ascii	"Blocksize: %d .. %d \000"
+ 725      6B73697A 
+ 725      653A2025 
+ 725      64202E2E 
+ 725      20256420 
+ 726              	.LC3:
+ 727 001f 4672616D 		.ascii	"Framesize: %d .. %d \000"
+ 727      6573697A 
+ 727      653A2025 
+ 727      64202E2E 
+ 727      20256420 
+ 728              	.LC4:
+ 729 0034 53616D70 		.ascii	"Samplerate: %d Channels: %d \000"
+ 729      6C657261 
+ 729      74653A20 
+ 729      25642043 
+ 729      68616E6E 
+ 730              	.LC5:
+ 731 0051 42697473 		.ascii	"Bits per sample: %d \000"
+ 731      20706572 
+ 731      2073616D 
+ 731      706C653A 
+ 731      20256420 
+ 732              	.LC6:
+ 733 0066 4D657461 		.ascii	"Metadata length: %d \000"
+ 733      64617461 
+ 733      206C656E 
+ 733      6774683A 
+ 733      20256420 
+ 734              	.LC7:
+ 735 007b 546F7461 		.ascii	"Total Samples: %lu \000"
+ 735      6C205361 
+ 735      6D706C65 
+ 735      733A2025 
+ 735      6C752000 
+ 736              	.LC8:
+ 737 008f 42697472 		.ascii	"Bitrate: %d kbps \000"
+ 737      6174653A 
+ 737      20256420 
+ 737      6B627073 
+ 737      2000
+ 738              	.LC9:
+ 739 00a1 54696D65 		.ascii	"Time: %2d:%.2d \000"
+ 739      3A202532 
+ 739      643A252E 
+ 739      32642000 
+ 740              	.LC10:
+ 741 00b1 566F6C75 		.ascii	"Volume: %2d \000"
+ 741      6D653A20 
+ 741      25326420 
+ 741      00
+ 742              		.section	.text.flac_play_song,"ax",%progbits
+ 743              		.align	1
+ 744              		.global	flac_play_song
+ 745              		.syntax unified
+ 746              		.thumb
+ 747              		.thumb_func
+ 749              	flac_play_song:
+ 750              	.LVL52:
+ 751              	.LFB128:
+ 146:source\audio/flacplay.c **** 
+ 147:source\audio/flacplay.c **** 
+ 148:source\audio/flacplay.c **** unsigned char flac_play_song (unsigned char *fname)
+ 149:source\audio/flacplay.c **** {
+ 752              		.loc 1 149 1 is_stmt 1 view -0
+ 753              		.cfi_startproc
+ 754              		@ args = 0, pretend = 0, frame = 16
+ 755              		@ frame_needed = 0, uses_anonymous_args = 0
+ 150:source\audio/flacplay.c ****       unsigned char res = 0;
+ 756              		.loc 1 150 7 view .LVU239
+ 151:source\audio/flacplay.c ****       unsigned int br = 0;
+ 757              		.loc 1 151 7 view .LVU240
+ 149:source\audio/flacplay.c ****       unsigned char res = 0;
+ 758              		.loc 1 149 1 is_stmt 0 view .LVU241
+ 759 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 760              		.cfi_def_cfa_offset 36
+ 761              		.cfi_offset 4, -36
+ 762              		.cfi_offset 5, -32
+ 763              		.cfi_offset 6, -28
+ 764              		.cfi_offset 7, -24
+ 765              		.cfi_offset 8, -20
+ 766              		.cfi_offset 9, -16
+ 767              		.cfi_offset 10, -12
+ 768              		.cfi_offset 11, -8
+ 769              		.cfi_offset 14, -4
+ 770 0004 87B0     		sub	sp, sp, #28
+ 771              		.cfi_def_cfa_offset 64
+ 152:source\audio/flacplay.c ****       audio_old_sec = -1;
+ 772              		.loc 1 152 21 view .LVU242
+ 773 0006 A54B     		ldr	r3, .L75
+ 149:source\audio/flacplay.c ****       unsigned char res = 0;
+ 774              		.loc 1 149 1 view .LVU243
+ 775 0008 0390     		str	r0, [sp, #12]
+ 776              		.loc 1 152 21 view .LVU244
+ 777 000a 4FF0FF32 		mov	r2, #-1
+ 151:source\audio/flacplay.c ****       unsigned int br = 0;
+ 778              		.loc 1 151 20 view .LVU245
+ 779 000e 4FF00008 		mov	r8, #0
+ 153:source\audio/flacplay.c ****       flac_fc = malloc(sizeof(FLACContext));
+ 780              		.loc 1 153 17 view .LVU246
+ 781 0012 6020     		movs	r0, #96
+ 782              	.LVL53:
+ 152:source\audio/flacplay.c ****       audio_old_sec = -1;
+ 783              		.loc 1 152 21 view .LVU247
+ 784 0014 1A60     		str	r2, [r3]
+ 151:source\audio/flacplay.c ****       audio_old_sec = -1;
+ 785              		.loc 1 151 20 view .LVU248
+ 786 0016 CDF81480 		str	r8, [sp, #20]
+ 152:source\audio/flacplay.c ****       audio_old_sec = -1;
+ 787              		.loc 1 152 7 is_stmt 1 view .LVU249
+ 788              		.loc 1 153 7 view .LVU250
+ 789              		.loc 1 153 17 is_stmt 0 view .LVU251
+ 790 001a FFF7FEFF 		bl	malloc
+ 791              	.LVL54:
+ 792              		.loc 1 153 15 view .LVU252
+ 793 001e A04E     		ldr	r6, .L75+4
+ 154:source\audio/flacplay.c ****       flacctrl = malloc(sizeof(__flacctrl));
+ 794              		.loc 1 154 16 view .LVU253
+ 795 0020 A04F     		ldr	r7, .L75+8
+ 153:source\audio/flacplay.c ****       flac_fc = malloc(sizeof(FLACContext));
+ 796              		.loc 1 153 15 view .LVU254
+ 797 0022 3060     		str	r0, [r6]
+ 798              		.loc 1 154 7 is_stmt 1 view .LVU255
+ 153:source\audio/flacplay.c ****       flac_fc = malloc(sizeof(FLACContext));
+ 799              		.loc 1 153 17 is_stmt 0 view .LVU256
+ 800 0024 8146     		mov	r9, r0
+ 801              		.loc 1 154 18 view .LVU257
+ 802 0026 1820     		movs	r0, #24
+ 803 0028 FFF7FEFF 		bl	malloc
+ 804              	.LVL55:
+ 805              		.loc 1 154 16 view .LVU258
+ 806 002c 3860     		str	r0, [r7]
+ 155:source\audio/flacplay.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 807              		.loc 1 155 7 is_stmt 1 view .LVU259
+ 154:source\audio/flacplay.c ****       flacctrl = malloc(sizeof(__flacctrl));
+ 808              		.loc 1 154 18 is_stmt 0 view .LVU260
+ 809 002e 8346     		mov	fp, r0
+ 810              		.loc 1 155 30 view .LVU261
+ 811 0030 4FF40B70 		mov	r0, #556
+ 812 0034 FFF7FEFF 		bl	malloc
+ 813              	.LVL56:
+ 814              		.loc 1 155 21 view .LVU262
+ 815 0038 9B4D     		ldr	r5, .L75+12
+ 156:source\audio/flacplay.c ****       audiodev.file_seek = flac_file_seek;
+ 816              		.loc 1 156 26 view .LVU263
+ 817 003a 9C4B     		ldr	r3, .L75+16
+ 818 003c DFF8BCA2 		ldr	r10, .L75+96
+ 155:source\audio/flacplay.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 819              		.loc 1 155 21 view .LVU264
+ 820 0040 E860     		str	r0, [r5, #12]	@ unaligned
+ 821              		.loc 1 156 7 is_stmt 1 view .LVU265
+ 155:source\audio/flacplay.c ****       audiodev.file = (FIL *)malloc(sizeof(FIL));
+ 822              		.loc 1 155 30 is_stmt 0 view .LVU266
+ 823 0042 0446     		mov	r4, r0
+ 824              		.loc 1 156 26 view .LVU267
+ 825 0044 2B61     		str	r3, [r5, #16]	@ unaligned
+ 157:source\audio/flacplay.c ****       if (!flac_fc || !audiodev.file || !flacctrl) {
+ 826              		.loc 1 157 7 is_stmt 1 view .LVU268
+ 827              		.loc 1 157 10 is_stmt 0 view .LVU269
+ 828 0046 B9F1000F 		cmp	r9, #0
+ 829 004a 00F00481 		beq	.L54
+ 830              		.loc 1 157 20 discriminator 1 view .LVU270
+ 831 004e 0028     		cmp	r0, #0
+ 832 0050 00F00181 		beq	.L54
+ 833              		.loc 1 157 38 discriminator 2 view .LVU271
+ 834 0054 BBF1000F 		cmp	fp, #0
+ 835 0058 00F0FD80 		beq	.L54
+ 158:source\audio/flacplay.c ****       	 res = 1;
+ 159:source\audio/flacplay.c ****       } else {
+ 160:source\audio/flacplay.c **** 	 memset(flac_fc,0,sizeof(FLACContext));
+ 836              		.loc 1 160 3 is_stmt 1 view .LVU272
+ 837 005c 6022     		movs	r2, #96
+ 838 005e 4146     		mov	r1, r8
+ 839 0060 4846     		mov	r0, r9
+ 840 0062 FFF7FEFF 		bl	memset
+ 841              	.LVL57:
+ 161:source\audio/flacplay.c **** 	 res = f_open(audiodev.file,(char *)fname,FA_READ);
+ 842              		.loc 1 161 3 view .LVU273
+ 843              		.loc 1 161 9 is_stmt 0 view .LVU274
+ 844 0066 2046     		mov	r0, r4
+ 845 0068 0399     		ldr	r1, [sp, #12]
+ 846 006a 0122     		movs	r2, #1
+ 847 006c FFF7FEFF 		bl	f_open
+ 848              	.LVL58:
+ 162:source\audio/flacplay.c **** 	 if (res == FR_OK) {
+ 849              		.loc 1 162 3 is_stmt 1 view .LVU275
+ 850              		.loc 1 162 6 is_stmt 0 view .LVU276
+ 851 0070 0446     		mov	r4, r0
+ 852 0072 80BB     		cbnz	r0, .L44
+ 163:source\audio/flacplay.c **** 	    res = flac_init(audiodev.file,flacctrl,flac_fc);
+ 853              		.loc 1 163 6 is_stmt 1 view .LVU277
+ 854              		.loc 1 163 12 is_stmt 0 view .LVU278
+ 855 0074 3268     		ldr	r2, [r6]
+ 856 0076 3968     		ldr	r1, [r7]
+ 857 0078 E868     		ldr	r0, [r5, #12]	@ unaligned
+ 858              	.LVL59:
+ 859              		.loc 1 163 12 view .LVU279
+ 860 007a FFF7FEFF 		bl	flac_init
+ 861              	.LVL60:
+ 164:source\audio/flacplay.c ****             if (flac_fc->min_blocksize == flac_fc->max_blocksize && flac_fc->max_blocksize != 0) {
+ 862              		.loc 1 164 24 view .LVU280
+ 863 007e D6F80080 		ldr	r8, [r6]
+ 864              		.loc 1 164 16 view .LVU281
+ 865 0082 D8E90421 		ldrd	r2, r1, [r8, #16]
+ 866 0086 8A42     		cmp	r2, r1
+ 163:source\audio/flacplay.c **** 	    res = flac_init(audiodev.file,flacctrl,flac_fc);
+ 867              		.loc 1 163 12 view .LVU282
+ 868 0088 0446     		mov	r4, r0
+ 869              	.LVL61:
+ 870              		.loc 1 164 13 is_stmt 1 view .LVU283
+ 871              		.loc 1 164 16 is_stmt 0 view .LVU284
+ 872 008a 40F0E180 		bne	.L45
+ 873              		.loc 1 164 66 discriminator 1 view .LVU285
+ 874 008e 002A     		cmp	r2, #0
+ 875 0090 00F0DE80 		beq	.L45
+ 165:source\audio/flacplay.c **** 	       if (flac_fc->bps == 24) {
+ 876              		.loc 1 165 9 is_stmt 1 view .LVU286
+ 877              		.loc 1 165 12 is_stmt 0 view .LVU287
+ 878 0094 D8F82C10 		ldr	r1, [r8, #44]
+ 879 0098 1829     		cmp	r1, #24
+ 166:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 8);
+ 167:source\audio/flacplay.c **** 		  audiodev.i2sbuf2 = malloc(flac_fc->max_blocksize * 8);
+ 168:source\audio/flacplay.c **** 	       } else {
+ 169:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 4);
+ 880              		.loc 1 169 54 view .LVU288
+ 881 009a 4FEA8209 		lsl	r9, r2, #2
+ 165:source\audio/flacplay.c **** 	       if (flac_fc->bps == 24) {
+ 882              		.loc 1 165 12 view .LVU289
+ 883 009e 40F0D180 		bne	.L46
+ 166:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 8);
+ 884              		.loc 1 166 5 is_stmt 1 view .LVU290
+ 166:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 8);
+ 885              		.loc 1 166 54 is_stmt 0 view .LVU291
+ 886 00a2 4FEAC20B 		lsl	fp, r2, #3
+ 166:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 8);
+ 887              		.loc 1 166 24 view .LVU292
+ 888 00a6 5846     		mov	r0, fp
+ 889 00a8 FFF7FEFF 		bl	malloc
+ 890              	.LVL62:
+ 166:source\audio/flacplay.c **** 		  audiodev.i2sbuf1 = malloc(flac_fc->max_blocksize * 8);
+ 891              		.loc 1 166 22 view .LVU293
+ 892 00ac 2860     		str	r0, [r5]	@ unaligned
+ 167:source\audio/flacplay.c **** 	       } else {
+ 893              		.loc 1 167 5 is_stmt 1 view .LVU294
+ 167:source\audio/flacplay.c **** 	       } else {
+ 894              		.loc 1 167 24 is_stmt 0 view .LVU295
+ 895 00ae 5846     		mov	r0, fp
+ 896              	.L73:
+ 170:source\audio/flacplay.c **** 		  audiodev.i2sbuf2 = malloc(flac_fc->max_blocksize * 4);
+ 897              		.loc 1 170 24 view .LVU296
+ 898 00b0 FFF7FEFF 		bl	malloc
+ 899              	.LVL63:
+ 167:source\audio/flacplay.c **** 	       } else {
+ 900              		.loc 1 167 22 view .LVU297
+ 901 00b4 6860     		str	r0, [r5, #4]	@ unaligned
+ 171:source\audio/flacplay.c **** 	       }
+ 172:source\audio/flacplay.c **** 	       flac_buffer = malloc(flac_fc->max_framesize);
+ 902              		.loc 1 172 9 is_stmt 1 view .LVU298
+ 903              		.loc 1 172 23 is_stmt 0 view .LVU299
+ 904 00b6 D8F81C00 		ldr	r0, [r8, #28]
+ 905 00ba FFF7FEFF 		bl	malloc
+ 906              	.LVL64:
+ 907              		.loc 1 172 21 view .LVU300
+ 908 00be CAF80000 		str	r0, [r10]
+ 173:source\audio/flacplay.c **** 	       flac_decbuf0 = malloc(flac_fc->max_blocksize * 4);
+ 909              		.loc 1 173 9 is_stmt 1 view .LVU301
+ 910              		.loc 1 173 24 is_stmt 0 view .LVU302
+ 911 00c2 4846     		mov	r0, r9
+ 912 00c4 FFF7FEFF 		bl	malloc
+ 913              	.LVL65:
+ 914              		.loc 1 173 22 view .LVU303
+ 915 00c8 794B     		ldr	r3, .L75+20
+ 916 00ca 1860     		str	r0, [r3]
+ 174:source\audio/flacplay.c **** 	       flac_decbuf1 = malloc(flac_fc->max_blocksize * 4);
+ 917              		.loc 1 174 9 is_stmt 1 view .LVU304
+ 918              		.loc 1 174 24 is_stmt 0 view .LVU305
+ 919 00cc 4846     		mov	r0, r9
+ 920 00ce FFF7FEFF 		bl	malloc
+ 921              	.LVL66:
+ 922              		.loc 1 174 22 view .LVU306
+ 923 00d2 784B     		ldr	r3, .L75+24
+ 924 00d4 1860     		str	r0, [r3]
+ 925              	.LVL67:
+ 926              	.L44:
+ 175:source\audio/flacplay.c **** 	    } else res += 1;
+ 176:source\audio/flacplay.c **** 	 }
+ 177:source\audio/flacplay.c ****       }
+ 178:source\audio/flacplay.c ****       if (flac_buffer && audiodev.i2sbuf1 && audiodev.i2sbuf2 && flac_decbuf0 && flac_decbuf1 && re
+ 927              		.loc 1 178 7 is_stmt 1 view .LVU307
+ 928              		.loc 1 178 10 is_stmt 0 view .LVU308
+ 929 00d6 DAF80030 		ldr	r3, [r10]
+ 930 00da 002B     		cmp	r3, #0
+ 931 00dc 00F0D980 		beq	.L48
+ 932              		.loc 1 178 34 discriminator 1 view .LVU309
+ 933 00e0 2B68     		ldr	r3, [r5]	@ unaligned
+ 934              		.loc 1 178 23 discriminator 1 view .LVU310
+ 935 00e2 002B     		cmp	r3, #0
+ 936 00e4 00F0D580 		beq	.L48
+ 937              		.loc 1 178 54 discriminator 2 view .LVU311
+ 938 00e8 6B68     		ldr	r3, [r5, #4]	@ unaligned
+ 939              		.loc 1 178 43 discriminator 2 view .LVU312
+ 940 00ea 002B     		cmp	r3, #0
+ 941 00ec 00F0D180 		beq	.L48
+ 942              		.loc 1 178 63 discriminator 3 view .LVU313
+ 943 00f0 DFF8BCB1 		ldr	fp, .L75+20
+ 944 00f4 DBF80030 		ldr	r3, [fp]
+ 945 00f8 002B     		cmp	r3, #0
+ 946 00fa 00F0CA80 		beq	.L48
+ 947              		.loc 1 178 79 discriminator 4 view .LVU314
+ 948 00fe DFF8B491 		ldr	r9, .L75+24
+ 949 0102 D9F80030 		ldr	r3, [r9]
+ 950 0106 002B     		cmp	r3, #0
+ 951 0108 00F0C380 		beq	.L48
+ 952              		.loc 1 178 95 discriminator 5 view .LVU315
+ 953 010c 002C     		cmp	r4, #0
+ 954 010e 40F0C080 		bne	.L48
+ 179:source\audio/flacplay.c ****       	 lcd_printf(0,20,"File: %s ",fname);
+ 955              		.loc 1 179 9 is_stmt 1 view .LVU316
+ 956 0112 039B     		ldr	r3, [sp, #12]
+ 957 0114 684A     		ldr	r2, .L75+28
+ 958 0116 1421     		movs	r1, #20
+ 959 0118 2046     		mov	r0, r4
+ 960 011a FFF7FEFF 		bl	lcd_printf
+ 961              	.LVL68:
+ 180:source\audio/flacplay.c ****          lcd_printf(0,21,"Blocksize: %d .. %d ", flac_fc->min_blocksize,flac_fc->max_blocksize);
+ 962              		.loc 1 180 10 view .LVU317
+ 963              		.loc 1 180 57 is_stmt 0 view .LVU318
+ 964 011e 3368     		ldr	r3, [r6]
+ 965              		.loc 1 180 10 view .LVU319
+ 966 0120 5A69     		ldr	r2, [r3, #20]
+ 967 0122 0092     		str	r2, [sp]
+ 968 0124 1B69     		ldr	r3, [r3, #16]
+ 969 0126 654A     		ldr	r2, .L75+32
+ 970 0128 1521     		movs	r1, #21
+ 971 012a 2046     		mov	r0, r4
+ 972 012c FFF7FEFF 		bl	lcd_printf
+ 973              	.LVL69:
+ 181:source\audio/flacplay.c **** 	 lcd_printf(0,22,"Framesize: %d .. %d ",flac_fc->min_framesize,flac_fc->max_framesize);
+ 974              		.loc 1 181 3 is_stmt 1 view .LVU320
+ 975              		.loc 1 181 49 is_stmt 0 view .LVU321
+ 976 0130 3368     		ldr	r3, [r6]
+ 977              		.loc 1 181 3 view .LVU322
+ 978 0132 DA69     		ldr	r2, [r3, #28]
+ 979 0134 0092     		str	r2, [sp]
+ 980 0136 9B69     		ldr	r3, [r3, #24]
+ 981 0138 614A     		ldr	r2, .L75+36
+ 982 013a 1621     		movs	r1, #22
+ 983 013c 2046     		mov	r0, r4
+ 984 013e FFF7FEFF 		bl	lcd_printf
+ 985              	.LVL70:
+ 182:source\audio/flacplay.c **** 	 lcd_printf(0,23,"Samplerate: %d Channels: %d ", flac_fc->samplerate,flac_fc->channels);
+ 986              		.loc 1 182 3 is_stmt 1 view .LVU323
+ 987              		.loc 1 182 58 is_stmt 0 view .LVU324
+ 988 0142 3368     		ldr	r3, [r6]
+ 989              		.loc 1 182 3 view .LVU325
+ 990 0144 5A6A     		ldr	r2, [r3, #36]
+ 991 0146 0092     		str	r2, [sp]
+ 992 0148 1B6A     		ldr	r3, [r3, #32]
+ 993 014a 5E4A     		ldr	r2, .L75+40
+ 994 014c 1721     		movs	r1, #23
+ 995 014e 2046     		mov	r0, r4
+ 996 0150 FFF7FEFF 		bl	lcd_printf
+ 997              	.LVL71:
+ 183:source\audio/flacplay.c **** 	 lcd_printf(0,24,"Bits per sample: %d ", flac_fc->bps);
+ 998              		.loc 1 183 3 is_stmt 1 view .LVU326
+ 999 0154 3368     		ldr	r3, [r6]
+ 1000 0156 5C4A     		ldr	r2, .L75+44
+ 1001 0158 DB6A     		ldr	r3, [r3, #44]
+ 1002 015a 1821     		movs	r1, #24
+ 1003 015c 2046     		mov	r0, r4
+ 1004 015e FFF7FEFF 		bl	lcd_printf
+ 1005              	.LVL72:
+ 184:source\audio/flacplay.c **** 	 lcd_printf(0,25,"Metadata length: %d ", flacctrl->datastart);
+ 1006              		.loc 1 184 3 view .LVU327
+ 1007 0162 3B68     		ldr	r3, [r7]
+ 1008 0164 594A     		ldr	r2, .L75+48
+ 1009 0166 5B69     		ldr	r3, [r3, #20]	@ unaligned
+ 1010 0168 1921     		movs	r1, #25
+ 1011 016a 2046     		mov	r0, r4
+ 1012 016c FFF7FEFF 		bl	lcd_printf
+ 1013              	.LVL73:
+ 185:source\audio/flacplay.c **** 	 lcd_printf(0,26,"Total Samples: %lu ",flac_fc->totalsamples);
+ 1014              		.loc 1 185 3 view .LVU328
+ 1015 0170 3368     		ldr	r3, [r6]
+ 1016 0172 574A     		ldr	r2, .L75+52
+ 1017 0174 9B6B     		ldr	r3, [r3, #56]
+ 1018 0176 1A21     		movs	r1, #26
+ 1019 0178 2046     		mov	r0, r4
+ 1020 017a FFF7FEFF 		bl	lcd_printf
+ 1021              	.LVL74:
+ 186:source\audio/flacplay.c **** 	 lcd_printf(0,27,"Bitrate: %d kbps ",flacctrl->bitrate);
+ 1022              		.loc 1 186 3 view .LVU329
+ 1023 017e 3B68     		ldr	r3, [r7]
+ 1024 0180 544A     		ldr	r2, .L75+56
+ 1025 0182 9B68     		ldr	r3, [r3, #8]	@ unaligned
+ 1026 0184 1B21     		movs	r1, #27
+ 1027 0186 2046     		mov	r0, r4
+ 1028 0188 FFF7FEFF 		bl	lcd_printf
+ 1029              	.LVL75:
+ 187:source\audio/flacplay.c ****          lcd_printf(0,28,"Time: %2d:%.2d ",flacctrl->totsec);
+ 1030              		.loc 1 187 10 view .LVU330
+ 1031 018c 3B68     		ldr	r3, [r7]
+ 1032 018e 524A     		ldr	r2, .L75+60
+ 1033 0190 1B68     		ldr	r3, [r3]	@ unaligned
+ 1034 0192 1C21     		movs	r1, #28
+ 1035 0194 2046     		mov	r0, r4
+ 1036 0196 FFF7FEFF 		bl	lcd_printf
+ 1037              	.LVL76:
+ 188:source\audio/flacplay.c ****          lcd_printf(20,28,"Volume: %2d ",volume);
+ 1038              		.loc 1 188 10 view .LVU331
+ 1039 019a 504B     		ldr	r3, .L75+64
+ 1040 019c 504A     		ldr	r2, .L75+68
+ 1041 019e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1042 01a0 1C21     		movs	r1, #28
+ 1043 01a2 1420     		movs	r0, #20
+ 1044 01a4 FFF7FEFF 		bl	lcd_printf
+ 1045              	.LVL77:
+ 189:source\audio/flacplay.c **** 	 if (flacctrl->bps == 24) {
+ 1046              		.loc 1 189 3 view .LVU332
+ 1047              		.loc 1 189 15 is_stmt 0 view .LVU333
+ 1048 01a8 3B68     		ldr	r3, [r7]
+ 1049              		.loc 1 189 6 view .LVU334
+ 1050 01aa 5B8A     		ldrh	r3, [r3, #18]	@ unaligned
+ 1051 01ac 182B     		cmp	r3, #24
+ 1052 01ae 54D1     		bne	.L49
+ 190:source\audio/flacplay.c **** 	    WM8978_I2S_Cfg(2,2);
+ 1053              		.loc 1 190 6 is_stmt 1 view .LVU335
+ 1054 01b0 0221     		movs	r1, #2
+ 1055 01b2 0846     		mov	r0, r1
+ 1056 01b4 FFF7FEFF 		bl	WM8978_I2S_Cfg
+ 1057              	.LVL78:
+ 191:source\audio/flacplay.c **** 	    I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_24b);
+ 1058              		.loc 1 191 6 view .LVU336
+ 1059 01b8 0323     		movs	r3, #3
+ 1060 01ba 2246     		mov	r2, r4
+ 1061 01bc 4FF40071 		mov	r1, #512
+ 1062 01c0 2046     		mov	r0, r4
+ 1063 01c2 FFF7FEFF 		bl	I2S2_Init
+ 1064              	.LVL79:
+ 192:source\audio/flacplay.c **** 	    I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,flacctrl->outsamples * 2);
+ 1065              		.loc 1 192 6 view .LVU337
+ 1066              		.loc 1 192 65 is_stmt 0 view .LVU338
+ 1067 01c6 3B68     		ldr	r3, [r7]
+ 1068              		.loc 1 192 6 view .LVU339
+ 1069 01c8 6968     		ldr	r1, [r5, #4]	@ unaligned
+ 1070              		.loc 1 192 65 view .LVU340
+ 1071 01ca 1A8A     		ldrh	r2, [r3, #16]	@ unaligned
+ 1072              		.loc 1 192 6 view .LVU341
+ 1073 01cc 2868     		ldr	r0, [r5]	@ unaligned
+ 1074 01ce 5200     		lsls	r2, r2, #1
+ 1075 01d0 92B2     		uxth	r2, r2
+ 1076 01d2 FFF7FEFF 		bl	I2S2_TX_DMA_Init
+ 1077              	.LVL80:
+ 193:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf1,0,flac_fc->max_blocksize * 8);
+ 1078              		.loc 1 193 6 is_stmt 1 view .LVU342
+ 1079              		.loc 1 193 39 is_stmt 0 view .LVU343
+ 1080 01d6 3368     		ldr	r3, [r6]
+ 1081              		.loc 1 193 6 view .LVU344
+ 1082 01d8 2868     		ldr	r0, [r5]	@ unaligned
+ 1083              		.loc 1 193 55 view .LVU345
+ 1084 01da 5A69     		ldr	r2, [r3, #20]
+ 1085              		.loc 1 193 6 view .LVU346
+ 1086 01dc 2146     		mov	r1, r4
+ 1087 01de D200     		lsls	r2, r2, #3
+ 1088 01e0 FFF7FEFF 		bl	memset
+ 1089              	.LVL81:
+ 194:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 8);
+ 1090              		.loc 1 194 6 is_stmt 1 view .LVU347
+ 1091              		.loc 1 194 39 is_stmt 0 view .LVU348
+ 1092 01e4 3368     		ldr	r3, [r6]
+ 1093              		.loc 1 194 55 view .LVU349
+ 1094 01e6 5A69     		ldr	r2, [r3, #20]
+ 1095              		.loc 1 194 6 view .LVU350
+ 1096 01e8 D200     		lsls	r2, r2, #3
+ 1097              	.L74:
+ 195:source\audio/flacplay.c **** 	 } else	{
+ 196:source\audio/flacplay.c **** 	    WM8978_I2S_Cfg(2,0);
+ 197:source\audio/flacplay.c **** 	    I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 198:source\audio/flacplay.c **** 	    I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,flacctrl->outsamples);
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf1,0,flac_fc->max_blocksize * 4);
+ 200:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1098              		.loc 1 200 6 view .LVU351
+ 1099 01ea 2146     		mov	r1, r4
+ 1100 01ec 6868     		ldr	r0, [r5, #4]	@ unaligned
+ 1101 01ee FFF7FEFF 		bl	memset
+ 1102              	.LVL82:
+ 201:source\audio/flacplay.c **** 	 }
+ 202:source\audio/flacplay.c **** 	 I2S2_SampleRate_Set(flac_fc->samplerate);
+ 1103              		.loc 1 202 3 is_stmt 1 view .LVU352
+ 1104              		.loc 1 202 30 is_stmt 0 view .LVU353
+ 1105 01f2 3368     		ldr	r3, [r6]
+ 1106              		.loc 1 202 3 view .LVU354
+ 1107 01f4 186A     		ldr	r0, [r3, #32]
+ 1108 01f6 FFF7FEFF 		bl	I2S2_SampleRate_Set
+ 1109              	.LVL83:
+ 203:source\audio/flacplay.c **** 	 i2s_tx_callback = flac_i2s_dma_tx_callback;
+ 1110              		.loc 1 203 3 is_stmt 1 view .LVU355
+ 1111              		.loc 1 203 19 is_stmt 0 view .LVU356
+ 1112 01fa 3A4B     		ldr	r3, .L75+72
+ 1113 01fc 3A4A     		ldr	r2, .L75+76
+ 1114 01fe 1A60     		str	r2, [r3]
+ 204:source\audio/flacplay.c **** 	 f_read(audiodev.file,flac_buffer,flac_fc->max_framesize,&br);
+ 1115              		.loc 1 204 3 is_stmt 1 view .LVU357
+ 1116              		.loc 1 204 43 is_stmt 0 view .LVU358
+ 1117 0200 3268     		ldr	r2, [r6]
+ 1118              		.loc 1 204 3 view .LVU359
+ 1119 0202 DAF80010 		ldr	r1, [r10]
+ 1120 0206 D269     		ldr	r2, [r2, #28]
+ 1121 0208 E868     		ldr	r0, [r5, #12]	@ unaligned
+ 1122 020a 05AB     		add	r3, sp, #20
+ 1123 020c FFF7FEFF 		bl	f_read
+ 1124              	.LVL84:
+ 205:source\audio/flacplay.c **** 	 flac_bytesleft = br;
+ 1125              		.loc 1 205 3 is_stmt 1 view .LVU360
+ 1126              		.loc 1 205 18 is_stmt 0 view .LVU361
+ 1127 0210 364B     		ldr	r3, .L75+80
+ 1128 0212 059A     		ldr	r2, [sp, #20]
+ 1129 0214 1A60     		str	r2, [r3]
+ 206:source\audio/flacplay.c **** 	 audio_start();
+ 1130              		.loc 1 206 3 is_stmt 1 view .LVU362
+ 1131 0216 FFF7FEFF 		bl	audio_start
+ 1132              	.LVL85:
+ 207:source\audio/flacplay.c **** 	 //flac_fc->decoded0 = (int *)flac_decbuf0;// POINTER
+ 208:source\audio/flacplay.c **** 	 //flac_fc->decoded1 = (int *)flac_decbuf1;// POINTER
+ 209:source\audio/flacplay.c **** 	 flac_fc->decoded0 = (void *)flac_decbuf0;// POINTER
+ 1133              		.loc 1 209 3 view .LVU363
+ 1134              		.loc 1 209 10 is_stmt 0 view .LVU364
+ 1135 021a 3368     		ldr	r3, [r6]
+ 1136              		.loc 1 209 21 view .LVU365
+ 1137 021c DBF80020 		ldr	r2, [fp]
+ 1138 0220 9A65     		str	r2, [r3, #88]
+ 210:source\audio/flacplay.c **** 	 flac_fc->decoded1 = (void *)flac_decbuf1;// POINTER	 
+ 1139              		.loc 1 210 3 is_stmt 1 view .LVU366
+ 1140              		.loc 1 210 21 is_stmt 0 view .LVU367
+ 1141 0222 D9F80020 		ldr	r2, [r9]
+ 1142 0226 DA65     		str	r2, [r3, #92]
+ 211:source\audio/flacplay.c **** 	 flac_fptr = audiodev.file->fptr;
+ 1143              		.loc 1 211 3 is_stmt 1 view .LVU368
+ 1144              		.loc 1 211 23 is_stmt 0 view .LVU369
+ 1145 0228 EB68     		ldr	r3, [r5, #12]	@ unaligned
+ 1146              		.loc 1 211 13 view .LVU370
+ 1147 022a D3F80822 		ldr	r2, [r3, #520]
+ 1148 022e 304B     		ldr	r3, .L75+84
+ 1149 0230 1A60     		str	r2, [r3]
+ 1150              	.LVL86:
+ 212:source\audio/flacplay.c ****       } else res = 1;
+ 213:source\audio/flacplay.c ****       if (res == 0) {
+ 1151              		.loc 1 213 7 is_stmt 1 view .LVU371
+ 214:source\audio/flacplay.c ****          audio_read_flag = 1;
+ 1152              		.loc 1 214 10 view .LVU372
+ 1153              		.loc 1 214 26 is_stmt 0 view .LVU373
+ 1154 0232 304A     		ldr	r2, .L75+88
+ 1155 0234 0123     		movs	r3, #1
+ 1156 0236 1370     		strb	r3, [r2]
+ 215:source\audio/flacplay.c ****          audio_run = 1;
+ 1157              		.loc 1 215 10 is_stmt 1 view .LVU374
+ 1158              		.loc 1 215 20 is_stmt 0 view .LVU375
+ 1159 0238 2F4A     		ldr	r2, .L75+92
+ 1160 023a 1370     		strb	r3, [r2]
+ 1161              	.LVL87:
+ 1162              	.L51:
+ 216:source\audio/flacplay.c ****       } else {
+ 217:source\audio/flacplay.c ****          flac_stop();
+ 218:source\audio/flacplay.c ****       }
+ 219:source\audio/flacplay.c ****       return res;
+ 1163              		.loc 1 219 7 is_stmt 1 view .LVU376
+ 220:source\audio/flacplay.c **** }
+ 1164              		.loc 1 220 1 is_stmt 0 view .LVU377
+ 1165 023c 2046     		mov	r0, r4
+ 1166 023e 07B0     		add	sp, sp, #28
+ 1167              		.cfi_remember_state
+ 1168              		.cfi_def_cfa_offset 36
+ 1169              		@ sp needed
+ 1170 0240 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 1171              	.LVL88:
+ 1172              	.L46:
+ 1173              		.cfi_restore_state
+ 169:source\audio/flacplay.c **** 		  audiodev.i2sbuf2 = malloc(flac_fc->max_blocksize * 4);
+ 1174              		.loc 1 169 5 is_stmt 1 view .LVU378
+ 169:source\audio/flacplay.c **** 		  audiodev.i2sbuf2 = malloc(flac_fc->max_blocksize * 4);
+ 1175              		.loc 1 169 24 is_stmt 0 view .LVU379
+ 1176 0244 4846     		mov	r0, r9
+ 1177 0246 FFF7FEFF 		bl	malloc
+ 1178              	.LVL89:
+ 169:source\audio/flacplay.c **** 		  audiodev.i2sbuf2 = malloc(flac_fc->max_blocksize * 4);
+ 1179              		.loc 1 169 22 view .LVU380
+ 1180 024a 2860     		str	r0, [r5]	@ unaligned
+ 170:source\audio/flacplay.c **** 	       }
+ 1181              		.loc 1 170 5 is_stmt 1 view .LVU381
+ 170:source\audio/flacplay.c **** 	       }
+ 1182              		.loc 1 170 24 is_stmt 0 view .LVU382
+ 1183 024c 4846     		mov	r0, r9
+ 1184 024e 2FE7     		b	.L73
+ 1185              	.L45:
+ 175:source\audio/flacplay.c **** 	 }
+ 1186              		.loc 1 175 13 is_stmt 1 view .LVU383
+ 175:source\audio/flacplay.c **** 	 }
+ 1187              		.loc 1 175 17 is_stmt 0 view .LVU384
+ 1188 0250 0134     		adds	r4, r4, #1
+ 1189              	.LVL90:
+ 175:source\audio/flacplay.c **** 	 }
+ 1190              		.loc 1 175 17 view .LVU385
+ 1191 0252 E4B2     		uxtb	r4, r4
+ 1192              	.LVL91:
+ 175:source\audio/flacplay.c **** 	 }
+ 1193              		.loc 1 175 17 view .LVU386
+ 1194 0254 3FE7     		b	.L44
+ 1195              	.LVL92:
+ 1196              	.L54:
+ 158:source\audio/flacplay.c ****       } else {
+ 1197              		.loc 1 158 13 view .LVU387
+ 1198 0256 0124     		movs	r4, #1
+ 1199 0258 3DE7     		b	.L44
+ 1200              	.LVL93:
+ 1201              	.L49:
+ 196:source\audio/flacplay.c **** 	    I2S2_Init(I2S_Standard_Phillips,I2S_Mode_MasterTx,I2S_CPOL_Low,I2S_DataFormat_16bextended);
+ 1202              		.loc 1 196 6 is_stmt 1 view .LVU388
+ 1203 025a 2146     		mov	r1, r4
+ 1204 025c 0220     		movs	r0, #2
+ 1205 025e FFF7FEFF 		bl	WM8978_I2S_Cfg
+ 1206              	.LVL94:
+ 197:source\audio/flacplay.c **** 	    I2S2_TX_DMA_Init(audiodev.i2sbuf1,audiodev.i2sbuf2,flacctrl->outsamples);
+ 1207              		.loc 1 197 6 view .LVU389
+ 1208 0262 0123     		movs	r3, #1
+ 1209 0264 2246     		mov	r2, r4
+ 1210 0266 4FF40071 		mov	r1, #512
+ 1211 026a 2046     		mov	r0, r4
+ 1212 026c FFF7FEFF 		bl	I2S2_Init
+ 1213              	.LVL95:
+ 198:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf1,0,flac_fc->max_blocksize * 4);
+ 1214              		.loc 1 198 6 view .LVU390
+ 1215 0270 3B68     		ldr	r3, [r7]
+ 1216 0272 6968     		ldr	r1, [r5, #4]	@ unaligned
+ 1217 0274 1A8A     		ldrh	r2, [r3, #16]	@ unaligned
+ 1218 0276 2868     		ldr	r0, [r5]	@ unaligned
+ 1219 0278 FFF7FEFF 		bl	I2S2_TX_DMA_Init
+ 1220              	.LVL96:
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1221              		.loc 1 199 6 view .LVU391
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1222              		.loc 1 199 39 is_stmt 0 view .LVU392
+ 1223 027c 3368     		ldr	r3, [r6]
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1224              		.loc 1 199 6 view .LVU393
+ 1225 027e 2868     		ldr	r0, [r5]	@ unaligned
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1226              		.loc 1 199 55 view .LVU394
+ 1227 0280 5A69     		ldr	r2, [r3, #20]
+ 199:source\audio/flacplay.c **** 	    memset(audiodev.i2sbuf2,0,flac_fc->max_blocksize * 4);
+ 1228              		.loc 1 199 6 view .LVU395
+ 1229 0282 2146     		mov	r1, r4
+ 1230 0284 9200     		lsls	r2, r2, #2
+ 1231 0286 FFF7FEFF 		bl	memset
+ 1232              	.LVL97:
+ 200:source\audio/flacplay.c **** 	 }
+ 1233              		.loc 1 200 6 is_stmt 1 view .LVU396
+ 200:source\audio/flacplay.c **** 	 }
+ 1234              		.loc 1 200 39 is_stmt 0 view .LVU397
+ 1235 028a 3368     		ldr	r3, [r6]
+ 200:source\audio/flacplay.c **** 	 }
+ 1236              		.loc 1 200 55 view .LVU398
+ 1237 028c 5A69     		ldr	r2, [r3, #20]
+ 200:source\audio/flacplay.c **** 	 }
+ 1238              		.loc 1 200 6 view .LVU399
+ 1239 028e 9200     		lsls	r2, r2, #2
+ 1240 0290 ABE7     		b	.L74
+ 1241              	.L48:
+ 1242              	.LVL98:
+ 217:source\audio/flacplay.c ****       }
+ 1243              		.loc 1 217 10 is_stmt 1 view .LVU400
+ 1244 0292 FFF7FEFF 		bl	flac_stop
+ 1245              	.LVL99:
+ 1246 0296 0124     		movs	r4, #1
+ 1247 0298 D0E7     		b	.L51
+ 1248              	.L76:
+ 1249 029a 00BF     		.align	2
+ 1250              	.L75:
+ 1251 029c 00000000 		.word	audio_old_sec
+ 1252 02a0 00000000 		.word	flac_fc
+ 1253 02a4 00000000 		.word	flacctrl
+ 1254 02a8 00000000 		.word	audiodev
+ 1255 02ac 00000000 		.word	flac_file_seek
+ 1256 02b0 00000000 		.word	flac_decbuf0
+ 1257 02b4 00000000 		.word	flac_decbuf1
+ 1258 02b8 00000000 		.word	.LC1
+ 1259 02bc 0A000000 		.word	.LC2
+ 1260 02c0 1F000000 		.word	.LC3
+ 1261 02c4 34000000 		.word	.LC4
+ 1262 02c8 51000000 		.word	.LC5
+ 1263 02cc 66000000 		.word	.LC6
+ 1264 02d0 7B000000 		.word	.LC7
+ 1265 02d4 8F000000 		.word	.LC8
+ 1266 02d8 A1000000 		.word	.LC9
+ 1267 02dc 00000000 		.word	volume
+ 1268 02e0 B1000000 		.word	.LC10
+ 1269 02e4 00000000 		.word	i2s_tx_callback
+ 1270 02e8 00000000 		.word	flac_i2s_dma_tx_callback
+ 1271 02ec 00000000 		.word	flac_bytesleft
+ 1272 02f0 00000000 		.word	flac_fptr
+ 1273 02f4 00000000 		.word	audio_read_flag
+ 1274 02f8 00000000 		.word	audio_run
+ 1275 02fc 00000000 		.word	flac_buffer
+ 1276              		.cfi_endproc
+ 1277              	.LFE128:
+ 1279              		.section	.rodata.flac_play.str1.1,"aMS",%progbits,1
+ 1280              	.LC11:
+ 1281 0000 666C6163 		.ascii	"flac seek error: %d \000"
+ 1281      20736565 
+ 1281      6B206572 
+ 1281      726F723A 
+ 1281      20256420 
+ 1282              	.LC12:
+ 1283 0015 54696D65 		.ascii	"Time: %2d:%.2d %2d:%.2d \000"
+ 1283      3A202532 
+ 1283      643A252E 
+ 1283      32642025 
+ 1283      32643A25 
+ 1284              		.section	.text.flac_play,"ax",%progbits
+ 1285              		.align	1
+ 1286              		.global	flac_play
+ 1287              		.syntax unified
+ 1288              		.thumb
+ 1289              		.thumb_func
+ 1291              	flac_play:
+ 1292              	.LFB129:
+ 221:source\audio/flacplay.c **** 
+ 222:source\audio/flacplay.c **** 
+ 223:source\audio/flacplay.c **** void flac_play (void)
+ 224:source\audio/flacplay.c **** {
+ 1293              		.loc 1 224 1 view -0
+ 1294              		.cfi_startproc
+ 1295              		@ args = 0, pretend = 0, frame = 8
+ 1296              		@ frame_needed = 0, uses_anonymous_args = 0
+ 225:source\audio/flacplay.c ****       unsigned char *p8 = 0;
+ 1297              		.loc 1 225 7 view .LVU402
+ 1298              	.LVL100:
+ 226:source\audio/flacplay.c ****       unsigned char *pbuf = 0;
+ 1299              		.loc 1 226 7 view .LVU403
+ 227:source\audio/flacplay.c ****       int consumed = 0;
+ 1300              		.loc 1 227 7 view .LVU404
+ 228:source\audio/flacplay.c ****       unsigned char res = 0;
+ 1301              		.loc 1 228 7 view .LVU405
+ 229:source\audio/flacplay.c ****       unsigned int br = 0;
+ 1302              		.loc 1 229 7 view .LVU406
+ 224:source\audio/flacplay.c ****       unsigned char *p8 = 0;
+ 1303              		.loc 1 224 1 is_stmt 0 view .LVU407
+ 1304 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 1305              		.cfi_def_cfa_offset 32
+ 1306              		.cfi_offset 4, -32
+ 1307              		.cfi_offset 5, -28
+ 1308              		.cfi_offset 6, -24
+ 1309              		.cfi_offset 7, -20
+ 1310              		.cfi_offset 8, -16
+ 1311              		.cfi_offset 9, -12
+ 1312              		.cfi_offset 10, -8
+ 1313              		.cfi_offset 14, -4
+ 230:source\audio/flacplay.c ****       int i = 0;
+ 231:source\audio/flacplay.c ****       if (flac_bytesleft) {
+ 1314              		.loc 1 231 11 view .LVU408
+ 1315 0004 844D     		ldr	r5, .L118
+ 224:source\audio/flacplay.c ****       unsigned char *p8 = 0;
+ 1316              		.loc 1 224 1 view .LVU409
+ 1317 0006 86B0     		sub	sp, sp, #24
+ 1318              		.cfi_def_cfa_offset 56
+ 229:source\audio/flacplay.c ****       int i = 0;
+ 1319              		.loc 1 229 20 view .LVU410
+ 1320 0008 0023     		movs	r3, #0
+ 1321 000a 0593     		str	r3, [sp, #20]
+ 230:source\audio/flacplay.c ****       int i = 0;
+ 1322              		.loc 1 230 7 is_stmt 1 view .LVU411
+ 1323              	.LVL101:
+ 1324              		.loc 1 231 7 view .LVU412
+ 1325              		.loc 1 231 10 is_stmt 0 view .LVU413
+ 1326 000c 2B68     		ldr	r3, [r5]
+ 1327 000e 002B     		cmp	r3, #0
+ 1328 0010 00F0FF80 		beq	.L78
+ 232:source\audio/flacplay.c **** 	 if (flactransferend) {
+ 1329              		.loc 1 232 3 is_stmt 1 view .LVU414
+ 1330              		.loc 1 232 7 is_stmt 0 view .LVU415
+ 1331 0014 814F     		ldr	r7, .L118+4
+ 1332 0016 3B78     		ldrb	r3, [r7]	@ zero_extendqisi2
+ 1333              		.loc 1 232 6 view .LVU416
+ 1334 0018 002B     		cmp	r3, #0
+ 1335 001a 00F0E280 		beq	.L77
+ 233:source\audio/flacplay.c **** 	    if ((audio_read_flag) && (audio_pause == 0)) {
+ 1336              		.loc 1 233 6 is_stmt 1 view .LVU417
+ 1337              		.loc 1 233 10 is_stmt 0 view .LVU418
+ 1338 001e DFF82882 		ldr	r8, .L118+48
+ 1339 0022 7F4C     		ldr	r4, .L118+8
+ 1340 0024 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1341              		.loc 1 233 9 view .LVU419
+ 1342 0028 002B     		cmp	r3, #0
+ 1343 002a 00F09480 		beq	.L81
+ 1344              		.loc 1 233 44 discriminator 1 view .LVU420
+ 1345 002e 7D4B     		ldr	r3, .L118+12
+ 1346 0030 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1347              		.loc 1 233 28 discriminator 1 view .LVU421
+ 1348 0032 002B     		cmp	r3, #0
+ 1349 0034 40F08F80 		bne	.L81
+ 234:source\audio/flacplay.c **** 	       if ((audiodev.status & (1 << 1)) == 0) audio_read_flag = 0;
+ 1350              		.loc 1 234 9 is_stmt 1 view .LVU422
+ 1351              		.loc 1 234 22 is_stmt 0 view .LVU423
+ 1352 0038 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 235:source\audio/flacplay.c **** 	       if (flac_fptr != audiodev.file->fptr) {
+ 1353              		.loc 1 235 23 view .LVU424
+ 1354 003a DFF810A2 		ldr	r10, .L118+52
+ 1355 003e 7A4E     		ldr	r6, .L118+16
+ 1356              		.loc 1 235 12 view .LVU425
+ 1357 0040 DAF80020 		ldr	r2, [r10]
+ 1358 0044 DFF8EC91 		ldr	r9, .L118+28
+ 234:source\audio/flacplay.c **** 	       if ((audiodev.status & (1 << 1)) == 0) audio_read_flag = 0;
+ 1359              		.loc 1 234 12 view .LVU426
+ 1360 0048 13F00203 		ands	r3, r3, #2
+ 234:source\audio/flacplay.c **** 	       if ((audiodev.status & (1 << 1)) == 0) audio_read_flag = 0;
+ 1361              		.loc 1 234 48 is_stmt 1 view .LVU427
+ 234:source\audio/flacplay.c **** 	       if ((audiodev.status & (1 << 1)) == 0) audio_read_flag = 0;
+ 1362              		.loc 1 234 64 is_stmt 0 view .LVU428
+ 1363 004c 08BF     		it	eq
+ 1364 004e 88F80030 		strbeq	r3, [r8]
+ 1365              		.loc 1 235 9 is_stmt 1 view .LVU429
+ 1366              		.loc 1 235 34 is_stmt 0 view .LVU430
+ 1367 0052 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1368              		.loc 1 235 39 view .LVU431
+ 1369 0054 D0F80832 		ldr	r3, [r0, #520]
+ 1370              		.loc 1 235 12 view .LVU432
+ 1371 0058 9342     		cmp	r3, r2
+ 1372 005a 2CD0     		beq	.L83
+ 236:source\audio/flacplay.c **** 		  if (audiodev.file->fptr < flacctrl->datastart) {
+ 1373              		.loc 1 236 5 is_stmt 1 view .LVU433
+ 1374              		.loc 1 236 39 is_stmt 0 view .LVU434
+ 1375 005c 734A     		ldr	r2, .L118+20
+ 1376 005e 1268     		ldr	r2, [r2]
+ 1377 0060 5169     		ldr	r1, [r2, #20]	@ unaligned
+ 1378              		.loc 1 236 8 view .LVU435
+ 1379 0062 8B42     		cmp	r3, r1
+ 1380 0064 01D2     		bcs	.L84
+ 237:source\audio/flacplay.c **** 	             f_lseek(audiodev.file,flacctrl->datastart);
+ 1381              		.loc 1 237 15 is_stmt 1 view .LVU436
+ 1382 0066 FFF7FEFF 		bl	f_lseek
+ 1383              	.LVL102:
+ 1384              	.L84:
+ 238:source\audio/flacplay.c **** 		  }
+ 239:source\audio/flacplay.c **** 		  f_read(audiodev.file,flac_buffer,flac_fc->max_framesize,&br);
+ 1385              		.loc 1 239 5 view .LVU437
+ 1386              		.loc 1 239 45 is_stmt 0 view .LVU438
+ 1387 006a 3268     		ldr	r2, [r6]
+ 1388              		.loc 1 239 5 view .LVU439
+ 1389 006c D9F80010 		ldr	r1, [r9]
+ 1390 0070 D269     		ldr	r2, [r2, #28]
+ 1391 0072 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1392 0074 05AB     		add	r3, sp, #20
+ 1393 0076 FFF7FEFF 		bl	f_read
+ 1394              	.LVL103:
+ 240:source\audio/flacplay.c **** 		  flac_bytesleft = flac_seek_frame(flac_buffer,br,flac_fc);
+ 1395              		.loc 1 240 5 is_stmt 1 view .LVU440
+ 1396              		.loc 1 240 22 is_stmt 0 view .LVU441
+ 1397 007a 3268     		ldr	r2, [r6]
+ 1398 007c 0599     		ldr	r1, [sp, #20]
+ 1399 007e D9F80000 		ldr	r0, [r9]
+ 1400 0082 FFF7FEFF 		bl	flac_seek_frame
+ 1401              	.LVL104:
+ 241:source\audio/flacplay.c **** 		  if (flac_bytesleft >= 0) {
+ 1402              		.loc 1 241 8 view .LVU442
+ 1403 0086 0028     		cmp	r0, #0
+ 240:source\audio/flacplay.c **** 		  flac_bytesleft = flac_seek_frame(flac_buffer,br,flac_fc);
+ 1404              		.loc 1 240 22 view .LVU443
+ 1405 0088 0346     		mov	r3, r0
+ 240:source\audio/flacplay.c **** 		  flac_bytesleft = flac_seek_frame(flac_buffer,br,flac_fc);
+ 1406              		.loc 1 240 20 view .LVU444
+ 1407 008a 2860     		str	r0, [r5]
+ 1408              		.loc 1 241 5 is_stmt 1 view .LVU445
+ 1409              		.loc 1 241 8 is_stmt 0 view .LVU446
+ 1410 008c C0F2AC80 		blt	.L85
+ 242:source\audio/flacplay.c **** 		     f_lseek(audiodev.file,audiodev.file->fptr-flac_fc->max_framesize + flac_bytesleft);
+ 1411              		.loc 1 242 8 is_stmt 1 view .LVU447
+ 1412 0090 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1413              		.loc 1 242 57 is_stmt 0 view .LVU448
+ 1414 0092 3268     		ldr	r2, [r6]
+ 1415              		.loc 1 242 49 view .LVU449
+ 1416 0094 D0F80812 		ldr	r1, [r0, #520]
+ 1417 0098 D269     		ldr	r2, [r2, #28]
+ 1418 009a 891A     		subs	r1, r1, r2
+ 1419              		.loc 1 242 8 view .LVU450
+ 1420 009c 1944     		add	r1, r1, r3
+ 1421 009e FFF7FEFF 		bl	f_lseek
+ 1422              	.LVL105:
+ 243:source\audio/flacplay.c **** 		     f_read(audiodev.file,flac_buffer,flac_fc->max_framesize,&br);
+ 1423              		.loc 1 243 8 is_stmt 1 view .LVU451
+ 1424              		.loc 1 243 48 is_stmt 0 view .LVU452
+ 1425 00a2 3268     		ldr	r2, [r6]
+ 1426              		.loc 1 243 8 view .LVU453
+ 1427 00a4 D9F80010 		ldr	r1, [r9]
+ 1428 00a8 D269     		ldr	r2, [r2, #28]
+ 1429 00aa E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1430 00ac 05AB     		add	r3, sp, #20
+ 1431 00ae FFF7FEFF 		bl	f_read
+ 1432              	.LVL106:
+ 1433              	.L86:
+ 244:source\audio/flacplay.c **** 		  } else lcd_printf(0,29,"flac seek error: %d ",flac_bytesleft);
+ 245:source\audio/flacplay.c **** 		  flac_bytesleft = br;
+ 1434              		.loc 1 245 5 is_stmt 1 view .LVU454
+ 1435              		.loc 1 245 20 is_stmt 0 view .LVU455
+ 1436 00b2 059B     		ldr	r3, [sp, #20]
+ 1437 00b4 2B60     		str	r3, [r5]
+ 1438              	.L83:
+ 246:source\audio/flacplay.c **** 	       }
+ 247:source\audio/flacplay.c **** 	       flactransferend = 0;
+ 1439              		.loc 1 247 9 is_stmt 1 view .LVU456
+ 1440              		.loc 1 247 25 is_stmt 0 view .LVU457
+ 1441 00b6 0023     		movs	r3, #0
+ 1442 00b8 3B70     		strb	r3, [r7]
+ 248:source\audio/flacplay.c **** 	       if (flacwitchbuf == 0) p8 = audiodev.i2sbuf1;else p8 = audiodev.i2sbuf2;
+ 1443              		.loc 1 248 9 is_stmt 1 view .LVU458
+ 1444              		.loc 1 248 26 is_stmt 0 view .LVU459
+ 1445 00ba 5D4B     		ldr	r3, .L118+24
+ 1446              		.loc 1 248 62 view .LVU460
+ 1447 00bc 6768     		ldr	r7, [r4, #4]	@ unaligned
+ 1448              		.loc 1 248 26 view .LVU461
+ 1449 00be 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 1450              		.loc 1 248 35 view .LVU462
+ 1451 00c0 2368     		ldr	r3, [r4]	@ unaligned
+ 249:source\audio/flacplay.c **** 	       //if (flac_fc->bps == 24) res = flac_decode_frame24(flac_fc,flac_buffer,flac_bytesleft,(s32
+ 250:source\audio/flacplay.c **** 	       if (flac_fc->bps == 24) res = flac_decode_frame24(flac_fc,flac_buffer,flac_bytesleft,(void 
+ 1452              		.loc 1 250 20 view .LVU463
+ 1453 00c2 3068     		ldr	r0, [r6]
+ 248:source\audio/flacplay.c **** 	       if (flacwitchbuf == 0) p8 = audiodev.i2sbuf1;else p8 = audiodev.i2sbuf2;
+ 1454              		.loc 1 248 35 view .LVU464
+ 1455 00c4 002A     		cmp	r2, #0
+ 1456 00c6 08BF     		it	eq
+ 1457 00c8 1F46     		moveq	r7, r3
+ 1458              	.LVL107:
+ 1459              		.loc 1 250 9 is_stmt 1 view .LVU465
+ 1460              		.loc 1 250 39 is_stmt 0 view .LVU466
+ 1461 00ca 5A4B     		ldr	r3, .L118+28
+ 1462 00cc 2A68     		ldr	r2, [r5]
+ 1463 00ce 1968     		ldr	r1, [r3]
+ 1464              		.loc 1 250 12 view .LVU467
+ 1465 00d0 C36A     		ldr	r3, [r0, #44]
+ 1466 00d2 182B     		cmp	r3, #24
+ 1467              		.loc 1 250 39 view .LVU468
+ 1468 00d4 3B46     		mov	r3, r7
+ 1469              		.loc 1 250 12 view .LVU469
+ 1470 00d6 40F08D80 		bne	.L88
+ 1471              		.loc 1 250 33 is_stmt 1 discriminator 1 view .LVU470
+ 1472              		.loc 1 250 39 is_stmt 0 discriminator 1 view .LVU471
+ 1473 00da FFF7FEFF 		bl	flac_decode_frame24
+ 1474              	.LVL108:
+ 1475              	.L117:
+ 1476              		.loc 1 250 115 discriminator 2 view .LVU472
+ 1477 00de C0B2     		uxtb	r0, r0
+ 1478              	.LVL109:
+ 251:source\audio/flacplay.c **** 	       if (res != 0) {
+ 1479              		.loc 1 251 9 is_stmt 1 discriminator 2 view .LVU473
+ 1480              		.loc 1 251 12 is_stmt 0 discriminator 2 view .LVU474
+ 1481 00e0 08B1     		cbz	r0, .L90
+ 252:source\audio/flacplay.c **** 		  res = 1;
+ 1482              		.loc 1 252 5 is_stmt 1 view .LVU475
+ 1483              	.LVL110:
+ 253:source\audio/flacplay.c **** 		  flac_stop();
+ 1484              		.loc 1 253 5 view .LVU476
+ 1485 00e2 FFF7FEFF 		bl	flac_stop
+ 1486              	.LVL111:
+ 1487              	.L90:
+ 254:source\audio/flacplay.c **** 	       }
+ 255:source\audio/flacplay.c **** 	       if (flac_fc->bps == 24) {
+ 1488              		.loc 1 255 9 view .LVU477
+ 1489              		.loc 1 255 20 is_stmt 0 view .LVU478
+ 1490 00e6 3368     		ldr	r3, [r6]
+ 1491              		.loc 1 255 12 view .LVU479
+ 1492 00e8 DB6A     		ldr	r3, [r3, #44]
+ 1493 00ea 182B     		cmp	r3, #24
+ 1494 00ec 07D1     		bne	.L91
+ 1495 00ee 3A46     		mov	r2, r7
+ 1496              	.LVL112:
+ 1497              	.L92:
+ 256:source\audio/flacplay.c **** 		  pbuf = p8;
+ 257:source\audio/flacplay.c **** 		  for (i=0;i<flac_fc->blocksize*8;) {
+ 1498              		.loc 1 257 15 is_stmt 1 discriminator 1 view .LVU480
+ 1499              		.loc 1 257 23 is_stmt 0 discriminator 1 view .LVU481
+ 1500 00f0 3168     		ldr	r1, [r6]
+ 1501              		.loc 1 257 34 discriminator 1 view .LVU482
+ 1502 00f2 896A     		ldr	r1, [r1, #40]
+ 1503              		.loc 1 257 15 discriminator 1 view .LVU483
+ 1504 00f4 131D     		adds	r3, r2, #4
+ 1505 00f6 D21B     		subs	r2, r2, r7
+ 1506              	.LVL113:
+ 1507              		.loc 1 257 15 discriminator 1 view .LVU484
+ 1508 00f8 B2EBC10F 		cmp	r2, r1, lsl #3
+ 1509 00fc 7DDB     		blt	.L96
+ 1510              	.LVL114:
+ 1511              	.L91:
+ 258:source\audio/flacplay.c **** 		      p8[i++] = pbuf[1];
+ 259:source\audio/flacplay.c **** 		      p8[i] = pbuf[2];
+ 260:source\audio/flacplay.c **** 		      i += 2;
+ 261:source\audio/flacplay.c **** 		      p8[i++] = pbuf[0];
+ 262:source\audio/flacplay.c **** 		      pbuf += 4;
+ 263:source\audio/flacplay.c **** 		  }
+ 264:source\audio/flacplay.c **** 	       }
+ 265:source\audio/flacplay.c **** 	       consumed = flac_fc->gb.index / 8;
+ 1512              		.loc 1 265 9 is_stmt 1 view .LVU485
+ 1513              		.loc 1 265 31 is_stmt 0 view .LVU486
+ 1514 00fe 3368     		ldr	r3, [r6]
+ 266:source\audio/flacplay.c **** 	       memmove(flac_buffer,&flac_buffer[consumed],flac_bytesleft - consumed);
+ 1515              		.loc 1 266 9 view .LVU487
+ 1516 0100 D9F80000 		ldr	r0, [r9]
+ 265:source\audio/flacplay.c **** 	       memmove(flac_buffer,&flac_buffer[consumed],flac_bytesleft - consumed);
+ 1517              		.loc 1 265 18 view .LVU488
+ 1518 0104 9968     		ldr	r1, [r3, #8]
+ 1519              		.loc 1 266 67 view .LVU489
+ 1520 0106 2A68     		ldr	r2, [r5]
+ 265:source\audio/flacplay.c **** 	       memmove(flac_buffer,&flac_buffer[consumed],flac_bytesleft - consumed);
+ 1521              		.loc 1 265 18 view .LVU490
+ 1522 0108 0029     		cmp	r1, #0
+ 1523 010a B8BF     		it	lt
+ 1524 010c 0731     		addlt	r1, r1, #7
+ 1525              		.loc 1 266 9 view .LVU491
+ 1526 010e A2EBE102 		sub	r2, r2, r1, asr #3
+ 265:source\audio/flacplay.c **** 	       memmove(flac_buffer,&flac_buffer[consumed],flac_bytesleft - consumed);
+ 1527              		.loc 1 265 18 view .LVU492
+ 1528 0112 CF10     		asrs	r7, r1, #3
+ 1529              	.LVL115:
+ 1530              		.loc 1 266 9 is_stmt 1 view .LVU493
+ 1531 0114 00EBE101 		add	r1, r0, r1, asr #3
+ 1532 0118 FFF7FEFF 		bl	memmove
+ 1533              	.LVL116:
+ 267:source\audio/flacplay.c **** 	       flac_bytesleft -= consumed;
+ 1534              		.loc 1 267 9 view .LVU494
+ 1535              		.loc 1 267 24 is_stmt 0 view .LVU495
+ 1536 011c 2968     		ldr	r1, [r5]
+ 268:source\audio/flacplay.c **** 	       res = f_read(audiodev.file,&flac_buffer[flac_bytesleft],flac_fc->max_framesize - flac_bytes
+ 1537              		.loc 1 268 72 view .LVU496
+ 1538 011e 3368     		ldr	r3, [r6]
+ 1539              		.loc 1 268 15 view .LVU497
+ 1540 0120 D9F80000 		ldr	r0, [r9]
+ 1541              		.loc 1 268 88 view .LVU498
+ 1542 0124 DA69     		ldr	r2, [r3, #28]
+ 267:source\audio/flacplay.c **** 	       flac_bytesleft -= consumed;
+ 1543              		.loc 1 267 24 view .LVU499
+ 1544 0126 C91B     		subs	r1, r1, r7
+ 1545 0128 2960     		str	r1, [r5]
+ 1546              		.loc 1 268 9 is_stmt 1 view .LVU500
+ 1547              		.loc 1 268 15 is_stmt 0 view .LVU501
+ 1548 012a 521A     		subs	r2, r2, r1
+ 1549 012c 05AB     		add	r3, sp, #20
+ 1550 012e 0144     		add	r1, r1, r0
+ 1551 0130 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1552 0132 FFF7FEFF 		bl	f_read
+ 1553              	.LVL117:
+ 269:source\audio/flacplay.c **** 	       if (res) {
+ 1554              		.loc 1 269 9 is_stmt 1 view .LVU502
+ 1555              		.loc 1 269 12 is_stmt 0 view .LVU503
+ 1556 0136 08B1     		cbz	r0, .L95
+ 270:source\audio/flacplay.c **** 	          res = 1;
+ 1557              		.loc 1 270 12 is_stmt 1 view .LVU504
+ 1558              	.LVL118:
+ 271:source\audio/flacplay.c **** 		  flac_stop();
+ 1559              		.loc 1 271 5 view .LVU505
+ 1560 0138 FFF7FEFF 		bl	flac_stop
+ 1561              	.LVL119:
+ 1562              	.L95:
+ 272:source\audio/flacplay.c **** 	       }
+ 273:source\audio/flacplay.c **** 	       if (br > 0) {
+ 1563              		.loc 1 273 9 view .LVU506
+ 1564              		.loc 1 273 16 is_stmt 0 view .LVU507
+ 1565 013c 059A     		ldr	r2, [sp, #20]
+ 1566              		.loc 1 273 12 view .LVU508
+ 1567 013e 12B1     		cbz	r2, .L97
+ 274:source\audio/flacplay.c **** 		  flac_bytesleft += br;
+ 1568              		.loc 1 274 5 is_stmt 1 view .LVU509
+ 1569              		.loc 1 274 20 is_stmt 0 view .LVU510
+ 1570 0140 2B68     		ldr	r3, [r5]
+ 1571 0142 1344     		add	r3, r3, r2
+ 1572 0144 2B60     		str	r3, [r5]
+ 1573              	.L97:
+ 275:source\audio/flacplay.c **** 	       }
+ 276:source\audio/flacplay.c **** 	       flac_fptr = audiodev.file->fptr;
+ 1574              		.loc 1 276 9 is_stmt 1 view .LVU511
+ 1575              		.loc 1 276 29 is_stmt 0 view .LVU512
+ 1576 0146 E368     		ldr	r3, [r4, #12]	@ unaligned
+ 1577              		.loc 1 276 19 view .LVU513
+ 1578 0148 D3F80832 		ldr	r3, [r3, #520]
+ 1579 014c CAF80030 		str	r3, [r10]
+ 277:source\audio/flacplay.c **** 	       audio_read_flag = 0;
+ 1580              		.loc 1 277 9 is_stmt 1 view .LVU514
+ 1581              		.loc 1 277 25 is_stmt 0 view .LVU515
+ 1582 0150 0023     		movs	r3, #0
+ 1583 0152 88F80030 		strb	r3, [r8]
+ 1584              	.LVL120:
+ 1585              	.L81:
+ 278:source\audio/flacplay.c **** 	    }
+ 279:source\audio/flacplay.c **** 	    if ((audiodev.status & (1 << 1)) && (audio_read_flag == 0) && (audio_pause == 0)) {
+ 1586              		.loc 1 279 6 is_stmt 1 view .LVU516
+ 1587              		.loc 1 279 19 is_stmt 0 view .LVU517
+ 1588 0156 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 1589              		.loc 1 279 9 view .LVU518
+ 1590 0158 9A07     		lsls	r2, r3, #30
+ 1591 015a 42D5     		bpl	.L77
+ 1592              		.loc 1 279 59 discriminator 1 view .LVU519
+ 1593 015c 98F80030 		ldrb	r3, [r8]	@ zero_extendqisi2
+ 1594              		.loc 1 279 39 discriminator 1 view .LVU520
+ 1595 0160 002B     		cmp	r3, #0
+ 1596 0162 3ED1     		bne	.L77
+ 1597              		.loc 1 279 81 discriminator 2 view .LVU521
+ 1598 0164 2F4B     		ldr	r3, .L118+12
+ 1599 0166 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1600              		.loc 1 279 65 discriminator 2 view .LVU522
+ 1601 0168 03F0FF06 		and	r6, r3, #255
+ 1602 016c 002B     		cmp	r3, #0
+ 1603 016e 38D1     		bne	.L77
+ 280:source\audio/flacplay.c ****                audio_delay++;
+ 1604              		.loc 1 280 16 is_stmt 1 view .LVU523
+ 1605              		.loc 1 280 27 is_stmt 0 view .LVU524
+ 1606 0170 314A     		ldr	r2, .L118+32
+ 1607 0172 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1608 0174 0133     		adds	r3, r3, #1
+ 1609 0176 DBB2     		uxtb	r3, r3
+ 1610 0178 1370     		strb	r3, [r2]
+ 281:source\audio/flacplay.c ****                if (audio_delay >= 100) {
+ 1611              		.loc 1 281 16 is_stmt 1 view .LVU525
+ 1612              		.loc 1 281 32 is_stmt 0 view .LVU526
+ 1613 017a 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 1614              		.loc 1 281 19 view .LVU527
+ 1615 017c 632B     		cmp	r3, #99
+ 1616 017e 2AD9     		bls	.L100
+ 282:source\audio/flacplay.c ****                   audio_delay = 0;
+ 1617              		.loc 1 282 19 is_stmt 1 view .LVU528
+ 283:source\audio/flacplay.c **** 	          flac_get_curtime(audiodev.file,flacctrl);
+ 1618              		.loc 1 283 12 is_stmt 0 view .LVU529
+ 1619 0180 2A4B     		ldr	r3, .L118+20
+ 282:source\audio/flacplay.c ****                   audio_delay = 0;
+ 1620              		.loc 1 282 31 view .LVU530
+ 1621 0182 1670     		strb	r6, [r2]
+ 1622              		.loc 1 283 12 is_stmt 1 view .LVU531
+ 1623 0184 1D68     		ldr	r5, [r3]
+ 1624 0186 E068     		ldr	r0, [r4, #12]	@ unaligned
+ 1625 0188 2946     		mov	r1, r5
+ 1626 018a FFF7FEFF 		bl	flac_get_curtime
+ 1627              	.LVL121:
+ 284:source\audio/flacplay.c **** 	          audiodev.totsec = flacctrl->totsec;
+ 1628              		.loc 1 284 12 view .LVU532
+ 1629              		.loc 1 284 38 is_stmt 0 view .LVU533
+ 1630 018e 2968     		ldr	r1, [r5]	@ unaligned
+ 1631              		.loc 1 284 28 view .LVU534
+ 1632 0190 C4F82210 		str	r1, [r4, #34]	@ unaligned
+ 285:source\audio/flacplay.c **** 	          audiodev.cursec = flacctrl->cursec;
+ 1633              		.loc 1 285 12 is_stmt 1 view .LVU535
+ 1634              		.loc 1 285 38 is_stmt 0 view .LVU536
+ 1635 0194 6A68     		ldr	r2, [r5, #4]	@ unaligned
+ 1636              		.loc 1 285 28 view .LVU537
+ 1637 0196 C4F82620 		str	r2, [r4, #38]	@ unaligned
+ 286:source\audio/flacplay.c **** 	          audiodev.bitrate = flacctrl->bitrate;
+ 1638              		.loc 1 286 12 is_stmt 1 view .LVU538
+ 1639              		.loc 1 286 39 is_stmt 0 view .LVU539
+ 1640 019a AB68     		ldr	r3, [r5, #8]	@ unaligned
+ 1641              		.loc 1 286 29 view .LVU540
+ 1642 019c C4F82A30 		str	r3, [r4, #42]	@ unaligned
+ 287:source\audio/flacplay.c **** 	          audiodev.samplerate = flacctrl->samplerate;
+ 1643              		.loc 1 287 12 is_stmt 1 view .LVU541
+ 1644              		.loc 1 287 42 is_stmt 0 view .LVU542
+ 1645 01a0 EB68     		ldr	r3, [r5, #12]	@ unaligned
+ 1646              		.loc 1 287 32 view .LVU543
+ 1647 01a2 C4F82E30 		str	r3, [r4, #46]	@ unaligned
+ 288:source\audio/flacplay.c **** 	          audiodev.bps = flacctrl->bps;
+ 1648              		.loc 1 288 12 is_stmt 1 view .LVU544
+ 1649              		.loc 1 288 35 is_stmt 0 view .LVU545
+ 1650 01a6 6B8A     		ldrh	r3, [r5, #18]	@ unaligned
+ 1651              		.loc 1 288 25 view .LVU546
+ 1652 01a8 6386     		strh	r3, [r4, #50]	@ unaligned
+ 289:source\audio/flacplay.c ****                   if (flacctrl->cursec != audio_old_sec) {
+ 1653              		.loc 1 289 19 is_stmt 1 view .LVU547
+ 1654              		.loc 1 289 40 is_stmt 0 view .LVU548
+ 1655 01aa 244B     		ldr	r3, .L118+36
+ 1656              		.loc 1 289 22 view .LVU549
+ 1657 01ac 1868     		ldr	r0, [r3]
+ 1658 01ae 8242     		cmp	r2, r0
+ 1659 01b0 11D0     		beq	.L100
+ 290:source\audio/flacplay.c ****                      audio_old_sec = flacctrl->cursec;
+ 1660              		.loc 1 290 22 is_stmt 1 view .LVU550
+ 291:source\audio/flacplay.c **** 		     lcd_printf(0,28,"Time: %2d:%.2d %2d:%.2d ",flacctrl->totsec / 60,flacctrl->totsec % 60,flacc
+ 1661              		.loc 1 291 8 is_stmt 0 view .LVU551
+ 1662 01b2 3C20     		movs	r0, #60
+ 290:source\audio/flacplay.c ****                      audio_old_sec = flacctrl->cursec;
+ 1663              		.loc 1 290 36 view .LVU552
+ 1664 01b4 1A60     		str	r2, [r3]
+ 1665              		.loc 1 291 8 is_stmt 1 view .LVU553
+ 1666 01b6 B2FBF0F5 		udiv	r5, r2, r0
+ 1667 01ba B1FBF0F3 		udiv	r3, r1, r0
+ 1668 01be 00FB1522 		mls	r2, r0, r5, r2
+ 1669 01c2 00FB1311 		mls	r1, r0, r3, r1
+ 1670 01c6 CDE90152 		strd	r5, r2, [sp, #4]
+ 1671 01ca 0091     		str	r1, [sp]
+ 1672 01cc 1C4A     		ldr	r2, .L118+40
+ 1673 01ce 1C21     		movs	r1, #28
+ 1674 01d0 3046     		mov	r0, r6
+ 1675 01d2 FFF7FEFF 		bl	lcd_printf
+ 1676              	.LVL122:
+ 1677              	.L100:
+ 292:source\audio/flacplay.c **** 	          }
+ 293:source\audio/flacplay.c ****   	       }
+ 294:source\audio/flacplay.c ****   	       if (audiodev.status & 0x01) audio_read_flag = 1;;
+ 1678              		.loc 1 294 11 view .LVU554
+ 1679              		.loc 1 294 23 is_stmt 0 view .LVU555
+ 1680 01d6 237D     		ldrb	r3, [r4, #20]	@ zero_extendqisi2
+ 1681              		.loc 1 294 14 view .LVU556
+ 1682 01d8 DB07     		lsls	r3, r3, #31
+ 1683 01da 02D5     		bpl	.L77
+ 1684              		.loc 1 294 39 is_stmt 1 discriminator 1 view .LVU557
+ 1685              		.loc 1 294 55 is_stmt 0 discriminator 1 view .LVU558
+ 1686 01dc 0123     		movs	r3, #1
+ 1687 01de 88F80030 		strb	r3, [r8]
+ 1688              	.L77:
+ 295:source\audio/flacplay.c ****   	    }
+ 296:source\audio/flacplay.c ****   	 }
+ 297:source\audio/flacplay.c ****       } else {
+ 298:source\audio/flacplay.c ****          flac_stop();
+ 299:source\audio/flacplay.c ****       }
+ 300:source\audio/flacplay.c **** }
+ 1689              		.loc 1 300 1 view .LVU559
+ 1690 01e2 06B0     		add	sp, sp, #24
+ 1691              		.cfi_remember_state
+ 1692              		.cfi_def_cfa_offset 32
+ 1693              		@ sp needed
+ 1694 01e4 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 1695              	.LVL123:
+ 1696              	.L85:
+ 1697              		.cfi_restore_state
+ 244:source\audio/flacplay.c **** 		  flac_bytesleft = br;
+ 1698              		.loc 1 244 12 is_stmt 1 view .LVU560
+ 1699 01e8 164A     		ldr	r2, .L118+44
+ 1700 01ea 1D21     		movs	r1, #29
+ 1701 01ec 0020     		movs	r0, #0
+ 1702 01ee FFF7FEFF 		bl	lcd_printf
+ 1703              	.LVL124:
+ 1704 01f2 5EE7     		b	.L86
+ 1705              	.LVL125:
+ 1706              	.L88:
+ 250:source\audio/flacplay.c **** 	       if (res != 0) {
+ 1707              		.loc 1 250 111 discriminator 2 view .LVU561
+ 250:source\audio/flacplay.c **** 	       if (res != 0) {
+ 1708              		.loc 1 250 117 is_stmt 0 discriminator 2 view .LVU562
+ 1709 01f4 FFF7FEFF 		bl	flac_decode_frame16
+ 1710              	.LVL126:
+ 250:source\audio/flacplay.c **** 	       if (res != 0) {
+ 1711              		.loc 1 250 117 discriminator 2 view .LVU563
+ 1712 01f8 71E7     		b	.L117
+ 1713              	.LVL127:
+ 1714              	.L96:
+ 258:source\audio/flacplay.c **** 		      p8[i] = pbuf[2];
+ 1715              		.loc 1 258 9 is_stmt 1 view .LVU564
+ 258:source\audio/flacplay.c **** 		      p8[i] = pbuf[2];
+ 1716              		.loc 1 258 17 is_stmt 0 view .LVU565
+ 1717 01fa 13F8032C 		ldrb	r2, [r3, #-3]	@ zero_extendqisi2
+ 259:source\audio/flacplay.c **** 		      i += 2;
+ 1718              		.loc 1 259 15 view .LVU566
+ 1719 01fe 13F8021C 		ldrb	r1, [r3, #-2]	@ zero_extendqisi2
+ 258:source\audio/flacplay.c **** 		      p8[i] = pbuf[2];
+ 1720              		.loc 1 258 17 view .LVU567
+ 1721 0202 03F8042C 		strb	r2, [r3, #-4]
+ 259:source\audio/flacplay.c **** 		      i += 2;
+ 1722              		.loc 1 259 9 is_stmt 1 view .LVU568
+ 261:source\audio/flacplay.c **** 		      pbuf += 4;
+ 1723              		.loc 1 261 17 is_stmt 0 view .LVU569
+ 1724 0206 03F8012C 		strb	r2, [r3, #-1]
+ 259:source\audio/flacplay.c **** 		      i += 2;
+ 1725              		.loc 1 259 15 view .LVU570
+ 1726 020a 03F8031C 		strb	r1, [r3, #-3]
+ 260:source\audio/flacplay.c **** 		      p8[i++] = pbuf[0];
+ 1727              		.loc 1 260 9 is_stmt 1 view .LVU571
+ 261:source\audio/flacplay.c **** 		      pbuf += 4;
+ 1728              		.loc 1 261 9 view .LVU572
+ 262:source\audio/flacplay.c **** 		  }
+ 1729              		.loc 1 262 9 view .LVU573
+ 1730              	.LVL128:
+ 261:source\audio/flacplay.c **** 		      pbuf += 4;
+ 1731              		.loc 1 261 17 is_stmt 0 view .LVU574
+ 1732 020e 1A46     		mov	r2, r3
+ 1733 0210 6EE7     		b	.L92
+ 1734              	.LVL129:
+ 1735              	.L78:
+ 298:source\audio/flacplay.c ****       }
+ 1736              		.loc 1 298 10 is_stmt 1 view .LVU575
+ 1737 0212 FFF7FEFF 		bl	flac_stop
+ 1738              	.LVL130:
+ 1739              		.loc 1 300 1 is_stmt 0 view .LVU576
+ 1740 0216 E4E7     		b	.L77
+ 1741              	.L119:
+ 1742              		.align	2
+ 1743              	.L118:
+ 1744 0218 00000000 		.word	flac_bytesleft
+ 1745 021c 00000000 		.word	flactransferend
+ 1746 0220 00000000 		.word	audiodev
+ 1747 0224 00000000 		.word	audio_pause
+ 1748 0228 00000000 		.word	flac_fc
+ 1749 022c 00000000 		.word	flacctrl
+ 1750 0230 00000000 		.word	flacwitchbuf
+ 1751 0234 00000000 		.word	flac_buffer
+ 1752 0238 00000000 		.word	audio_delay
+ 1753 023c 00000000 		.word	audio_old_sec
+ 1754 0240 15000000 		.word	.LC12
+ 1755 0244 00000000 		.word	.LC11
+ 1756 0248 00000000 		.word	audio_read_flag
+ 1757 024c 00000000 		.word	flac_fptr
+ 1758              		.cfi_endproc
+ 1759              	.LFE129:
+ 1761              		.global	flac_fptr
+ 1762              		.section	.bss.flac_fptr,"aw",%nobits
+ 1763              		.align	2
+ 1766              	flac_fptr:
+ 1767 0000 00000000 		.space	4
+ 1768              		.global	flac_decbuf1
+ 1769              		.section	.bss.flac_decbuf1,"aw",%nobits
+ 1770              		.align	2
+ 1773              	flac_decbuf1:
+ 1774 0000 00000000 		.space	4
+ 1775              		.global	flac_decbuf0
+ 1776              		.section	.bss.flac_decbuf0,"aw",%nobits
+ 1777              		.align	2
+ 1780              	flac_decbuf0:
+ 1781 0000 00000000 		.space	4
+ 1782              		.global	flac_buffer
+ 1783              		.section	.bss.flac_buffer,"aw",%nobits
+ 1784              		.align	2
+ 1787              	flac_buffer:
+ 1788 0000 00000000 		.space	4
+ 1789              		.global	flac_bytesleft
+ 1790              		.section	.bss.flac_bytesleft,"aw",%nobits
+ 1791              		.align	2
+ 1794              	flac_bytesleft:
+ 1795 0000 00000000 		.space	4
+ 1796              		.global	flac_fc
+ 1797              		.section	.bss.flac_fc,"aw",%nobits
+ 1798              		.align	2
+ 1801              	flac_fc:
+ 1802 0000 00000000 		.space	4
+ 1803              		.global	flacwitchbuf
+ 1804              		.section	.bss.flacwitchbuf,"aw",%nobits
+ 1807              	flacwitchbuf:
+ 1808 0000 00       		.space	1
+ 1809              		.global	flactransferend
+ 1810              		.section	.bss.flactransferend,"aw",%nobits
+ 1813              	flactransferend:
+ 1814 0000 00       		.space	1
+ 1815              		.global	flacctrl
+ 1816              		.section	.bss.flacctrl,"aw",%nobits
+ 1817              		.align	2
+ 1820              	flacctrl:
+ 1821 0000 00000000 		.space	4
+ 1822              		.text
+ 1823              	.Letext0:
+ 1824              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1825              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1826              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 1827              		.file 5 "source\\audio\\../fatfs/integer.h"
+ 1828              		.file 6 "source\\audio\\../fatfs/ff.h"
+ 1829              		.file 7 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\lib\\gcc\\ar
+ 1830              		.file 8 "source\\audio\\../prototype.h"
+ 1831              		.file 9 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 1832              		.file 10 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-ea
+ 1833              		.file 11 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 flacplay.c
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:21     .text.flac_i2s_dma_tx_callback:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:27     .text.flac_i2s_dma_tx_callback:00000000 flac_i2s_dma_tx_callback
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:165    .text.flac_i2s_dma_tx_callback:00000074 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1807   .bss.flacwitchbuf:00000000 flacwitchbuf
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1813   .bss.flactransferend:00000000 flactransferend
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1820   .bss.flacctrl:00000000 flacctrl
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:174    .text.flac_file_seek:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:180    .text.flac_file_seek:00000000 flac_file_seek
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:217    .text.flac_file_seek:00000020 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:225    .text.flac_init:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:231    .text.flac_init:00000000 flac_init
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:535    .text.flac_init:00000144 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:542    .text.flac_get_curtime:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:548    .text.flac_get_curtime:00000000 flac_get_curtime
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:611    .text.flac_stop:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:617    .text.flac_stop:00000000 flac_stop
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:706    .text.flac_stop:00000068 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1801   .bss.flac_fc:00000000 flac_fc
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1787   .bss.flac_buffer:00000000 flac_buffer
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1780   .bss.flac_decbuf0:00000000 flac_decbuf0
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1773   .bss.flac_decbuf1:00000000 flac_decbuf1
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:743    .text.flac_play_song:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:749    .text.flac_play_song:00000000 flac_play_song
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1251   .text.flac_play_song:0000029c $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1794   .bss.flac_bytesleft:00000000 flac_bytesleft
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1766   .bss.flac_fptr:00000000 flac_fptr
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1285   .text.flac_play:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1291   .text.flac_play:00000000 flac_play
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1744   .text.flac_play:00000218 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1763   .bss.flac_fptr:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1770   .bss.flac_decbuf1:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1777   .bss.flac_decbuf0:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1784   .bss.flac_buffer:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1791   .bss.flac_bytesleft:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1798   .bss.flac_fc:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1808   .bss.flacwitchbuf:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1814   .bss.flactransferend:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccCuOC3c.s:1817   .bss.flacctrl:00000000 $d
+
+UNDEFINED SYMBOLS
+audiodev
+f_lseek
+malloc
+f_read
+strncmp
+free
+__aeabi_uldivmod
+__aeabi_ldivmod
+audio_stop
+f_close
+audio_run
+audio_read_flag
+audio_pause
+audio_play_function
+audio_stop_function
+music_play
+memset
+f_open
+lcd_printf
+WM8978_I2S_Cfg
+I2S2_Init
+I2S2_TX_DMA_Init
+I2S2_SampleRate_Set
+audio_start
+audio_old_sec
+volume
+i2s_tx_callback
+flac_seek_frame
+flac_decode_frame24
+memmove
+flac_decode_frame16
+audio_delay

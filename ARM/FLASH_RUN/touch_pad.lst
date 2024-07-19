@@ -1,0 +1,851 @@
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 4
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"touch_pad.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "source\\touch\\touch_pad.c"
+  20              		.section	.text.TPAD_Reset,"ax",%progbits
+  21              		.align	1
+  22              		.global	TPAD_Reset
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	TPAD_Reset:
+  28              	.LFB123:
+   1:source\touch/touch_pad.c **** /********************************************************************************/
+   2:source\touch/touch_pad.c **** /* touch_pad.c                                                                  */
+   3:source\touch/touch_pad.c **** /* STM32F407ZGT6                                                                */
+   4:source\touch/touch_pad.c **** /* (Lee ChangWoo HL2IRW  hl2irw@daum.net 010-8573-6860)                 	*/
+   5:source\touch/touch_pad.c **** /* stm32f4x_test								*/
+   6:source\touch/touch_pad.c **** /********************************************************************************/
+   7:source\touch/touch_pad.c **** #include "../../hwdefs.h"
+   8:source\touch/touch_pad.c **** #include "../prototype.h"
+   9:source\touch/touch_pad.c **** 
+  10:source\touch/touch_pad.c **** #define TPAD_GATE_VAL 			100
+  11:source\touch/touch_pad.c **** #define TPAD_ARR_MAX_VAL		0xFFFF
+  12:source\touch/touch_pad.c **** 
+  13:source\touch/touch_pad.c **** volatile unsigned short tpad_default_val = 0;
+  14:source\touch/touch_pad.c **** 
+  15:source\touch/touch_pad.c **** 
+  16:source\touch/touch_pad.c **** 
+  17:source\touch/touch_pad.c **** void TPAD_Reset (void)
+  18:source\touch/touch_pad.c **** {
+  29              		.loc 1 18 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  19:source\touch/touch_pad.c ****       GPIO_Init_Pin(GPIOA,GPIO_Pin_5,GPIO_Speed_100MHz,GPIO_Mode_Out_PP_PD);
+  33              		.loc 1 19 7 view .LVU1
+  18:source\touch/touch_pad.c ****       GPIO_Init_Pin(GPIOA,GPIO_Pin_5,GPIO_Speed_100MHz,GPIO_Mode_Out_PP_PD);
+  34              		.loc 1 18 1 is_stmt 0 view .LVU2
+  35 0000 10B5     		push	{r4, lr}
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 4, -8
+  38              		.cfi_offset 14, -4
+  39              		.loc 1 19 7 view .LVU3
+  40 0002 104C     		ldr	r4, .L2
+  41 0004 2123     		movs	r3, #33
+  42 0006 0322     		movs	r2, #3
+  43 0008 2046     		mov	r0, r4
+  44 000a 2021     		movs	r1, #32
+  45 000c FFF7FEFF 		bl	GPIO_Init_Pin
+  46              	.LVL0:
+  20:source\touch/touch_pad.c ****       GPIO_ResetBits(GPIOA,GPIO_Pin_5);		// OUT 0
+  47              		.loc 1 20 7 is_stmt 1 view .LVU4
+  48 0010 2021     		movs	r1, #32
+  49 0012 2046     		mov	r0, r4
+  50 0014 FFF7FEFF 		bl	GPIO_ResetBits
+  51              	.LVL1:
+  21:source\touch/touch_pad.c ****       delay_us(100);
+  52              		.loc 1 21 7 view .LVU5
+  53 0018 6420     		movs	r0, #100
+  54 001a FFF7FEFF 		bl	delay_us
+  55              	.LVL2:
+  22:source\touch/touch_pad.c ****       TIM_ClearITPendingBit(TIM2, TIM_IT_CC1 | TIM_IT_Update);
+  56              		.loc 1 22 7 view .LVU6
+  57 001e 0321     		movs	r1, #3
+  58 0020 4FF08040 		mov	r0, #1073741824
+  59 0024 FFF7FEFF 		bl	TIM_ClearITPendingBit
+  60              	.LVL3:
+  23:source\touch/touch_pad.c ****       TIM_SetCounter(TIM2,0);
+  61              		.loc 1 23 7 view .LVU7
+  62 0028 0021     		movs	r1, #0
+  63 002a 4FF08040 		mov	r0, #1073741824
+  64 002e FFF7FEFF 		bl	TIM_SetCounter
+  65              	.LVL4:
+  24:source\touch/touch_pad.c ****       GPIO_Init_Pin(GPIOA,GPIO_Pin_5,GPIO_Speed_100MHz,GPIO_Mode_AF_PP);
+  66              		.loc 1 24 7 view .LVU8
+  67 0032 2046     		mov	r0, r4
+  68 0034 0223     		movs	r3, #2
+  25:source\touch/touch_pad.c **** }
+  69              		.loc 1 25 1 is_stmt 0 view .LVU9
+  70 0036 BDE81040 		pop	{r4, lr}
+  71              		.cfi_restore 14
+  72              		.cfi_restore 4
+  73              		.cfi_def_cfa_offset 0
+  24:source\touch/touch_pad.c ****       GPIO_Init_Pin(GPIOA,GPIO_Pin_5,GPIO_Speed_100MHz,GPIO_Mode_AF_PP);
+  74              		.loc 1 24 7 view .LVU10
+  75 003a 0322     		movs	r2, #3
+  76 003c 2021     		movs	r1, #32
+  77 003e FFF7FEBF 		b	GPIO_Init_Pin
+  78              	.LVL5:
+  79              	.L3:
+  80 0042 00BF     		.align	2
+  81              	.L2:
+  82 0044 00000240 		.word	1073872896
+  83              		.cfi_endproc
+  84              	.LFE123:
+  86              		.section	.text.TPAD_Get_Val,"ax",%progbits
+  87              		.align	1
+  88              		.global	TPAD_Get_Val
+  89              		.syntax unified
+  90              		.thumb
+  91              		.thumb_func
+  93              	TPAD_Get_Val:
+  94              	.LFB124:
+  26:source\touch/touch_pad.c **** 
+  27:source\touch/touch_pad.c **** 
+  28:source\touch/touch_pad.c **** unsigned short TPAD_Get_Val (void)
+  29:source\touch/touch_pad.c **** {
+  95              		.loc 1 29 1 is_stmt 1 view -0
+  96              		.cfi_startproc
+  97              		@ args = 0, pretend = 0, frame = 0
+  98              		@ frame_needed = 0, uses_anonymous_args = 0
+  30:source\touch/touch_pad.c ****       TPAD_Reset();
+  99              		.loc 1 30 7 view .LVU12
+  29:source\touch/touch_pad.c ****       TPAD_Reset();
+ 100              		.loc 1 29 1 is_stmt 0 view .LVU13
+ 101 0000 10B5     		push	{r4, lr}
+ 102              		.cfi_def_cfa_offset 8
+ 103              		.cfi_offset 4, -8
+ 104              		.cfi_offset 14, -4
+ 105              		.loc 1 30 7 view .LVU14
+ 106 0002 FFF7FEFF 		bl	TPAD_Reset
+ 107              	.LVL6:
+  31:source\touch/touch_pad.c ****       while (TIM_GetFlagStatus(TIM2, TIM_IT_CC1) == RESET) {
+ 108              		.loc 1 31 7 is_stmt 1 view .LVU15
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 109              		.loc 1 32 9 is_stmt 0 view .LVU16
+ 110 0006 4FF60B64 		movw	r4, #65035
+ 111              	.L5:
+  31:source\touch/touch_pad.c ****       while (TIM_GetFlagStatus(TIM2, TIM_IT_CC1) == RESET) {
+ 112              		.loc 1 31 50 is_stmt 1 view .LVU17
+  31:source\touch/touch_pad.c ****       while (TIM_GetFlagStatus(TIM2, TIM_IT_CC1) == RESET) {
+ 113              		.loc 1 31 14 is_stmt 0 view .LVU18
+ 114 000a 0221     		movs	r1, #2
+ 115 000c 4FF08040 		mov	r0, #1073741824
+ 116 0010 FFF7FEFF 		bl	TIM_GetFlagStatus
+ 117              	.LVL7:
+  31:source\touch/touch_pad.c ****       while (TIM_GetFlagStatus(TIM2, TIM_IT_CC1) == RESET) {
+ 118              		.loc 1 31 50 view .LVU19
+ 119 0014 20B1     		cbz	r0, .L7
+  33:source\touch/touch_pad.c ****       }
+  34:source\touch/touch_pad.c ****       return TIM_GetCapture1(TIM2);
+ 120              		.loc 1 34 7 is_stmt 1 view .LVU20
+ 121              		.loc 1 34 14 is_stmt 0 view .LVU21
+ 122 0016 4FF08040 		mov	r0, #1073741824
+ 123 001a FFF7FEFF 		bl	TIM_GetCapture1
+ 124              	.LVL8:
+ 125 001e 09E0     		b	.L9
+ 126              	.L7:
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 127              		.loc 1 32 6 is_stmt 1 view .LVU22
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 128              		.loc 1 32 10 is_stmt 0 view .LVU23
+ 129 0020 4FF08040 		mov	r0, #1073741824
+ 130 0024 FFF7FEFF 		bl	TIM_GetCounter
+ 131              	.LVL9:
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 132              		.loc 1 32 9 view .LVU24
+ 133 0028 A042     		cmp	r0, r4
+ 134 002a EED9     		bls	.L5
+ 135              	.LBB4:
+ 136              	.LBI4:
+  28:source\touch/touch_pad.c **** {
+ 137              		.loc 1 28 16 is_stmt 1 view .LVU25
+ 138              	.LBB5:
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 139              		.loc 1 32 59 view .LVU26
+  32:source\touch/touch_pad.c **** 	    if (TIM_GetCounter(TIM2) > (TPAD_ARR_MAX_VAL - 500)) return TIM_GetCounter(TIM2);
+ 140              		.loc 1 32 66 is_stmt 0 view .LVU27
+ 141 002c 4FF08040 		mov	r0, #1073741824
+ 142 0030 FFF7FEFF 		bl	TIM_GetCounter
+ 143              	.LVL10:
+ 144              	.L9:
+ 145              	.LBE5:
+ 146              	.LBE4:
+ 147              		.loc 1 34 14 view .LVU28
+ 148 0034 80B2     		uxth	r0, r0
+  35:source\touch/touch_pad.c **** }
+ 149              		.loc 1 35 1 view .LVU29
+ 150 0036 10BD     		pop	{r4, pc}
+ 151              		.cfi_endproc
+ 152              	.LFE124:
+ 154              		.section	.text.TPAD_Get_MaxVal,"ax",%progbits
+ 155              		.align	1
+ 156              		.global	TPAD_Get_MaxVal
+ 157              		.syntax unified
+ 158              		.thumb
+ 159              		.thumb_func
+ 161              	TPAD_Get_MaxVal:
+ 162              	.LVL11:
+ 163              	.LFB125:
+  36:source\touch/touch_pad.c **** 
+  37:source\touch/touch_pad.c **** 
+  38:source\touch/touch_pad.c **** unsigned short TPAD_Get_MaxVal (unsigned char n)
+  39:source\touch/touch_pad.c **** {
+ 164              		.loc 1 39 1 is_stmt 1 view -0
+ 165              		.cfi_startproc
+ 166              		@ args = 0, pretend = 0, frame = 0
+ 167              		@ frame_needed = 0, uses_anonymous_args = 0
+  40:source\touch/touch_pad.c ****       unsigned short temp = 0;
+ 168              		.loc 1 40 7 view .LVU31
+  41:source\touch/touch_pad.c ****       unsigned short res = 0;
+ 169              		.loc 1 41 7 view .LVU32
+  42:source\touch/touch_pad.c ****       while (n--) {
+ 170              		.loc 1 42 7 view .LVU33
+  39:source\touch/touch_pad.c ****       unsigned short temp = 0;
+ 171              		.loc 1 39 1 is_stmt 0 view .LVU34
+ 172 0000 38B5     		push	{r3, r4, r5, lr}
+ 173              		.cfi_def_cfa_offset 16
+ 174              		.cfi_offset 3, -16
+ 175              		.cfi_offset 4, -12
+ 176              		.cfi_offset 5, -8
+ 177              		.cfi_offset 14, -4
+  39:source\touch/touch_pad.c ****       unsigned short temp = 0;
+ 178              		.loc 1 39 1 view .LVU35
+ 179 0002 0446     		mov	r4, r0
+  41:source\touch/touch_pad.c ****       unsigned short res = 0;
+ 180              		.loc 1 41 22 view .LVU36
+ 181 0004 0025     		movs	r5, #0
+ 182              	.LVL12:
+ 183              	.L11:
+ 184              		.loc 1 42 14 is_stmt 1 view .LVU37
+ 185              		.loc 1 42 14 is_stmt 0 view .LVU38
+ 186 0006 0CB9     		cbnz	r4, .L12
+  43:source\touch/touch_pad.c **** 	    temp = TPAD_Get_Val();
+  44:source\touch/touch_pad.c **** 	    if (temp >res) res = temp;
+  45:source\touch/touch_pad.c ****       }
+  46:source\touch/touch_pad.c ****       return res;
+ 187              		.loc 1 46 7 is_stmt 1 view .LVU39
+  47:source\touch/touch_pad.c **** }
+ 188              		.loc 1 47 1 is_stmt 0 view .LVU40
+ 189 0008 2846     		mov	r0, r5
+ 190 000a 38BD     		pop	{r3, r4, r5, pc}
+ 191              	.LVL13:
+ 192              	.L12:
+  43:source\touch/touch_pad.c **** 	    temp = TPAD_Get_Val();
+ 193              		.loc 1 43 6 is_stmt 1 view .LVU41
+  43:source\touch/touch_pad.c **** 	    temp = TPAD_Get_Val();
+ 194              		.loc 1 43 13 is_stmt 0 view .LVU42
+ 195 000c FFF7FEFF 		bl	TPAD_Get_Val
+ 196              	.LVL14:
+  44:source\touch/touch_pad.c ****       }
+ 197              		.loc 1 44 6 is_stmt 1 view .LVU43
+ 198 0010 8542     		cmp	r5, r0
+ 199 0012 38BF     		it	cc
+ 200 0014 0546     		movcc	r5, r0
+ 201              	.LVL15:
+  44:source\touch/touch_pad.c ****       }
+ 202              		.loc 1 44 6 is_stmt 0 view .LVU44
+ 203 0016 013C     		subs	r4, r4, #1
+ 204              	.LVL16:
+  44:source\touch/touch_pad.c ****       }
+ 205              		.loc 1 44 6 view .LVU45
+ 206 0018 ADB2     		uxth	r5, r5
+ 207 001a E4B2     		uxtb	r4, r4
+ 208 001c F3E7     		b	.L11
+ 209              		.cfi_endproc
+ 210              	.LFE125:
+ 212              		.section	.text.TPAD_Scan,"ax",%progbits
+ 213              		.align	1
+ 214              		.global	TPAD_Scan
+ 215              		.syntax unified
+ 216              		.thumb
+ 217              		.thumb_func
+ 219              	TPAD_Scan:
+ 220              	.LVL17:
+ 221              	.LFB126:
+  48:source\touch/touch_pad.c **** 
+  49:source\touch/touch_pad.c **** 
+  50:source\touch/touch_pad.c **** unsigned char TPAD_Scan (unsigned char mode)
+  51:source\touch/touch_pad.c **** {
+ 222              		.loc 1 51 1 is_stmt 1 view -0
+ 223              		.cfi_startproc
+ 224              		@ args = 0, pretend = 0, frame = 0
+ 225              		@ frame_needed = 0, uses_anonymous_args = 0
+  52:source\touch/touch_pad.c ****       static unsigned char key_en = 0;
+ 226              		.loc 1 52 7 view .LVU47
+  53:source\touch/touch_pad.c ****       unsigned char res = 0;
+ 227              		.loc 1 53 7 view .LVU48
+  54:source\touch/touch_pad.c ****       unsigned char sample = 3;
+ 228              		.loc 1 54 7 view .LVU49
+  55:source\touch/touch_pad.c ****       unsigned short rval;
+ 229              		.loc 1 55 7 view .LVU50
+  56:source\touch/touch_pad.c ****       if (mode)	{
+ 230              		.loc 1 56 7 view .LVU51
+  51:source\touch/touch_pad.c ****       static unsigned char key_en = 0;
+ 231              		.loc 1 51 1 is_stmt 0 view .LVU52
+ 232 0000 10B5     		push	{r4, lr}
+ 233              		.cfi_def_cfa_offset 8
+ 234              		.cfi_offset 4, -8
+ 235              		.cfi_offset 14, -4
+ 236 0002 144C     		ldr	r4, .L25
+ 237              		.loc 1 56 10 view .LVU53
+ 238 0004 00B3     		cbz	r0, .L18
+  57:source\touch/touch_pad.c ****          sample = 6;
+ 239              		.loc 1 57 10 is_stmt 1 view .LVU54
+ 240              	.LVL18:
+  58:source\touch/touch_pad.c **** 	 key_en = 0;
+ 241              		.loc 1 58 3 view .LVU55
+ 242              		.loc 1 58 10 is_stmt 0 view .LVU56
+ 243 0006 0023     		movs	r3, #0
+ 244 0008 2370     		strb	r3, [r4]
+  57:source\touch/touch_pad.c ****          sample = 6;
+ 245              		.loc 1 57 17 view .LVU57
+ 246 000a 0620     		movs	r0, #6
+ 247              	.LVL19:
+ 248              	.L14:
+  59:source\touch/touch_pad.c ****       }
+  60:source\touch/touch_pad.c ****       rval = TPAD_Get_MaxVal(sample);
+ 249              		.loc 1 60 7 is_stmt 1 view .LVU58
+ 250              		.loc 1 60 14 is_stmt 0 view .LVU59
+ 251 000c FFF7FEFF 		bl	TPAD_Get_MaxVal
+ 252              	.LVL20:
+  61:source\touch/touch_pad.c ****       if ((rval > (tpad_default_val + TPAD_GATE_VAL)) && (rval < (10 * tpad_default_val))) {
+ 253              		.loc 1 61 7 is_stmt 1 view .LVU60
+ 254              		.loc 1 61 37 is_stmt 0 view .LVU61
+ 255 0010 114A     		ldr	r2, .L25+4
+ 256 0012 1388     		ldrh	r3, [r2]
+ 257 0014 9BB2     		uxth	r3, r3
+ 258 0016 6433     		adds	r3, r3, #100
+ 259              		.loc 1 61 10 view .LVU62
+ 260 0018 9842     		cmp	r0, r3
+ 261 001a 19DD     		ble	.L20
+ 262              		.loc 1 61 70 discriminator 1 view .LVU63
+ 263 001c 1388     		ldrh	r3, [r2]
+ 264 001e 0A21     		movs	r1, #10
+ 265 0020 9BB2     		uxth	r3, r3
+ 266 0022 4B43     		muls	r3, r1, r3
+ 267              		.loc 1 61 55 discriminator 1 view .LVU64
+ 268 0024 9842     		cmp	r0, r3
+ 269 0026 13DA     		bge	.L20
+  62:source\touch/touch_pad.c **** 	 if ((key_en == 0) && (rval > (tpad_default_val + TPAD_GATE_VAL))) {
+ 270              		.loc 1 62 3 is_stmt 1 view .LVU65
+ 271              		.loc 1 62 6 is_stmt 0 view .LVU66
+ 272 0028 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 273 002a 7BB9     		cbnz	r3, .L21
+ 274              		.loc 1 62 50 discriminator 1 view .LVU67
+ 275 002c 1388     		ldrh	r3, [r2]
+ 276 002e 9BB2     		uxth	r3, r3
+ 277 0030 6433     		adds	r3, r3, #100
+ 278              		.loc 1 62 21 discriminator 1 view .LVU68
+ 279 0032 9842     		cmp	r0, r3
+ 280 0034 D4BF     		ite	le
+ 281 0036 0020     		movle	r0, #0
+ 282              	.LVL21:
+ 283              		.loc 1 62 21 discriminator 1 view .LVU69
+ 284 0038 0120     		movgt	r0, #1
+ 285              	.L16:
+ 286              	.LVL22:
+  63:source\touch/touch_pad.c **** 	    res = 1;
+  64:source\touch/touch_pad.c **** 	 }
+  65:source\touch/touch_pad.c **** 	 key_en = 3;
+ 287              		.loc 1 65 3 is_stmt 1 view .LVU70
+ 288              		.loc 1 65 10 is_stmt 0 view .LVU71
+ 289 003a 0323     		movs	r3, #3
+ 290 003c 2370     		strb	r3, [r4]
+ 291              	.LVL23:
+ 292              	.L15:
+  66:source\touch/touch_pad.c ****       }
+  67:source\touch/touch_pad.c ****       if (key_en) key_en--;
+ 293              		.loc 1 67 7 is_stmt 1 view .LVU72
+ 294              		.loc 1 67 11 is_stmt 0 view .LVU73
+ 295 003e 2378     		ldrb	r3, [r4]	@ zero_extendqisi2
+ 296              		.loc 1 67 10 view .LVU74
+ 297 0040 0BB1     		cbz	r3, .L17
+ 298              		.loc 1 67 19 is_stmt 1 discriminator 1 view .LVU75
+ 299              		.loc 1 67 25 is_stmt 0 discriminator 1 view .LVU76
+ 300 0042 013B     		subs	r3, r3, #1
+ 301 0044 2370     		strb	r3, [r4]
+ 302              	.L17:
+  68:source\touch/touch_pad.c ****       return res;
+ 303              		.loc 1 68 7 is_stmt 1 view .LVU77
+  69:source\touch/touch_pad.c **** }
+ 304              		.loc 1 69 1 is_stmt 0 view .LVU78
+ 305 0046 10BD     		pop	{r4, pc}
+ 306              	.LVL24:
+ 307              	.L18:
+  54:source\touch/touch_pad.c ****       unsigned short rval;
+ 308              		.loc 1 54 21 view .LVU79
+ 309 0048 0320     		movs	r0, #3
+ 310              	.LVL25:
+  54:source\touch/touch_pad.c ****       unsigned short rval;
+ 311              		.loc 1 54 21 view .LVU80
+ 312 004a DFE7     		b	.L14
+ 313              	.LVL26:
+ 314              	.L21:
+  53:source\touch/touch_pad.c ****       unsigned char sample = 3;
+ 315              		.loc 1 53 21 view .LVU81
+ 316 004c 0020     		movs	r0, #0
+ 317              	.LVL27:
+  53:source\touch/touch_pad.c ****       unsigned char sample = 3;
+ 318              		.loc 1 53 21 view .LVU82
+ 319 004e F4E7     		b	.L16
+ 320              	.LVL28:
+ 321              	.L20:
+  53:source\touch/touch_pad.c ****       unsigned char sample = 3;
+ 322              		.loc 1 53 21 view .LVU83
+ 323 0050 0020     		movs	r0, #0
+ 324              	.LVL29:
+  53:source\touch/touch_pad.c ****       unsigned char sample = 3;
+ 325              		.loc 1 53 21 view .LVU84
+ 326 0052 F4E7     		b	.L15
+ 327              	.L26:
+ 328              		.align	2
+ 329              	.L25:
+ 330 0054 00000000 		.word	key_en.0
+ 331 0058 00000000 		.word	tpad_default_val
+ 332              		.cfi_endproc
+ 333              	.LFE126:
+ 335              		.section	.text.TIM2_CH1_Cap_Init,"ax",%progbits
+ 336              		.align	1
+ 337              		.global	TIM2_CH1_Cap_Init
+ 338              		.syntax unified
+ 339              		.thumb
+ 340              		.thumb_func
+ 342              	TIM2_CH1_Cap_Init:
+ 343              	.LVL30:
+ 344              	.LFB127:
+  70:source\touch/touch_pad.c **** 
+  71:source\touch/touch_pad.c **** 
+  72:source\touch/touch_pad.c **** void TIM2_CH1_Cap_Init (unsigned int arr,unsigned short psc)
+  73:source\touch/touch_pad.c **** {
+ 345              		.loc 1 73 1 is_stmt 1 view -0
+ 346              		.cfi_startproc
+ 347              		@ args = 0, pretend = 0, frame = 24
+ 348              		@ frame_needed = 0, uses_anonymous_args = 0
+  74:source\touch/touch_pad.c ****       TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+ 349              		.loc 1 74 7 view .LVU86
+  75:source\touch/touch_pad.c ****       TIM_ICInitTypeDef TIM2_ICInitStructure;
+ 350              		.loc 1 75 7 view .LVU87
+  76:source\touch/touch_pad.c ****       RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+ 351              		.loc 1 76 7 view .LVU88
+  73:source\touch/touch_pad.c ****       TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+ 352              		.loc 1 73 1 is_stmt 0 view .LVU89
+ 353 0000 70B5     		push	{r4, r5, r6, lr}
+ 354              		.cfi_def_cfa_offset 16
+ 355              		.cfi_offset 4, -16
+ 356              		.cfi_offset 5, -12
+ 357              		.cfi_offset 6, -8
+ 358              		.cfi_offset 14, -4
+ 359 0002 0C46     		mov	r4, r1
+ 360              		.loc 1 76 7 view .LVU90
+ 361 0004 0121     		movs	r1, #1
+ 362              	.LVL31:
+  73:source\touch/touch_pad.c ****       TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+ 363              		.loc 1 73 1 view .LVU91
+ 364 0006 86B0     		sub	sp, sp, #24
+ 365              		.cfi_def_cfa_offset 40
+  73:source\touch/touch_pad.c ****       TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+ 366              		.loc 1 73 1 view .LVU92
+ 367 0008 0546     		mov	r5, r0
+ 368              		.loc 1 76 7 view .LVU93
+ 369 000a 0846     		mov	r0, r1
+ 370              	.LVL32:
+ 371              		.loc 1 76 7 view .LVU94
+ 372 000c FFF7FEFF 		bl	RCC_APB1PeriphClockCmd
+ 373              	.LVL33:
+  77:source\touch/touch_pad.c ****       RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);
+ 374              		.loc 1 77 7 is_stmt 1 view .LVU95
+  78:source\touch/touch_pad.c ****       GPIO_PinAFConfig(GPIOA,GPIO_PinSource5,GPIO_AF_TIM2);
+ 375              		.loc 1 78 7 is_stmt 0 view .LVU96
+ 376 0010 164E     		ldr	r6, .L28
+  77:source\touch/touch_pad.c ****       RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);
+ 377              		.loc 1 77 7 view .LVU97
+ 378 0012 0121     		movs	r1, #1
+ 379 0014 0846     		mov	r0, r1
+ 380 0016 FFF7FEFF 		bl	RCC_AHB1PeriphClockCmd
+ 381              	.LVL34:
+ 382              		.loc 1 78 7 is_stmt 1 view .LVU98
+ 383 001a 3046     		mov	r0, r6
+ 384 001c 0122     		movs	r2, #1
+ 385 001e 0521     		movs	r1, #5
+ 386 0020 FFF7FEFF 		bl	GPIO_PinAFConfig
+ 387              	.LVL35:
+  79:source\touch/touch_pad.c ****       GPIO_Init_Pin(GPIOA,GPIO_Pin_5,GPIO_Speed_100MHz,GPIO_Mode_AF_PP);
+ 388              		.loc 1 79 7 view .LVU99
+ 389 0024 0223     		movs	r3, #2
+ 390 0026 0322     		movs	r2, #3
+ 391 0028 3046     		mov	r0, r6
+ 392 002a 2021     		movs	r1, #32
+ 393 002c FFF7FEFF 		bl	GPIO_Init_Pin
+ 394              	.LVL36:
+  80:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_Period = arr;
+ 395              		.loc 1 80 7 view .LVU100
+  81:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_Prescaler = psc;
+ 396              		.loc 1 81 43 is_stmt 0 view .LVU101
+ 397 0030 ADF80C40 		strh	r4, [sp, #12]	@ movhi
+  82:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+  83:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+  84:source\touch/touch_pad.c ****       TIM_TimeBaseInit(TIM2,&TIM_TimeBaseStructure);
+ 398              		.loc 1 84 7 view .LVU102
+ 399 0034 03A9     		add	r1, sp, #12
+  82:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+ 400              		.loc 1 82 47 view .LVU103
+ 401 0036 0024     		movs	r4, #0
+ 402              		.loc 1 84 7 view .LVU104
+ 403 0038 4FF08040 		mov	r0, #1073741824
+  80:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_Prescaler = psc;
+ 404              		.loc 1 80 40 view .LVU105
+ 405 003c 0495     		str	r5, [sp, #16]
+  81:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_Prescaler = psc;
+ 406              		.loc 1 81 7 is_stmt 1 view .LVU106
+  82:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+ 407              		.loc 1 82 7 view .LVU107
+  82:source\touch/touch_pad.c ****       TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+ 408              		.loc 1 82 47 is_stmt 0 view .LVU108
+ 409 003e ADF81440 		strh	r4, [sp, #20]	@ movhi
+  83:source\touch/touch_pad.c ****       TIM_TimeBaseInit(TIM2,&TIM_TimeBaseStructure);
+ 410              		.loc 1 83 7 is_stmt 1 view .LVU109
+  85:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_Channel = TIM_Channel_1;
+  86:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+  87:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+ 411              		.loc 1 87 44 is_stmt 0 view .LVU110
+ 412 0042 0125     		movs	r5, #1
+ 413              	.LVL37:
+  83:source\touch/touch_pad.c ****       TIM_TimeBaseInit(TIM2,&TIM_TimeBaseStructure);
+ 414              		.loc 1 83 45 view .LVU111
+ 415 0044 ADF80E40 		strh	r4, [sp, #14]	@ movhi
+  84:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_Channel = TIM_Channel_1;
+ 416              		.loc 1 84 7 is_stmt 1 view .LVU112
+ 417 0048 FFF7FEFF 		bl	TIM_TimeBaseInit
+ 418              	.LVL38:
+  85:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_Channel = TIM_Channel_1;
+ 419              		.loc 1 85 7 view .LVU113
+  86:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+ 420              		.loc 1 86 7 view .LVU114
+ 421              		.loc 1 87 7 view .LVU115
+  88:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+ 422              		.loc 1 88 7 view .LVU116
+  89:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICFilter = 0x00;
+ 423              		.loc 1 89 7 view .LVU117
+  90:source\touch/touch_pad.c ****       TIM_ICInit(TIM2, &TIM2_ICInitStructure);
+ 424              		.loc 1 90 7 is_stmt 0 view .LVU118
+ 425 004c 6946     		mov	r1, sp
+ 426 004e 4FF08040 		mov	r0, #1073741824
+  85:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+ 427              		.loc 1 85 40 view .LVU119
+ 428 0052 0094     		str	r4, [sp]
+  87:source\touch/touch_pad.c ****       TIM2_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+ 429              		.loc 1 87 44 view .LVU120
+ 430 0054 0195     		str	r5, [sp, #4]
+  89:source\touch/touch_pad.c ****       TIM_ICInit(TIM2, &TIM2_ICInitStructure);
+ 431              		.loc 1 89 41 view .LVU121
+ 432 0056 ADF80840 		strh	r4, [sp, #8]	@ movhi
+ 433              		.loc 1 90 7 is_stmt 1 view .LVU122
+ 434 005a FFF7FEFF 		bl	TIM_ICInit
+ 435              	.LVL39:
+  91:source\touch/touch_pad.c ****       TIM_Cmd(TIM2,ENABLE );
+ 436              		.loc 1 91 7 view .LVU123
+ 437 005e 2946     		mov	r1, r5
+ 438 0060 4FF08040 		mov	r0, #1073741824
+ 439 0064 FFF7FEFF 		bl	TIM_Cmd
+ 440              	.LVL40:
+  92:source\touch/touch_pad.c **** }
+ 441              		.loc 1 92 1 is_stmt 0 view .LVU124
+ 442 0068 06B0     		add	sp, sp, #24
+ 443              		.cfi_def_cfa_offset 16
+ 444              		@ sp needed
+ 445 006a 70BD     		pop	{r4, r5, r6, pc}
+ 446              	.L29:
+ 447              		.align	2
+ 448              	.L28:
+ 449 006c 00000240 		.word	1073872896
+ 450              		.cfi_endproc
+ 451              	.LFE127:
+ 453              		.section	.rodata.TPAD_Init.str1.1,"aMS",%progbits,1
+ 454              	.LC0:
+ 455 0000 54706164 		.ascii	"Tpad default: %d\000"
+ 455      20646566 
+ 455      61756C74 
+ 455      3A202564 
+ 455      00
+ 456              		.section	.text.TPAD_Init,"ax",%progbits
+ 457              		.align	1
+ 458              		.global	TPAD_Init
+ 459              		.syntax unified
+ 460              		.thumb
+ 461              		.thumb_func
+ 463              	TPAD_Init:
+ 464              	.LVL41:
+ 465              	.LFB128:
+  93:source\touch/touch_pad.c **** 
+  94:source\touch/touch_pad.c **** 
+  95:source\touch/touch_pad.c **** unsigned char TPAD_Init (unsigned char psc)
+  96:source\touch/touch_pad.c **** {
+ 466              		.loc 1 96 1 is_stmt 1 view -0
+ 467              		.cfi_startproc
+ 468              		@ args = 0, pretend = 0, frame = 24
+ 469              		@ frame_needed = 0, uses_anonymous_args = 0
+  97:source\touch/touch_pad.c ****       unsigned short buf[10];
+ 470              		.loc 1 97 7 view .LVU126
+  98:source\touch/touch_pad.c ****       unsigned short temp;
+ 471              		.loc 1 98 7 view .LVU127
+  99:source\touch/touch_pad.c ****       unsigned char i,j;
+ 472              		.loc 1 99 7 view .LVU128
+ 100:source\touch/touch_pad.c ****       TIM2_CH1_Cap_Init(TPAD_ARR_MAX_VAL,psc - 1);
+ 473              		.loc 1 100 7 view .LVU129
+  96:source\touch/touch_pad.c ****       unsigned short buf[10];
+ 474              		.loc 1 96 1 is_stmt 0 view .LVU130
+ 475 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 476              		.cfi_def_cfa_offset 20
+ 477              		.cfi_offset 4, -20
+ 478              		.cfi_offset 5, -16
+ 479              		.cfi_offset 6, -12
+ 480              		.cfi_offset 7, -8
+ 481              		.cfi_offset 14, -4
+ 482              		.loc 1 100 7 view .LVU131
+ 483 0002 411E     		subs	r1, r0, #1
+  96:source\touch/touch_pad.c ****       unsigned short buf[10];
+ 484              		.loc 1 96 1 view .LVU132
+ 485 0004 87B0     		sub	sp, sp, #28
+ 486              		.cfi_def_cfa_offset 48
+ 487              		.loc 1 100 7 view .LVU133
+ 488 0006 89B2     		uxth	r1, r1
+ 489 0008 4FF6FF70 		movw	r0, #65535
+ 490              	.LVL42:
+ 491              		.loc 1 100 7 view .LVU134
+ 492 000c FFF7FEFF 		bl	TIM2_CH1_Cap_Init
+ 493              	.LVL43:
+ 101:source\touch/touch_pad.c ****       for (i=0;i<10;i++) {
+ 494              		.loc 1 101 7 is_stmt 1 view .LVU135
+ 495              		.loc 1 101 17 view .LVU136
+ 496 0010 01AD     		add	r5, sp, #4
+ 100:source\touch/touch_pad.c ****       TIM2_CH1_Cap_Init(TPAD_ARR_MAX_VAL,psc - 1);
+ 497              		.loc 1 100 7 is_stmt 0 view .LVU137
+ 498 0012 2F46     		mov	r7, r5
+ 499 0014 0A24     		movs	r4, #10
+ 500 0016 2E46     		mov	r6, r5
+ 501              	.LVL44:
+ 502              	.L31:
+ 102:source\touch/touch_pad.c **** 	  buf[i] = TPAD_Get_Val();
+ 503              		.loc 1 102 4 is_stmt 1 discriminator 3 view .LVU138
+ 504              		.loc 1 102 13 is_stmt 0 discriminator 3 view .LVU139
+ 505 0018 FFF7FEFF 		bl	TPAD_Get_Val
+ 506              	.LVL45:
+ 101:source\touch/touch_pad.c ****       for (i=0;i<10;i++) {
+ 507              		.loc 1 101 17 discriminator 3 view .LVU140
+ 508 001c 013C     		subs	r4, r4, #1
+ 509              	.LVL46:
+ 510              		.loc 1 102 11 discriminator 3 view .LVU141
+ 511 001e 27F8020B 		strh	r0, [r7], #2	@ movhi
+ 103:source\touch/touch_pad.c **** 	  wait_ms(10);
+ 512              		.loc 1 103 4 is_stmt 1 discriminator 3 view .LVU142
+ 513 0022 0A20     		movs	r0, #10
+ 514 0024 FFF7FEFF 		bl	wait_ms
+ 515              	.LVL47:
+ 101:source\touch/touch_pad.c ****       for (i=0;i<10;i++) {
+ 516              		.loc 1 101 22 discriminator 3 view .LVU143
+ 101:source\touch/touch_pad.c ****       for (i=0;i<10;i++) {
+ 517              		.loc 1 101 17 discriminator 3 view .LVU144
+ 518 0028 14F0FF04 		ands	r4, r4, #255
+ 519 002c F4D1     		bne	.L31
+ 520              	.L34:
+ 521              	.LVL48:
+ 104:source\touch/touch_pad.c ****       }
+ 105:source\touch/touch_pad.c ****       for (i=0;i<9;i++) {
+ 106:source\touch/touch_pad.c **** 	  for (j=i+1;j<10;j++) {
+ 522              		.loc 1 106 4 view .LVU145
+ 523              		.loc 1 106 10 is_stmt 0 view .LVU146
+ 524 002e 0134     		adds	r4, r4, #1
+ 525              	.LVL49:
+ 526              		.loc 1 106 10 view .LVU147
+ 527 0030 E4B2     		uxtb	r4, r4
+ 528              	.LVL50:
+ 529              		.loc 1 106 16 is_stmt 1 view .LVU148
+ 530              		.loc 1 106 10 is_stmt 0 view .LVU149
+ 531 0032 2A46     		mov	r2, r5
+ 532 0034 2346     		mov	r3, r4
+ 533              	.LVL51:
+ 534              	.L33:
+ 107:source\touch/touch_pad.c **** 	      if (buf[i] > buf[j]) {
+ 535              		.loc 1 107 8 is_stmt 1 view .LVU150
+ 536              		.loc 1 107 15 is_stmt 0 view .LVU151
+ 537 0036 2988     		ldrh	r1, [r5]
+ 538              		.loc 1 107 24 view .LVU152
+ 539 0038 32F8020F 		ldrh	r0, [r2, #2]!
+ 106:source\touch/touch_pad.c **** 	      if (buf[i] > buf[j]) {
+ 540              		.loc 1 106 21 view .LVU153
+ 541 003c 0133     		adds	r3, r3, #1
+ 542              	.LVL52:
+ 543              		.loc 1 107 11 view .LVU154
+ 544 003e 8142     		cmp	r1, r0
+ 108:source\touch/touch_pad.c **** 		 temp = buf[i];
+ 545              		.loc 1 108 4 is_stmt 1 view .LVU155
+ 546              	.LVL53:
+ 109:source\touch/touch_pad.c **** 		 buf[i] = buf[j];
+ 547              		.loc 1 109 4 view .LVU156
+ 106:source\touch/touch_pad.c **** 	      if (buf[i] > buf[j]) {
+ 548              		.loc 1 106 21 is_stmt 0 view .LVU157
+ 549 0040 DBB2     		uxtb	r3, r3
+ 550              		.loc 1 109 11 view .LVU158
+ 551 0042 84BF     		itt	hi
+ 552 0044 2880     		strhhi	r0, [r5]	@ movhi
+ 110:source\touch/touch_pad.c **** 		 buf[j] = temp;
+ 553              		.loc 1 110 4 is_stmt 1 view .LVU159
+ 554              		.loc 1 110 11 is_stmt 0 view .LVU160
+ 555 0046 1180     		strhhi	r1, [r2]	@ movhi
+ 106:source\touch/touch_pad.c **** 	      if (buf[i] > buf[j]) {
+ 556              		.loc 1 106 21 is_stmt 1 view .LVU161
+ 557              	.LVL54:
+ 106:source\touch/touch_pad.c **** 	      if (buf[i] > buf[j]) {
+ 558              		.loc 1 106 16 view .LVU162
+ 559 0048 0A2B     		cmp	r3, #10
+ 560 004a F4D1     		bne	.L33
+ 561              	.LVL55:
+ 105:source\touch/touch_pad.c **** 	  for (j=i+1;j<10;j++) {
+ 562              		.loc 1 105 17 view .LVU163
+ 563 004c 092C     		cmp	r4, #9
+ 564 004e 05F10205 		add	r5, r5, #2
+ 565 0052 ECD1     		bne	.L34
+ 566 0054 0222     		movs	r2, #2
+ 111:source\touch/touch_pad.c **** 	      }
+ 112:source\touch/touch_pad.c **** 	  }
+ 113:source\touch/touch_pad.c ****       }
+ 114:source\touch/touch_pad.c ****       temp = 0;
+ 567              		.loc 1 114 12 is_stmt 0 view .LVU164
+ 568 0056 0023     		movs	r3, #0
+ 569              	.LVL56:
+ 570              	.L35:
+ 115:source\touch/touch_pad.c ****       for (i=2;i<8;i++) {
+ 116:source\touch/touch_pad.c ****           temp += buf[i];
+ 571              		.loc 1 116 11 is_stmt 1 discriminator 3 view .LVU165
+ 572              		.loc 1 116 16 is_stmt 0 discriminator 3 view .LVU166
+ 573 0058 36F81210 		ldrh	r1, [r6, r2, lsl #1]
+ 115:source\touch/touch_pad.c ****       for (i=2;i<8;i++) {
+ 574              		.loc 1 115 17 discriminator 3 view .LVU167
+ 575 005c 0132     		adds	r2, r2, #1
+ 576              	.LVL57:
+ 577              		.loc 1 116 16 discriminator 3 view .LVU168
+ 578 005e 0B44     		add	r3, r3, r1
+ 579              	.LVL58:
+ 115:source\touch/touch_pad.c ****       for (i=2;i<8;i++) {
+ 580              		.loc 1 115 17 discriminator 3 view .LVU169
+ 581 0060 082A     		cmp	r2, #8
+ 582              		.loc 1 116 16 discriminator 3 view .LVU170
+ 583 0062 9BB2     		uxth	r3, r3
+ 584              	.LVL59:
+ 115:source\touch/touch_pad.c ****       for (i=2;i<8;i++) {
+ 585              		.loc 1 115 21 is_stmt 1 discriminator 3 view .LVU171
+ 115:source\touch/touch_pad.c ****       for (i=2;i<8;i++) {
+ 586              		.loc 1 115 17 discriminator 3 view .LVU172
+ 587 0064 F8D1     		bne	.L35
+ 117:source\touch/touch_pad.c ****       }
+ 118:source\touch/touch_pad.c ****       tpad_default_val = temp / 6;
+ 588              		.loc 1 118 7 view .LVU173
+ 589              		.loc 1 118 24 is_stmt 0 view .LVU174
+ 590 0066 084C     		ldr	r4, .L40
+ 591 0068 0622     		movs	r2, #6
+ 592 006a B3FBF2F3 		udiv	r3, r3, r2
+ 593              	.LVL60:
+ 594              		.loc 1 118 24 view .LVU175
+ 595 006e 2380     		strh	r3, [r4]	@ movhi
+ 119:source\touch/touch_pad.c ****       lcd_printf(1,2,"Tpad default: %d",tpad_default_val);
+ 596              		.loc 1 119 7 is_stmt 1 view .LVU176
+ 597 0070 2388     		ldrh	r3, [r4]
+ 598 0072 064A     		ldr	r2, .L40+4
+ 599 0074 9BB2     		uxth	r3, r3
+ 600 0076 0221     		movs	r1, #2
+ 601 0078 0120     		movs	r0, #1
+ 602 007a FFF7FEFF 		bl	lcd_printf
+ 603              	.LVL61:
+ 120:source\touch/touch_pad.c ****       if ((tpad_default_val) > (TPAD_ARR_MAX_VAL / 2)) return 1;
+ 604              		.loc 1 120 7 view .LVU177
+ 605              		.loc 1 120 30 is_stmt 0 view .LVU178
+ 606 007e 2088     		ldrh	r0, [r4]
+ 121:source\touch/touch_pad.c ****       return 0;
+ 122:source\touch/touch_pad.c **** }
+ 607              		.loc 1 122 1 view .LVU179
+ 608 0080 C0F3C030 		ubfx	r0, r0, #15, #1
+ 609 0084 07B0     		add	sp, sp, #28
+ 610              		.cfi_def_cfa_offset 20
+ 611              		@ sp needed
+ 612 0086 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 613              	.L41:
+ 614              		.align	2
+ 615              	.L40:
+ 616 0088 00000000 		.word	tpad_default_val
+ 617 008c 00000000 		.word	.LC0
+ 618              		.cfi_endproc
+ 619              	.LFE128:
+ 621              		.section	.bss.key_en.0,"aw",%nobits
+ 624              	key_en.0:
+ 625 0000 00       		.space	1
+ 626              		.global	tpad_default_val
+ 627              		.section	.bss.tpad_default_val,"aw",%nobits
+ 628              		.align	1
+ 631              	tpad_default_val:
+ 632 0000 0000     		.space	2
+ 633              		.text
+ 634              	.Letext0:
+ 635              		.file 2 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 636              		.file 3 "c:\\program files (x86)\\arm gnu toolchain arm-none-eabi\\12.2 mpacbti-rel1\\arm-none-eab
+ 637              		.file 4 "c:/project/stm32fx_iolib/stm32fxxx/stm32f4xx/stm32f4xx.h"
+ 638              		.file 5 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_gpio.h"
+ 639              		.file 6 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_tim.h"
+ 640              		.file 7 "source\\touch\\../prototype.h"
+ 641              		.file 8 "c:/project/stm32fx_iolib/stm32f4x_iolib/include/stm32f4xx_rcc.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 touch_pad.c
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:21     .text.TPAD_Reset:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:27     .text.TPAD_Reset:00000000 TPAD_Reset
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:82     .text.TPAD_Reset:00000044 $d
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:87     .text.TPAD_Get_Val:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:93     .text.TPAD_Get_Val:00000000 TPAD_Get_Val
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:155    .text.TPAD_Get_MaxVal:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:161    .text.TPAD_Get_MaxVal:00000000 TPAD_Get_MaxVal
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:213    .text.TPAD_Scan:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:219    .text.TPAD_Scan:00000000 TPAD_Scan
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:330    .text.TPAD_Scan:00000054 $d
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:624    .bss.key_en.0:00000000 key_en.0
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:631    .bss.tpad_default_val:00000000 tpad_default_val
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:336    .text.TIM2_CH1_Cap_Init:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:342    .text.TIM2_CH1_Cap_Init:00000000 TIM2_CH1_Cap_Init
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:449    .text.TIM2_CH1_Cap_Init:0000006c $d
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:457    .text.TPAD_Init:00000000 $t
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:463    .text.TPAD_Init:00000000 TPAD_Init
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:616    .text.TPAD_Init:00000088 $d
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:625    .bss.key_en.0:00000000 $d
+C:\Users\37593\AppData\Local\Temp\ccK2CLXf.s:628    .bss.tpad_default_val:00000000 $d
+
+UNDEFINED SYMBOLS
+GPIO_Init_Pin
+GPIO_ResetBits
+delay_us
+TIM_ClearITPendingBit
+TIM_SetCounter
+TIM_GetFlagStatus
+TIM_GetCapture1
+TIM_GetCounter
+RCC_APB1PeriphClockCmd
+RCC_AHB1PeriphClockCmd
+GPIO_PinAFConfig
+TIM_TimeBaseInit
+TIM_ICInit
+TIM_Cmd
+wait_ms
+lcd_printf
